@@ -85,6 +85,8 @@ export function Header() {
         return "Our Story"
       case "faq":
         return "FAQ"
+      case "pricing":
+        return "Care Packages"
       default:
         return id
           .split("-")

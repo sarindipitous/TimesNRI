@@ -130,7 +130,7 @@ export function PricingSection() {
       <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
         <div className="inline-flex items-center justify-center rounded-full bg-primary-light px-4 py-2 text-sm font-medium text-primary mb-4">
           <Star className="h-4 w-4 mr-2" />
-          Pricing Plans
+          Care Packages
         </div>
         <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-primary">Choose Your Care Level</h2>
         <p className="max-w-2xl text-gray-600 text-lg px-4">
@@ -347,7 +347,11 @@ export function PricingSection() {
             { icon: "👩‍⚕️", title: "Home Nursing", desc: "12 or 24-hour care" },
             { icon: "🏃‍♂️", title: "Physiotherapy", desc: "In-home sessions" },
             { icon: "⚖️", title: "Legal Services", desc: "Wills & documentation" },
-            { icon: "✈️", title: "Travel Support", desc: "Accompanied trips" },
+            {
+              icon: "✈️",
+              title: "Travel Support",
+              desc: "Accompanied trips, booking packages, visa & health insurance",
+            },
             { icon: "📱", title: "Smart Monitoring", desc: "Health devices & alerts" },
             { icon: "🏠", title: "Home Attendants", desc: "Daily living assistance" },
           ].map((service, i) => (
