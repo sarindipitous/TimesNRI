@@ -1,0 +1,14 @@
+{
+  "name": "Times NRI - Elderly Care Concierge",
+  "short_name": "Times NRI",
+  "icons": [
+    {
+      "src": "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/timesnri_favicon-DSLvV0iLnWRwxijoGciCPulU5NAWQ1.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ],
+  "theme_color": "#4A8B9F",
+  "background_color": "#ffffff",
+  "display": "standalone"
+}
