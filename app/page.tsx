@@ -789,9 +789,7 @@ export default function Home() {
 
       {/* Pricing Section */}
       <AnimatedSection id="pricing" className="bg-secondary py-16 md:py-24 border-t border-gray-100">
-        <div className="container px-4 md:px-6">
-          <PricingSection />
-        </div>
+        <PricingSection />
       </AnimatedSection>
 
       {/* Testimonials */}
