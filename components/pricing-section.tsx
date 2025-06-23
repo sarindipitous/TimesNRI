@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { Button } from "@/components/ui/button"
-import { Check, Star, Heart, Shield, Crown, X, Info, ArrowRight } from "lucide-react"
+import { Check, Star, Heart, Shield, Crown, X, Info, ArrowRight, Zap } from "lucide-react"
 import { useState } from "react"
 import { CarePlansComparison } from "./care-plans-comparison"
 import Link from "next/link"
@@ -397,14 +397,44 @@ export function PricingSection() {
         </div>
       </div>
 
-      <div className="text-center mt-12 mb-8">
-        <Link
-          href="/compare"
-          className="inline-flex items-center gap-2 text-primary hover:text-accent font-semibold text-lg transition-colors border-b-2 border-transparent hover:border-accent pb-1"
-        >
-          Compare All Care Plans
-          <ArrowRight className="h-5 w-5" />
-        </Link>
+      {/* Enhanced Compare All Plans Section */}
+      <div className="mt-16 mb-8 max-w-4xl mx-auto px-4 md:px-6">
+        <div className="relative">
+          {/* Background gradient */}
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/10 to-purple-100/50 rounded-3xl blur-xl"></div>
+
+          {/* Main content */}
+          <div className="relative bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200/50 p-8 sm:p-12 shadow-lg">
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-primary to-accent rounded-2xl mb-6 shadow-lg">
+                <Zap className="h-8 w-8 text-white" />
+              </div>
+
+              <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Need to see every detail?</h3>
+
+              <p className="text-gray-600 text-lg mb-8 max-w-2xl mx-auto leading-relaxed">
+                Get the complete side-by-side breakdown of all features, benefits, and services across our three care
+                plans.
+              </p>
+
+              <Link href="/compare">
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white px-8 py-4 rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+                >
+                  <span className="flex items-center gap-3">
+                    Compare All Care Plans
+                    <ArrowRight className="h-5 w-5" />
+                  </span>
+                </Button>
+              </Link>
+
+              <p className="text-sm text-gray-500 mt-4">
+                ✨ Interactive comparison • Mobile-friendly • Detailed breakdown
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="mt-20 max-w-6xl mx-auto px-4 md:px-6">
