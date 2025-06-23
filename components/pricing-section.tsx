@@ -123,8 +123,7 @@ const planDetails: Record<string, PlanDetails> = {
     price: "$500",
     originalPrice: "$1000",
     savings: "Save 50%",
-    description:
-      "For when you want your parents to age with the same dignity, protection and comfort they once gave us. From doctors at the hospital bedside to priority access at India's best hospitals, Honour doesn't just keep them safe - it wraps them in care that anticipates, responds and restores.",
+    description: "For when you believe that only the very best will do for them",
     emotion: "The dignity and care they gave you, returned in full",
     icon: <Crown className="h-6 w-6 text-purple-600" />,
     color: "purple",
@@ -257,13 +256,13 @@ export function PricingSection() {
               </div>
             </div>
 
-            <Button
+            <button
+              onClick={() => openPlanDetails("peace")}
               className="w-full mb-4 text-blue-600 hover:text-blue-700 font-medium text-sm flex items-center justify-center gap-2 py-2 border border-blue-200 rounded-xl hover:bg-blue-50 transition-colors"
-              onClick={scrollToJoin}
             >
               <Info className="h-4 w-4" />
               View Full Details
-            </Button>
+            </button>
 
             <Button
               className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 rounded-2xl font-semibold text-lg"
@@ -274,8 +273,12 @@ export function PricingSection() {
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-xl border-2 border-accent overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-2">
-          <div className="p-8">
+        <div className="bg-white rounded-3xl shadow-xl border-2 border-accent overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 relative lg:scale-105">
+          <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-accent to-orange-500 text-white text-center py-3 font-semibold">
+            ⭐ Most Popular Choice
+          </div>
+
+          <div className="p-8 pt-16">
             <div className="flex items-center gap-3 mb-6">
               <div className="bg-accent/10 p-3 rounded-2xl">
                 <Shield className="h-6 w-6 text-accent" />
@@ -322,13 +325,13 @@ export function PricingSection() {
               </div>
             </div>
 
-            <Button
+            <button
+              onClick={() => openPlanDetails("presence")}
               className="w-full mb-4 text-accent hover:text-accent/80 font-medium text-sm flex items-center justify-center gap-2 py-2 border border-accent/30 rounded-xl hover:bg-accent/5 transition-colors"
-              onClick={scrollToJoin}
             >
               <Info className="h-4 w-4" />
               View Full Details
-            </Button>
+            </button>
 
             <Button
               className="w-full bg-accent hover:bg-accent/90 text-white py-6 rounded-2xl font-semibold text-lg"
@@ -347,10 +350,8 @@ export function PricingSection() {
               </div>
               <div>
                 <h3 className="text-2xl font-bold text-gray-900">Honour</h3>
-                <p className="text-sm text-gray-600 mt-1 leading-relaxed">
-                  For when you want your parents to age with the same dignity, protection and comfort they once gave us.
-                  From doctors at the hospital bedside to priority access at India's best hospitals, Honour doesn't just
-                  keep them safe - it wraps them in care that anticipates, responds and restores.
+                <p className="text-sm text-gray-600 mt-1">
+                  For when you believe that only the very best will do for them
                 </p>
               </div>
             </div>
@@ -393,13 +394,13 @@ export function PricingSection() {
               </div>
             </div>
 
-            <Button
+            <button
+              onClick={() => openPlanDetails("honour")}
               className="w-full mb-4 text-purple-600 hover:text-purple-700 font-medium text-sm flex items-center justify-center gap-2 py-2 border border-purple-200 rounded-xl hover:bg-purple-50 transition-colors"
-              onClick={scrollToJoin}
             >
               <Info className="h-4 w-4" />
               View Full Details
-            </Button>
+            </button>
 
             <Button
               className="w-full bg-purple-600 hover:bg-purple-700 text-white py-6 rounded-2xl font-semibold text-lg"

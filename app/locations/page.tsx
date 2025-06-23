@@ -8,14 +8,14 @@ import { MapPin, CheckCircle, Clock } from "lucide-react"
 export const metadata: Metadata = {
   title: "Our Service Locations - Times NRI Elderly Care",
   description:
-    "Explore our service locations across India. We currently serve Delhi NCR, Mumbai, Bangalore, Hyderabad, Pune, Chennai, and Kolkata, with more cities coming soon.",
+    "Explore our service locations across India. We currently serve Delhi NCR, Mumbai, Bangalore, Hyderabad, and Pune, with more cities coming soon.",
   alternates: {
     canonical: getCanonicalUrl("/locations"),
   },
   openGraph: {
     title: "Our Service Locations - Times NRI Elderly Care",
     description:
-      "Explore our service locations across India. We currently serve Delhi NCR, Mumbai, Bangalore, Hyderabad, Pune, Chennai, and Kolkata, with more cities coming soon.",
+      "Explore our service locations across India. We currently serve Delhi NCR, Mumbai, Bangalore, Hyderabad, and Pune, with more cities coming soon.",
     url: getCanonicalUrl("/locations"),
     siteName: "Times NRI",
     type: "website",
@@ -61,14 +61,15 @@ const cities = [
   {
     id: "chennai",
     name: "Chennai",
-    status: "active",
-    description: "Our Chennai services cover the entire city, including OMR, ECR, and surrounding areas.",
+    status: "coming-soon",
+    description: "Our Chennai services will cover the entire city, including OMR, ECR, and surrounding areas.",
   },
   {
     id: "kolkata",
     name: "Kolkata",
-    status: "active",
-    description: "Our Kolkata services cover the entire city, including Salt Lake, New Town, and surrounding areas.",
+    status: "coming-soon",
+    description:
+      "Our Kolkata services will cover the entire city, including Salt Lake, New Town, and surrounding areas.",
   },
 ]
 
@@ -124,8 +125,7 @@ export default function LocationsPage() {
 
             <div className="text-center mt-12">
               <p className="text-gray-500">
-                Don't see your If you don't see your city, join the waitlist and we'll notify you when we expand to your
-                location.
+                Don't see your city? Join the waitlist and we'll notify you when we expand to your location.
               </p>
             </div>
           </div>
