@@ -14,6 +14,7 @@ import dynamic from "next/dynamic"
 import { useState, useEffect, useRef } from "react"
 import { motion, useScroll, useTransform, useInView, useReducedMotion } from "framer-motion"
 import { PricingSection } from "@/components/pricing-section"
+import { useSearchParams } from "next/navigation"
 
 // Lazy load components that are below the fold
 const LazyTestimonials = dynamic(
@@ -217,10 +218,26 @@ export default function Home() {
   const { scrollYProgress } = useScroll()
   const opacity = useTransform(scrollYProgress, [0, 0.05], [1, 0.8])
   const scale = useTransform(scrollYProgress, [0, 0.05], [1, 0.98])
+  const searchParams = useSearchParams()
 
   // Inside the Home component, add these lines after the heroImage definition
   const prefersReducedMotion = useReducedMotion()
   const isMobile = useMediaQuery("(max-width: 768px)")
+
+  // Check if user came from compare page with a plan selection
+  useEffect(() => {
+    const plan = searchParams.get("plan")
+    if (plan) {
+      // Trigger waitlist dialog with the selected plan
+      setTimeout(() => {
+        const headerElement = document.querySelector("header")
+        if (headerElement) {
+          const event = new CustomEvent("openWaitlistDialog", { detail: { selectedPlan: plan } })
+          headerElement.dispatchEvent(event)
+        }
+      }, 500)
+    }
+  }, [searchParams])
 
   // Define variants here inside the component to use hooks properly
   const itemVariants = {

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Check, Star, Heart, Shield, Crown, X, Info, ArrowRight } from "lucide-react"
 import { useState } from "react"
 import { CarePlansComparison } from "./care-plans-comparison"
+import Link from "next/link"
 
 interface PlanDetails {
   name: string
@@ -408,13 +409,13 @@ export function PricingSection() {
       </div>
 
       <div className="text-center mt-12 mb-8">
-        <button
-          onClick={() => setShowComparison(true)}
+        <Link
+          href="/compare"
           className="inline-flex items-center gap-2 text-primary hover:text-accent font-semibold text-lg transition-colors border-b-2 border-transparent hover:border-accent pb-1"
         >
           Compare All Care Plans
           <ArrowRight className="h-5 w-5" />
-        </button>
+        </Link>
       </div>
 
       <div className="mt-20 max-w-6xl mx-auto px-4 md:px-6">
