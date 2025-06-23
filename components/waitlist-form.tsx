@@ -321,6 +321,9 @@ export function WaitlistForm({
                             <SelectItem value="hyderabad">Hyderabad</SelectItem>
                             <SelectItem value="pune">Pune</SelectItem>
                             <SelectItem value="chennai">Chennai</SelectItem>
+                            <SelectItem value="kolkata">Kolkata</SelectItem>
+                            <SelectItem value="ahmedabad">Ahmedabad</SelectItem>
+                            <SelectItem value="jaipur">Jaipur</SelectItem>
                             <SelectItem value="other">Other</SelectItem>
                           </SelectContent>
                         </Select>
