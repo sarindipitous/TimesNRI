@@ -20,6 +20,7 @@ interface WaitlistFormProps {
   onClose?: () => void
   isOpen?: boolean
   onOpenChange?: (open: boolean) => void
+  standalone?: boolean // New prop for standalone mode
 }
 
 export function WaitlistForm({
@@ -31,6 +32,7 @@ export function WaitlistForm({
   onClose,
   isOpen = false,
   onOpenChange,
+  standalone = false, // Default to false for backward compatibility
 }: WaitlistFormProps) {
   const [email, setEmail] = useState("")
   const [name, setName] = useState("")
@@ -203,10 +205,264 @@ export function WaitlistForm({
 
   const handleSuccessClose = () => {
     setIsSuccessOpen(false)
-    handleClose()
+    if (!standalone) {
+      handleClose()
+    }
   }
 
-  // Modal version
+  // Standalone version (for dedicated waitlist page)
+  if (standalone) {
+    return (
+      <div className="w-full">
+        <form ref={formRef} onSubmit={handleSubmit} className="w-full">
+          {!isDetailed ? (
+            <div className="space-y-4">
+              {includeNameField && (
+                <Input
+                  type="text"
+                  name="name"
+                  placeholder="Your name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12"
+                  required
+                />
+              )}
+              <Input
+                type="email"
+                name="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12"
+              />
+              {formError && <p className="text-sm text-red-500">{formError}</p>}
+              {formMessage && <p className="text-sm text-green-500">{formMessage}</p>}
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full bg-accent hover:bg-accent/90 text-white h-12"
+              >
+                {isSubmitting ? "Joining..." : buttonText}
+              </Button>
+            </div>
+          ) : (
+            // Detailed form steps here
+            <div>
+              {step === 1 && (
+                <div className="space-y-4 animate-fadeIn">
+                  <h3 className="text-lg font-medium text-gray-800">About You</h3>
+                  <div className="space-y-3">
+                    <Input
+                      type="text"
+                      name="name"
+                      placeholder="Your name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12"
+                      required
+                    />
+                    <Input
+                      type="email"
+                      name="email"
+                      placeholder="Your email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12"
+                    />
+                    <Select value={city} onValueChange={setCity}>
+                      <SelectTrigger className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12">
+                        <SelectValue placeholder="Where are you based?" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="us">United States</SelectItem>
+                        <SelectItem value="canada">Canada</SelectItem>
+                        <SelectItem value="uk">United Kingdom</SelectItem>
+                        <SelectItem value="australia">Australia</SelectItem>
+                        <SelectItem value="singapore">Singapore</SelectItem>
+                        <SelectItem value="uae">UAE</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {formError && <p className="text-sm text-red-500">{formError}</p>}
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      if (validateForm()) setStep(2)
+                    }}
+                    className="w-full bg-accent hover:bg-accent/90 text-white mt-2 flex items-center justify-center h-12"
+                    disabled={!name || !email || !city}
+                  >
+                    Continue <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+
+              {step === 2 && (
+                <div className="space-y-4 animate-fadeIn">
+                  <h3 className="text-lg font-medium text-gray-800">About Your Parents</h3>
+                  <div className="space-y-3">
+                    <Select value={parentLocation} onValueChange={setParentLocation}>
+                      <SelectTrigger className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12">
+                        <SelectValue placeholder="Where are your parents located?" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="delhi">Delhi NCR</SelectItem>
+                        <SelectItem value="mumbai">Mumbai</SelectItem>
+                        <SelectItem value="bangalore">Bangalore</SelectItem>
+                        <SelectItem value="hyderabad">Hyderabad</SelectItem>
+                        <SelectItem value="pune">Pune</SelectItem>
+                        <SelectItem value="chennai">Chennai</SelectItem>
+                        <SelectItem value="kolkata">Kolkata</SelectItem>
+                        <SelectItem value="ahmedabad">Ahmedabad</SelectItem>
+                        <SelectItem value="jaipur">Jaipur</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={careNeeds} onValueChange={setCareNeeds}>
+                      <SelectTrigger className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12">
+                        <SelectValue placeholder="What type of care do they need?" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="regular">Regular check-ins</SelectItem>
+                        <SelectItem value="medical">Medical appointment assistance</SelectItem>
+                        <SelectItem value="daily">Daily living assistance</SelectItem>
+                        <SelectItem value="emergency">Emergency support</SelectItem>
+                        <SelectItem value="all">All of the above</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {formError && <p className="text-sm text-red-500">{formError}</p>}
+                  <div className="flex space-x-2">
+                    <Button
+                      type="button"
+                      onClick={() => setStep(1)}
+                      className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 h-12"
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        if (validateForm()) setStep(3)
+                      }}
+                      className="flex-1 bg-accent hover:bg-accent/90 text-white flex items-center justify-center h-12"
+                      disabled={!parentLocation || !careNeeds}
+                    >
+                      Continue <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {step === 3 && (
+                <div className="space-y-4 animate-fadeIn">
+                  <h3 className="text-lg font-medium text-gray-800">Confirm Your Details</h3>
+                  <div className="bg-gray-50 p-4 rounded-lg space-y-2 text-sm">
+                    <p>
+                      <span className="font-medium">Name:</span> {name}
+                    </p>
+                    <p>
+                      <span className="font-medium">Email:</span> {email}
+                    </p>
+                    <p>
+                      <span className="font-medium">Your location:</span> {city}
+                    </p>
+                    <p>
+                      <span className="font-medium">Parents' location:</span> {parentLocation}
+                    </p>
+                    <p>
+                      <span className="font-medium">Care needs:</span> {careNeeds}
+                    </p>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    By joining our waitlist, you'll be among the first to know when we launch in your parents' city.
+                    We'll also send you resources on elderly care in India.
+                  </p>
+                  {formError && <p className="text-sm text-red-500">{formError}</p>}
+                  <div className="flex space-x-2">
+                    <Button
+                      type="button"
+                      onClick={() => setStep(2)}
+                      className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 h-12"
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="flex-1 bg-accent hover:bg-accent/90 text-white h-12"
+                    >
+                      {isSubmitting ? "Submitting..." : "Join Waitlist"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </form>
+
+        {/* Success message for standalone mode */}
+        {isSuccessOpen && (
+          <div className="mt-8 p-6 bg-green-50 border border-green-200 rounded-xl">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="rounded-full bg-green-100 p-4">
+                <Check className="h-8 w-8 text-green-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-green-800">You're on the list!</h3>
+              <p className="text-green-700">
+                {isDetailed ? `Thank you for sharing your needs with us.` : `We'll reach out when your city is live.`}
+              </p>
+              {isDetailed && (
+                <p className="text-sm text-green-600">
+                  We'll be in touch soon with personalized information about our services in {parentLocation}.
+                </p>
+              )}
+
+              {referralLink && (
+                <div className="w-full space-y-3 mt-4 pt-4 border-t border-green-200">
+                  <p className="font-medium text-green-800">Want priority access?</p>
+                  <p className="text-sm text-green-600">Share with other NRIs who might need our help.</p>
+                  <div className="flex items-center space-x-2 rounded-md border border-green-300 p-2 bg-white">
+                    <input
+                      type="text"
+                      value={referralLink}
+                      readOnly
+                      className="flex-1 bg-transparent text-sm outline-none p-2"
+                    />
+                    <Button size="sm" variant="ghost" onClick={copyReferralLink} className="h-10 w-10 p-2">
+                      {referralCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  <div className="flex justify-center space-x-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex items-center space-x-1 h-12 px-4 border-green-300 text-green-700 hover:bg-green-50"
+                      onClick={() => {
+                        window.open(
+                          `https://wa.me/?text=I just joined the Times NRI waitlist for elderly care services in India. As an NRI, I found this service really promising for managing parent care from abroad: ${referralLink}`,
+                          "_blank",
+                        )
+                      }}
+                    >
+                      <Share2 className="h-4 w-4" />
+                      <span>Share</span>
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // Modal version (existing code)
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>

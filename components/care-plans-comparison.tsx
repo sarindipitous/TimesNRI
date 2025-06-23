@@ -1,6 +1,7 @@
 "use client"
 import { Check, X, Crown, Heart, Shield, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 interface ComparisonFeature {
   category: string
@@ -331,15 +332,11 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
                   <div className="text-xs text-blue-600 font-medium italic mb-4 leading-relaxed">
                     Peace of mind, always within reach
                   </div>
-                  <Button
-                    size="sm"
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2"
-                    onClick={() => {
-                      if (onSelectPlan) onSelectPlan("peace")
-                    }}
-                  >
-                    Choose Peace
-                  </Button>
+                  <Link href="/waitlist?plan=peace">
+                    <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2">
+                      Choose Peace
+                    </Button>
+                  </Link>
                 </div>
               </div>
 
@@ -355,15 +352,11 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
                   <div className="text-xs text-accent font-medium italic mb-4 leading-relaxed">
                     Your caring presence, delivered daily
                   </div>
-                  <Button
-                    size="sm"
-                    className="w-full bg-accent hover:bg-accent/90 text-white font-semibold py-2"
-                    onClick={() => {
-                      if (onSelectPlan) onSelectPlan("presence")
-                    }}
-                  >
-                    Choose Presence
-                  </Button>
+                  <Link href="/waitlist?plan=presence">
+                    <Button size="sm" className="w-full bg-accent hover:bg-accent/90 text-white font-semibold py-2">
+                      Choose Presence
+                    </Button>
+                  </Link>
                 </div>
               </div>
 
@@ -379,15 +372,14 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
                   <div className="text-xs text-purple-600 font-medium italic mb-4 leading-relaxed">
                     The dignity and care they gave you, returned in full
                   </div>
-                  <Button
-                    size="sm"
-                    className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2"
-                    onClick={() => {
-                      if (onSelectPlan) onSelectPlan("honour")
-                    }}
-                  >
-                    Choose Honour
-                  </Button>
+                  <Link href="/waitlist?plan=honour">
+                    <Button
+                      size="sm"
+                      className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2"
+                    >
+                      Choose Honour
+                    </Button>
+                  </Link>
                 </div>
               </div>
             </div>

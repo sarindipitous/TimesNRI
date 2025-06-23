@@ -15,6 +15,7 @@ import { useState, useEffect, useRef } from "react"
 import { motion, useScroll, useTransform, useInView, useReducedMotion } from "framer-motion"
 import { PricingSection } from "@/components/pricing-section"
 import { useSearchParams } from "next/navigation"
+import Link from "next/link"
 
 // Lazy load components that are below the fold
 const LazyTestimonials = dynamic(
@@ -197,21 +198,6 @@ function AnimatedSection({
   )
 }
 
-// Update any references to the "join" section to point to a different section or handle it differently
-// For example, update the scrollToJoin function and any onClick handlers that use it
-
-// Find and update the scrollToJoin function:
-const scrollToJoin = () => {
-  // Instead of scrolling to the join section, open the waitlist dialog
-  const headerElement = document.querySelector("header")
-  if (headerElement) {
-    const event = new CustomEvent("openWaitlistDialog")
-    headerElement.dispatchEvent(event)
-  }
-}
-
-// Also update any other places where scrollToJoin is used or where "#join" is referenced
-
 export default function Home() {
   // Define hero image with a fallback
   const heroImage = getBlobUrl("/images/hero-video-call.png")
@@ -228,14 +214,8 @@ export default function Home() {
   useEffect(() => {
     const plan = searchParams.get("plan")
     if (plan) {
-      // Trigger waitlist dialog with the selected plan
-      setTimeout(() => {
-        const headerElement = document.querySelector("header")
-        if (headerElement) {
-          const event = new CustomEvent("openWaitlistDialog", { detail: { selectedPlan: plan } })
-          headerElement.dispatchEvent(event)
-        }
-      }, 500)
+      // Redirect to waitlist page with the selected plan
+      window.location.href = `/waitlist?plan=${plan}`
     }
   }, [searchParams])
 
@@ -362,22 +342,17 @@ export default function Home() {
                 transition={{ duration: 0.8, delay: 1, ease: "easeOut" }}
               >
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
-                  <Button
-                    size="lg"
-                    className="bg-accent hover:bg-accent/90 text-white transition-all duration-300 py-7 px-8 text-lg font-semibold"
-                    onClick={() => {
-                      const headerElement = document.querySelector("header")
-                      if (headerElement) {
-                        const event = new CustomEvent("openWaitlistDialog")
-                        headerElement.dispatchEvent(event)
-                      }
-                    }}
-                  >
-                    Join Our Waitlist{" "}
-                    <motion.span initial={{ x: 0 }} whileHover={{ x: 5 }} transition={{ duration: 0.3 }}>
-                      <ArrowRight className="ml-2 h-5 w-5" />
-                    </motion.span>
-                  </Button>
+                  <Link href="/waitlist">
+                    <Button
+                      size="lg"
+                      className="bg-accent hover:bg-accent/90 text-white transition-all duration-300 py-7 px-8 text-lg font-semibold"
+                    >
+                      Join Our Waitlist{" "}
+                      <motion.span initial={{ x: 0 }} whileHover={{ x: 5 }} transition={{ duration: 0.3 }}>
+                        <ArrowRight className="ml-2 h-5 w-5" />
+                      </motion.span>
+                    </Button>
+                  </Link>
                 </motion.div>
               </motion.div>
             </motion.div>
@@ -667,16 +642,15 @@ export default function Home() {
                   </p>
                 </motion.div>
                 <motion.div className="pt-8" variants={itemVariants}>
-                  <Button
-                    size="lg"
-                    className="bg-accent hover:bg-accent/90 text-white transition-all duration-300 py-6 px-8 text-lg font-semibold"
-                    onClick={() => {
-                      scrollToJoin()
-                    }}
-                  >
-                    Join Our Waitlist
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
+                  <Link href="/waitlist">
+                    <Button
+                      size="lg"
+                      className="bg-accent hover:bg-accent/90 text-white transition-all duration-300 py-6 px-8 text-lg font-semibold"
+                    >
+                      Join Our Waitlist
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </Link>
                 </motion.div>
               </div>
             </motion.div>

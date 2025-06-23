@@ -171,14 +171,6 @@ export function PricingSection() {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
   const [showComparison, setShowComparison] = useState(false)
 
-  const scrollToJoin = () => {
-    const headerElement = document.querySelector("header")
-    if (headerElement) {
-      const event = new CustomEvent("openWaitlistDialog")
-      headerElement.dispatchEvent(event)
-    }
-  }
-
   const openPlanDetails = (planKey: string) => {
     setSelectedPlan(planKey)
   }
@@ -264,12 +256,11 @@ export function PricingSection() {
               View Full Details
             </button>
 
-            <Button
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 rounded-2xl font-semibold text-lg"
-              onClick={scrollToJoin}
-            >
-              Choose Peace
-            </Button>
+            <Link href="/waitlist?plan=peace">
+              <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 rounded-2xl font-semibold text-lg">
+                Choose Peace
+              </Button>
+            </Link>
           </div>
         </div>
 
@@ -329,12 +320,11 @@ export function PricingSection() {
               View Full Details
             </button>
 
-            <Button
-              className="w-full bg-accent hover:bg-accent/90 text-white py-6 rounded-2xl font-semibold text-lg"
-              onClick={scrollToJoin}
-            >
-              Choose Presence
-            </Button>
+            <Link href="/waitlist?plan=presence">
+              <Button className="w-full bg-accent hover:bg-accent/90 text-white py-6 rounded-2xl font-semibold text-lg">
+                Choose Presence
+              </Button>
+            </Link>
           </div>
         </div>
 
@@ -398,12 +388,11 @@ export function PricingSection() {
               View Full Details
             </button>
 
-            <Button
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white py-6 rounded-2xl font-semibold text-lg"
-              onClick={scrollToJoin}
-            >
-              Choose Honour
-            </Button>
+            <Link href="/waitlist?plan=honour">
+              <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white py-6 rounded-2xl font-semibold text-lg">
+                Choose Honour
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
@@ -512,15 +501,13 @@ export function PricingSection() {
               </div>
 
               <div className="mt-8 flex gap-4">
-                <Button
-                  className={`flex-1 ${planDetails[selectedPlan].buttonColor} text-white py-4 rounded-2xl font-semibold text-lg`}
-                  onClick={() => {
-                    closePlanDetails()
-                    scrollToJoin()
-                  }}
-                >
-                  Choose {planDetails[selectedPlan].name}
-                </Button>
+                <Link href={`/waitlist?plan=${selectedPlan}`} className="flex-1">
+                  <Button
+                    className={`w-full ${planDetails[selectedPlan].buttonColor} text-white py-4 rounded-2xl font-semibold text-lg`}
+                  >
+                    Choose {planDetails[selectedPlan].name}
+                  </Button>
+                </Link>
                 <button
                   onClick={closePlanDetails}
                   className="px-8 py-4 border border-gray-300 rounded-2xl font-medium text-gray-700 hover:bg-gray-50 transition-colors"
@@ -538,7 +525,7 @@ export function PricingSection() {
           onClose={() => setShowComparison(false)}
           onSelectPlan={(plan) => {
             setShowComparison(false)
-            scrollToJoin()
+            window.location.href = `/waitlist?plan=${plan}`
           }}
         />
       )}

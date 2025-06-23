@@ -121,19 +121,11 @@ export function ServiceDetail({ title, description, icon }: ServiceDetailProps) 
               </div>
 
               <div className="mt-12">
-                <Button
-                  size="lg"
-                  className="bg-accent hover:bg-accent/90 text-white"
-                  onClick={() => {
-                    const headerElement = document.querySelector("header")
-                    if (headerElement) {
-                      const event = new CustomEvent("openWaitlistDialog")
-                      headerElement.dispatchEvent(event)
-                    }
-                  }}
-                >
-                  Join the Waitlist
-                </Button>
+                <Link href="/waitlist">
+                  <Button size="lg" className="bg-accent hover:bg-accent/90 text-white">
+                    Join the Waitlist
+                  </Button>
+                </Link>
               </div>
             </motion.div>
           </div>
@@ -175,19 +167,11 @@ export function ServiceDetail({ title, description, icon }: ServiceDetailProps) 
               <p className="text-sm text-gray-600 mb-4">
                 Have questions about our {title.toLowerCase()} service? We're here to help.
               </p>
-              <Button
-                className="w-full"
-                variant="outline"
-                onClick={() => {
-                  const headerElement = document.querySelector("header")
-                  if (headerElement) {
-                    const event = new CustomEvent("openWaitlistDialog")
-                    headerElement.dispatchEvent(event)
-                  }
-                }}
-              >
-                Get in Touch
-              </Button>
+              <Link href="/waitlist">
+                <Button className="w-full" variant="outline">
+                  Get in Touch
+                </Button>
+              </Link>
             </div>
           </motion.div>
         </div>
