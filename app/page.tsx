@@ -3,12 +3,11 @@
 import type React from "react"
 
 import { Button } from "@/components/ui/button"
-import { ServiceCard } from "@/components/service-card"
 import { Footer } from "@/components/footer"
 import { Header } from "@/components/header"
 import { TimesNriBadge } from "@/components/times-nri-badge"
 import { MobileWaitlistButton } from "@/components/mobile-waitlist-button"
-import { ArrowRight, Clock, Shield, Users, CheckCircle2 } from "lucide-react"
+import { ArrowRight, Heart, Stethoscope, MessageCircle, Bell } from "lucide-react"
 import Image from "next/image"
 import { getBlobUrl } from "@/utils/image-utils"
 import dynamic from "next/dynamic"
@@ -308,23 +307,31 @@ export default function Home() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
             >
-              <div className="space-y-5">
+              <div className="space-y-6">
+                <motion.div
+                  className="text-4xl mb-4"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, delay: 0.1 }}
+                >
+                  🪷
+                </motion.div>
                 <motion.h1
-                  className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl/none text-primary"
+                  className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl/none text-primary leading-tight"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
                 >
-                  When you can&apos;t be there,{" "}
+                  You live far from home.
+                  <br />
                   <motion.span
                     className="text-accent"
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.5, delay: 1.1, ease: "easeOut" }}
                   >
-                    we will
+                    Your heart stays behind.
                   </motion.span>
-                  .
                 </motion.h1>
                 <motion.p
                   className="text-gray-700 text-lg leading-relaxed"
@@ -332,58 +339,12 @@ export default function Home() {
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }}
                 >
-                  A verified, on-demand care concierge for your parents in India. We provide the support they need, with
-                  the transparency you deserve.
+                  Every missed call from India spikes your chest. Every hospital WhatsApp shakes your spine.
+                  <br />
+                  <br />
+                  <span className="font-medium text-primary">This isn't about guilt. It's about love.</span>
                 </motion.p>
               </div>
-
-              <motion.div
-                className="grid grid-cols-2 gap-4 py-2"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.8, delay: 0.8, ease: "easeOut" }}
-              >
-                <motion.div
-                  className="flex items-start gap-3"
-                  whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
-                >
-                  <Clock className="h-5 w-5 text-accent shrink-0 mt-0.5" />
-                  <div>
-                    <h3 className="text-sm font-medium">24/7 Support</h3>
-                    <p className="text-xs text-gray-500">Across all time zones</p>
-                  </div>
-                </motion.div>
-                <motion.div
-                  className="flex items-start gap-3"
-                  whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
-                >
-                  <Shield className="h-5 w-5 text-accent shrink-0 mt-0.5" />
-                  <div>
-                    <h3 className="text-sm font-medium">Verified Caregivers</h3>
-                    <p className="text-xs text-gray-500">Background checked</p>
-                  </div>
-                </motion.div>
-                <motion.div
-                  className="flex items-start gap-3"
-                  whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
-                >
-                  <Users className="h-5 w-5 text-accent shrink-0 mt-0.5" />
-                  <div>
-                    <h3 className="text-sm font-medium">1000+ Families</h3>
-                    <p className="text-xs text-gray-500">Trust our services</p>
-                  </div>
-                </motion.div>
-                <motion.div
-                  className="flex items-start gap-3"
-                  whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
-                >
-                  <CheckCircle2 className="h-5 w-5 text-accent shrink-0 mt-0.5" />
-                  <div>
-                    <h3 className="text-sm font-medium">Times Group</h3>
-                    <p className="text-xs text-gray-500">Backed by legacy</p>
-                  </div>
-                </motion.div>
-              </motion.div>
 
               <motion.div
                 className="pt-2"
@@ -394,17 +355,16 @@ export default function Home() {
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
                   <Button
                     size="lg"
-                    className="bg-accent hover:bg-accent/90 text-white transition-all duration-300 py-7 px-6" // Increased touch target
+                    className="bg-accent hover:bg-accent/90 text-white transition-all duration-300 py-7 px-8 text-lg font-semibold"
                     onClick={() => {
                       const headerElement = document.querySelector("header")
                       if (headerElement) {
-                        // Access the header component's waitlist dialog open function
                         const event = new CustomEvent("openWaitlistDialog")
                         headerElement.dispatchEvent(event)
                       }
                     }}
                   >
-                    Join the Waitlist{" "}
+                    Join Our Waitlist{" "}
                     <motion.span initial={{ x: 0 }} whileHover={{ x: 5 }} transition={{ duration: 0.3 }}>
                       <ArrowRight className="ml-2 h-5 w-5" />
                     </motion.span>
@@ -449,125 +409,8 @@ export default function Home() {
         </div>
       </motion.section>
 
-      {/* Trust & Verification Section */}
-      <AnimatedSection className="bg-white py-12 border-y border-gray-100" id="trust">
-        <div className="container px-4 md:px-6">
-          <div className="max-w-3xl mx-auto">
-            <motion.div className="flex flex-col items-center text-center space-y-4 mb-8" variants={itemVariants}>
-              <motion.div
-                className="inline-flex items-center justify-center rounded-full bg-primary-light px-3 py-1 text-sm font-medium text-primary mb-2"
-                whileHover={{ scale: 1.05 }}
-                variants={itemVariants}
-              >
-                Our Commitment to Trust
-              </motion.div>
-              <motion.h2 className="text-2xl font-bold text-gray-900" variants={itemVariants}>
-                How We Verify Our Caregivers
-              </motion.h2>
-              <motion.p className="text-gray-600" variants={itemVariants}>
-                We understand that trust is paramount when it comes to caring for your loved ones.
-              </motion.p>
-            </motion.div>
-
-            <motion.div className="grid md:grid-cols-3 gap-6" variants={itemVariants}>
-              {[
-                {
-                  icon: <Shield className="h-6 w-6 text-primary" />,
-                  title: "Background Verification",
-                  description:
-                    "Criminal background checks, address verification, and employment history validation for all caregivers.",
-                },
-                {
-                  icon: <Users className="h-6 w-6 text-accent" />,
-                  title: "Skill Certification",
-                  description:
-                    "Verification of medical credentials, specialized training certification, and regular skill assessments.",
-                },
-                {
-                  icon: <CheckCircle2 className="h-6 w-6 text-primary" />,
-                  title: "Ongoing Monitoring",
-                  description:
-                    "Regular performance reviews, client feedback integration, and continuous professional development.",
-                },
-              ].map((item, i) => (
-                <motion.div
-                  key={i}
-                  className="bg-white p-6 rounded-xl shadow-soft border border-gray-100 transition-all duration-300"
-                  variants={cardVariants}
-                  custom={i}
-                  whileHover={{
-                    y: -8,
-                    boxShadow: "0 10px 25px rgba(0, 0, 0, 0.08)",
-                    transition: { duration: 0.3 },
-                  }}
-                >
-                  <div className="flex flex-col items-center text-center space-y-3">
-                    <motion.div
-                      className={`bg-${i % 2 === 0 ? "primary" : "accent"}-light p-3 rounded-full`}
-                      whileHover={{ scale: 1.1, rotate: 5 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                    >
-                      {item.icon}
-                    </motion.div>
-                    <h3 className="font-medium">{item.title}</h3>
-                    <p className="text-sm text-gray-600">{item.description}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </motion.div>
-
-            <motion.div className="mt-8 text-center" variants={itemVariants}>
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
-                <Button
-                  variant="outline"
-                  className="text-primary border-primary hover:bg-primary-light transition-all duration-300 py-6 px-6" // Increased touch target
-                  onClick={() => {
-                    const servicesSection = document.getElementById("services")
-                    if (servicesSection) {
-                      servicesSection.scrollIntoView({ behavior: "smooth" })
-                    }
-                  }}
-                >
-                  Learn more about our services{" "}
-                  <motion.span initial={{ x: 0 }} whileHover={{ x: 5 }} transition={{ duration: 0.3 }}>
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </motion.span>
-                </Button>
-              </motion.div>
-            </motion.div>
-          </div>
-        </div>
-      </AnimatedSection>
-
       {/* Emotional Tension Section */}
       <AnimatedSection id="about" className="bg-secondary py-16 md:py-24 relative overflow-hidden">
-        <motion.div
-          className="absolute top-0 right-0 w-64 h-64 bg-accent-light rounded-full -translate-y-1/2 translate-x-1/2 opacity-50"
-          animate={{
-            y: ["-50%", "-48%", "-50%"],
-            x: ["50%", "52%", "50%"],
-          }}
-          transition={{
-            duration: 10,
-            ease: "easeInOut",
-            repeat: Number.POSITIVE_INFINITY,
-            repeatType: "reverse",
-          }}
-        />
-        <motion.div
-          className="absolute bottom-0 left-0 w-96 h-96 bg-primary-light rounded-full translate-y-1/2 -translate-x-1/2 opacity-50"
-          animate={{
-            y: ["50%", "48%", "50%"],
-            x: ["-50%", "-48%", "-50%"],
-          }}
-          transition={{
-            duration: 10,
-            ease: "easeInOut",
-            repeat: Number.POSITIVE_INFINITY,
-            repeatType: "reverse",
-            delay: 1,
-          }}
-        />
         <div className="container px-4 md:px-6 relative z-10">
           <motion.div className="grid gap-12 lg:grid-cols-2 lg:gap-16 xl:gap-20 items-center" variants={itemVariants}>
             <motion.div className="flex items-center justify-center order-2 lg:order-1" variants={itemVariants}>
@@ -602,39 +445,17 @@ export default function Home() {
               </motion.div>
             </motion.div>
             <motion.div className="flex flex-col justify-center space-y-6 order-1 lg:order-2" variants={itemVariants}>
-              <div className="space-y-5">
+              <div className="space-y-6">
                 <motion.h2
                   className="text-3xl font-bold tracking-tight sm:text-4xl text-primary"
                   variants={itemVariants}
                 >
-                  You&apos;re thousands of miles away. But your parents still need you.
+                  You've told yourself, "I'll figure something out."
                 </motion.h2>
-                <motion.p className="text-gray-700 text-lg leading-relaxed" variants={itemVariants}>
-                  You moved abroad to build a better life. But every missed call or medical scare pulls you right back
-                  into worry. The guilt of distance can be overwhelming.
-                </motion.p>
-                <motion.p className="text-gray-700 text-lg leading-relaxed" variants={itemVariants}>
-                  That&apos;s why we created Elderly Care Concierge — a verified, local support system built for NRIs
-                  who care deeply, even from far away. We become your presence when you can't be there physically.
-                </motion.p>
-                <motion.div className="pt-4" variants={itemVariants}>
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
-                    <Button
-                      size="lg"
-                      className="bg-accent hover:bg-accent/90 text-white transition-all duration-300 py-7 px-6" // Increased touch target
-                      onClick={() => {
-                        const howItWorksSection = document.getElementById("how-it-works")
-                        if (howItWorksSection) {
-                          howItWorksSection.scrollIntoView({ behavior: "smooth" })
-                        }
-                      }}
-                    >
-                      Learn How It Works{" "}
-                      <motion.span initial={{ x: 0 }} whileHover={{ x: 5 }} transition={{ duration: 0.3 }}>
-                        <ArrowRight className="ml-2 h-5 w-5" />
-                      </motion.span>
-                    </Button>
-                  </motion.div>
+                <motion.div className="space-y-4 text-gray-700 text-lg leading-relaxed" variants={itemVariants}>
+                  <p>But there's nothing to figure. They're ageing. And you're not there.</p>
+                  <p>You've built a life abroad. But your heart, a part of it, stays behind. With them.</p>
+                  <p className="font-medium text-primary">And love, when you can't be there, looks like this.</p>
                 </motion.div>
               </div>
             </motion.div>
@@ -642,93 +463,55 @@ export default function Home() {
         </div>
       </AnimatedSection>
 
-      {/* Services Overview */}
+      {/* What We Do Section */}
       <AnimatedSection id="services" className="bg-white py-16 md:py-24 border-b border-gray-100">
         <div className="container px-4 md:px-6">
           <motion.div
-            className="flex flex-col items-center justify-center space-y-4 text-center mb-12"
+            className="flex flex-col items-center justify-center space-y-4 text-center mb-16"
             variants={itemVariants}
           >
-            <motion.div
-              className="inline-flex items-center justify-center rounded-full bg-accent-light px-3 py-1 text-sm font-medium text-accent mb-2"
-              whileHover={{ scale: 1.05 }}
-              variants={itemVariants}
-            >
-              Our Services
+            <motion.div className="text-4xl mb-4" variants={itemVariants}>
+              🪷
             </motion.div>
             <motion.h2 className="text-3xl font-bold tracking-tight sm:text-4xl text-primary" variants={itemVariants}>
-              Everything they need. Handled by people you can trust.
+              Times NRI is built around the four things that ageing parents truly need
             </motion.h2>
-            <motion.p className="max-w-[700px] text-gray-600 text-lg" variants={itemVariants}>
-              Professional, verified services designed specifically for elderly parents in India.
+            <motion.p className="max-w-3xl text-gray-600 text-lg leading-relaxed" variants={itemVariants}>
+              Not just helplines, but doctors and nurses who show up in person when it matters.
             </motion.p>
           </motion.div>
+
           <motion.div
-            className="mx-auto grid max-w-5xl grid-cols-1 gap-8 py-8 sm:grid-cols-2 md:grid-cols-3"
+            className="mx-auto grid max-w-6xl grid-cols-1 gap-8 py-8 sm:grid-cols-2 lg:grid-cols-4"
             variants={itemVariants}
           >
             {[
               {
-                title: "24x7 Emergency Assistance",
-                description: "Immediate local help when emergencies strike, no matter your time zone.",
-                icon: "shield-alert",
-                scenarios: [
-                  "Your father falls at night and needs immediate medical attention",
-                  "Your mother experiences chest pain and needs emergency transport",
-                  "A sudden power outage leaves your parents without electricity for hours",
-                ],
+                title: "Emergency",
+                description: "Not just helplines, but doctors and nurses who show up in person when it matters.",
+                icon: <Stethoscope className="h-8 w-8 text-red-500" />,
+                color: "red",
               },
               {
-                title: "Trained Attendants",
-                description: "Certified support for daily care or recovery needs with detailed reporting.",
-                icon: "user-check",
-                scenarios: [
-                  "Post-surgery recovery requiring specialized care",
-                  "Regular assistance with medication management and daily activities",
-                  "Companionship and cognitive stimulation for parents with memory issues",
-                ],
+                title: "Health & Wellness",
+                description:
+                  "To extend their healthspan, preserve independence, and bring high quality care into the home.",
+                icon: <Heart className="h-8 w-8 text-green-500" />,
+                color: "green",
               },
               {
-                title: "At-Home Visits",
-                description: "Regular wellness checks with photo documentation and detailed reports.",
-                icon: "home",
-                scenarios: [
-                  "Weekly home safety assessments with photo documentation",
-                  "Regular health monitoring including vitals and medication compliance",
-                  "Companionship visits to reduce isolation and improve mental wellbeing",
-                ],
+                title: "Engagement",
+                description: "To fight loneliness with presence, purpose, and joy.",
+                icon: <MessageCircle className="h-8 w-8 text-blue-500" />,
+                color: "blue",
               },
               {
-                title: "Doctor Scheduling",
-                description: "We research specialists, book appointments, and coordinate transportation.",
-                icon: "calendar",
-                scenarios: [
-                  "Finding the right specialist based on medical history and current needs",
-                  "Securing priority appointments with top doctors in their specialty",
-                  "Coordinating follow-up care and prescription management",
-                ],
+                title: "Convenience",
+                description: "To take over the small stresses that grow big in their absence.",
+                icon: <Bell className="h-8 w-8 text-purple-500" />,
+                color: "purple",
               },
-              {
-                title: "Accompanied Doctor Visits",
-                description: "Our coordinators attend appointments, take notes, and ask questions on your behalf.",
-                icon: "stethoscope",
-                scenarios: [
-                  "Medical coordinator attends specialist appointments and provides detailed summaries",
-                  "Video calls with you during critical consultations for real-time involvement",
-                  "Translation of medical terminology and treatment plans into clear language",
-                ],
-              },
-              {
-                title: "Online Bill Payments",
-                description: "Utilities, services, or medicines — paid and tracked with complete transparency.",
-                icon: "receipt",
-                scenarios: [
-                  "Utility bill management with payment verification and receipt documentation",
-                  "Medication refill and delivery coordination",
-                  "Property maintenance payments and service scheduling",
-                ],
-              },
-            ].map((service, i) => (
+            ].map((pillar, i) => (
               <motion.div
                 key={i}
                 custom={i}
@@ -738,14 +521,17 @@ export default function Home() {
                   boxShadow: "0 10px 25px rgba(0, 0, 0, 0.08)",
                   transition: { duration: 0.3 },
                 }}
+                className="bg-white p-8 rounded-2xl shadow-soft border border-gray-100 text-center"
               >
-                <ServiceCard
-                  title={service.title}
-                  description={service.description}
-                  icon={service.icon}
-                  scenarios={service.scenarios}
-                  index={i}
-                />
+                <motion.div
+                  className={`bg-${pillar.color}-50 p-4 rounded-2xl inline-flex mb-6`}
+                  whileHover={{ scale: 1.1, rotate: 5 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
+                  {pillar.icon}
+                </motion.div>
+                <h3 className="text-xl font-bold text-gray-900 mb-4">{pillar.title}</h3>
+                <p className="text-gray-600 leading-relaxed">{pillar.description}</p>
               </motion.div>
             ))}
           </motion.div>
@@ -787,7 +573,7 @@ export default function Home() {
         </div>
       </AnimatedSection>
 
-      {/* Pricing Section */}
+      {/* Care Plans Section */}
       <AnimatedSection id="pricing" className="bg-secondary py-16 md:py-24 border-t border-gray-100">
         <PricingSection />
       </AnimatedSection>
@@ -851,40 +637,42 @@ export default function Home() {
       {/* Founder's Note */}
       <AnimatedSection id="story" className="bg-secondary py-16 md:py-24 border-t border-gray-100">
         <div className="container px-4 md:px-6">
-          <div className="max-w-3xl mx-auto">
-            <motion.div className="flex flex-col justify-center space-y-6" variants={itemVariants}>
-              <motion.div
-                className="inline-flex items-center justify-center w-fit rounded-full bg-accent-light px-3 py-1 text-sm font-medium text-accent mb-2"
-                whileHover={{ scale: 1.05 }}
-                variants={itemVariants}
-              >
-                Our Story
+          <div className="max-w-4xl mx-auto text-center">
+            <motion.div className="flex flex-col justify-center space-y-8" variants={itemVariants}>
+              <motion.div className="text-6xl mb-6" variants={itemVariants}>
+                🪷
               </motion.div>
-              <div className="space-y-5">
-                <motion.h2
-                  className="text-3xl font-bold tracking-tight sm:text-4xl text-primary"
+              <div className="space-y-6">
+                <motion.h2 className="text-4xl font-bold tracking-tight text-primary" variants={itemVariants}>
+                  Times NRI
+                </motion.h2>
+                <motion.div
+                  className="space-y-6 text-gray-700 text-xl leading-relaxed max-w-3xl mx-auto"
                   variants={itemVariants}
                 >
-                  Why we built this
-                </motion.h2>
-                <motion.p className="text-gray-700 text-lg leading-relaxed" variants={itemVariants}>
-                  We&apos;re NRIs too. We&apos;ve faced the helplessness, the frustration, the fear of not being there
-                  when it mattered most. The 3 AM phone calls that leave you feeling powerless.
-                </motion.p>
-                <motion.p className="text-gray-700 text-lg leading-relaxed" variants={itemVariants}>
-                  That&apos;s why we built Times NRI — to bring verified, reliable services to the people we love most.
-                  To create the support system we wished we had when our own parents needed help.
-                </motion.p>
-                <motion.div className="pt-6" variants={itemVariants}>
+                  <p>This isn't a healthcare service.</p>
+                  <p className="font-semibold text-primary text-2xl">
+                    This is what love looks like when you can't be there.
+                  </p>
+                  <p>
+                    It's the answer to that 2am feeling NRIs know too well - the missed call, the WhatsApp from a
+                    cousin, the helpless panic.
+                  </p>
+                  <p>It's a quiet promise, structured into a service:</p>
+                  <p className="font-medium text-primary text-xl italic">
+                    "I may not be with you physically, but you'll never be without care."
+                  </p>
+                </motion.div>
+                <motion.div className="pt-8" variants={itemVariants}>
                   <Button
-                    variant="outline"
-                    className="text-primary border-primary hover:bg-primary-light transition-all duration-300"
+                    size="lg"
+                    className="bg-accent hover:bg-accent/90 text-white transition-all duration-300 py-6 px-8 text-lg font-semibold"
                     onClick={() => {
                       scrollToJoin()
                     }}
                   >
                     Join Our Waitlist
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </motion.div>
               </div>
