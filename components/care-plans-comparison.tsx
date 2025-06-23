@@ -259,7 +259,7 @@ const comparisonData: ComparisonFeature[] = [
 
 interface CarePlansComparisonProps {
   onClose: () => void
-  onSelectPlan: (plan: string) => void
+  onSelectPlan?: (plan: string) => void
 }
 
 export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparisonProps) {
@@ -337,7 +337,9 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
                   <Button
                     size="sm"
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2"
-                    onClick={() => onSelectPlan("peace")}
+                    onClick={() => {
+                      if (onSelectPlan) onSelectPlan("peace")
+                    }}
                   >
                     Choose Peace
                   </Button>
@@ -362,7 +364,9 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
                   <Button
                     size="sm"
                     className="w-full bg-accent hover:bg-accent/90 text-white font-semibold py-2"
-                    onClick={() => onSelectPlan("presence")}
+                    onClick={() => {
+                      if (onSelectPlan) onSelectPlan("presence")
+                    }}
                   >
                     Choose Presence
                   </Button>
@@ -384,7 +388,9 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
                   <Button
                     size="sm"
                     className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2"
-                    onClick={() => onSelectPlan("honour")}
+                    onClick={() => {
+                      if (onSelectPlan) onSelectPlan("honour")
+                    }}
                   >
                     Choose Honour
                   </Button>

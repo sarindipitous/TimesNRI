@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { Button } from "@/components/ui/button"
 import { Check, Star, Heart, Shield, Crown, X, Info, ArrowRight } from "lucide-react"
 import { useState } from "react"
@@ -203,7 +202,6 @@ export function PricingSection() {
           And love, when you can't be there, looks like this.
         </p>
 
-        {/* Limited time offer banner */}
         <div className="bg-gradient-to-r from-accent/10 to-orange-100 rounded-2xl p-6 max-w-3xl mx-auto border border-accent/20">
           <p className="text-accent font-semibold text-lg">
             🪷 <span className="font-bold">Launch Special:</span> Because love shouldn't wait - 50% off for early
@@ -213,7 +211,6 @@ export function PricingSection() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto px-4 md:px-6">
-        {/* Peace Plan */}
         <div className="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2">
           <div className="p-8">
             <div className="flex items-center gap-3 mb-6">
@@ -276,7 +273,6 @@ export function PricingSection() {
           </div>
         </div>
 
-        {/* Presence Plan - Most Popular */}
         <div className="bg-white rounded-3xl shadow-xl border-2 border-accent overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 relative lg:scale-105">
           <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-accent to-orange-500 text-white text-center py-3 font-semibold">
             ⭐ Most Popular Choice
@@ -346,7 +342,6 @@ export function PricingSection() {
           </div>
         </div>
 
-        {/* Honour Plan */}
         <div className="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2">
           <div className="p-8">
             <div className="flex items-center gap-3 mb-6">
@@ -417,7 +412,6 @@ export function PricingSection() {
         </div>
       </div>
 
-      {/* Compare Plans Link */}
       <div className="text-center mt-12 mb-8">
         <button
           onClick={() => setShowComparison(true)}
@@ -428,7 +422,6 @@ export function PricingSection() {
         </button>
       </div>
 
-      {/* Value-Added Services */}
       <div className="mt-20 max-w-6xl mx-auto px-4 md:px-6">
         <div className="text-center mb-12">
           <h3 className="text-2xl font-bold text-gray-900 mb-4">What makes us different?</h3>
@@ -457,7 +450,6 @@ export function PricingSection() {
         </p>
       </div>
 
-      {/* Modal for Plan Details */}
       {selectedPlan && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
@@ -546,7 +538,6 @@ export function PricingSection() {
         </div>
       )}
 
-      {/* Comparison Modal */}
       {showComparison && (
         <CarePlansComparison
           onClose={() => setShowComparison(false)}
