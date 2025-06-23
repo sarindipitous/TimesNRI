@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,22 +10,65 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Save, RefreshCw } from "lucide-react"
+import { ArrowLeft, Save, Eye, RefreshCw } from "lucide-react"
 import Link from "next/link"
+import type { BlogPost } from "@/lib/blog-db"
 
-export default function NewPostPage() {
+interface EditPostPageProps {
+  params: { id: string }
+}
+
+export default function EditPostPage({ params }: EditPostPageProps) {
   const router = useRouter()
+  const [post, setPost] = useState<BlogPost | null>(null)
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [formData, setFormData] = useState({
     title: "",
     slug: "",
     excerpt: "",
     content: "",
-    author: "TimesNRI Team",
+    author: "",
     featured_image: "",
     tags: "",
     status: "draft" as "draft" | "published",
   })
+
+  useEffect(() => {
+    fetchPost()
+  }, [params.id])
+
+  const fetchPost = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch(`/api/blog/${params.id}`)
+      const data = await response.json()
+
+      if (data.success && data.post) {
+        const post = data.post
+        setPost(post)
+        setFormData({
+          title: post.title || "",
+          slug: post.slug || "",
+          excerpt: post.excerpt || "",
+          content: post.content || "",
+          author: post.author || "",
+          featured_image: post.featured_image || "",
+          tags: post.tags || "",
+          status: post.status || "draft",
+        })
+      } else {
+        alert("Post not found")
+        router.push("/admin/blog")
+      }
+    } catch (error) {
+      console.error("Error fetching post:", error)
+      alert("Error loading post")
+      router.push("/admin/blog")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const generateSlug = (title: string) => {
     return title
@@ -57,8 +100,8 @@ export default function NewPostPage() {
 
     try {
       setSaving(true)
-      const response = await fetch("/api/blog", {
-        method: "POST",
+      const response = await fetch(`/api/blog/${params.id}`, {
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
@@ -68,17 +111,30 @@ export default function NewPostPage() {
       const data = await response.json()
 
       if (data.success) {
-        alert("Post created successfully!")
+        alert("Post updated successfully!")
         router.push("/admin/blog")
       } else {
-        alert(`Failed to create post: ${data.message}`)
+        alert(`Failed to update post: ${data.message}`)
       }
     } catch (error) {
-      console.error("Error creating post:", error)
-      alert("Error creating post")
+      console.error("Error updating post:", error)
+      alert("Error updating post")
     } finally {
       setSaving(false)
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p>Loading post...</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -90,7 +146,7 @@ export default function NewPostPage() {
             Back to Blog Management
           </Button>
         </Link>
-        <h1 className="text-3xl font-bold">Create New Post</h1>
+        <h1 className="text-3xl font-bold">Edit Post</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -207,8 +263,17 @@ export default function NewPostPage() {
         <div className="flex gap-4">
           <Button type="submit" disabled={saving}>
             {saving ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            {saving ? "Creating..." : "Create Post"}
+            {saving ? "Updating..." : "Update Post"}
           </Button>
+
+          {formData.status === "published" && post && (
+            <Link href={`/blog/${post.slug}`} target="_blank">
+              <Button type="button" variant="outline">
+                <Eye className="mr-2 h-4 w-4" />
+                Preview Post
+              </Button>
+            </Link>
+          )}
 
           <Link href="/admin/blog">
             <Button type="button" variant="outline">
