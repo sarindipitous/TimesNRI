@@ -16,6 +16,7 @@ const menuItems = [
   { id: "cities", label: "Locations" },
   { id: "story", label: "Our Mission" },
   { id: "faq", label: "FAQ" },
+  { id: "blog", label: "Blog" },
 ]
 
 function getDisplayName(id: string): string {
@@ -48,6 +49,11 @@ export function Header() {
   }, [])
 
   const scrollToSection = (sectionId: string) => {
+    if (sectionId === "blog") {
+      window.location.href = "/blog"
+      return
+    }
+
     const element = document.getElementById(sectionId)
     if (element) {
       const headerHeight = 80

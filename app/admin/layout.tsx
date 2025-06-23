@@ -24,6 +24,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Link href="/admin" className="block p-2 hover:bg-gray-200 rounded">
               Waitlist Entries
             </Link>
+            <Link href="/admin/blog" className="block p-2 hover:bg-gray-200 rounded">
+              Blog Management
+            </Link>
             <Link href="/admin/dashboard" className="block p-2 hover:bg-gray-200 rounded">
               Dashboard
             </Link>
