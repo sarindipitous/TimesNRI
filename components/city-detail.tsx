@@ -4,8 +4,6 @@ import { ArrowLeft, MapPin, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
 import Link from "next/link"
-import Image from "next/image"
-import { getBlobUrl } from "@/utils/image-utils"
 
 interface CityDetailProps {
   name: string
@@ -159,21 +157,6 @@ export function CityDetail({ name, description, status }: CityDetailProps) {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
           >
-            <div className="relative h-[250px] rounded-lg overflow-hidden shadow-lg mb-6">
-              <Image
-                src={getBlobUrl(`/images/service-locations-map.png`) || "/placeholder.svg"}
-                alt={`Map showing Times NRI service coverage in ${name}`}
-                fill
-                className="object-cover"
-                unoptimized
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-primary/50 to-transparent flex items-end">
-                <div className="p-4 text-white">
-                  <p className="font-medium">{name} Coverage Area</p>
-                </div>
-              </div>
-            </div>
-
             <div className="bg-accent-light p-6 rounded-xl">
               <h3 className="text-lg font-semibold text-primary mb-4">Local Healthcare Partners</h3>
               <p className="text-sm text-gray-600 mb-4">
