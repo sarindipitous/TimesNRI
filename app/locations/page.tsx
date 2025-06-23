@@ -8,14 +8,14 @@ import { MapPin, CheckCircle, Clock } from "lucide-react"
 export const metadata: Metadata = {
   title: "Our Service Locations - Times NRI Elderly Care",
   description:
-    "Explore our service locations across India. We currently serve Delhi NCR, Mumbai, Bangalore, Hyderabad, and Pune, with more cities coming soon.",
+    "We're launching soon in major Indian cities including Delhi NCR, Mumbai, Bangalore, Hyderabad, Pune, Chennai, and Kolkata. Join our waitlist to be notified when we go live.",
   alternates: {
     canonical: getCanonicalUrl("/locations"),
   },
   openGraph: {
     title: "Our Service Locations - Times NRI Elderly Care",
     description:
-      "Explore our service locations across India. We currently serve Delhi NCR, Mumbai, Bangalore, Hyderabad, and Pune, with more cities coming soon.",
+      "We're launching soon in major Indian cities including Delhi NCR, Mumbai, Bangalore, Hyderabad, Pune, Chennai, and Kolkata. Join our waitlist to be notified when we go live.",
     url: getCanonicalUrl("/locations"),
     siteName: "Times NRI",
     type: "website",
@@ -84,9 +84,9 @@ export default function LocationsPage() {
               <div className="inline-flex items-center justify-center rounded-full bg-primary-light px-3 py-1 text-sm font-medium text-primary mb-2">
                 Our Locations
               </div>
-              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl text-primary">Where We Provide Care</h1>
+              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl text-primary">Where We're Launching</h1>
               <p className="max-w-[700px] text-gray-600 text-lg">
-                Currently serving major Indian cities, with more locations coming soon.
+                We're preparing to launch in major Indian cities. Be the first to know when we go live in your area.
               </p>
             </div>
 

@@ -5,51 +5,52 @@ import { Footer } from "@/components/footer"
 import { CityDetail } from "@/components/city-detail"
 import { getCanonicalUrl } from "@/utils/url-utils"
 
-// Define our cities data
+// Define our cities data - update all to coming-soon
 const cities = [
   {
     id: "delhi-ncr",
     name: "Delhi NCR",
-    status: "active",
+    status: "coming-soon",
     description:
-      "Our services in Delhi NCR cover the entire National Capital Region, including Delhi, Gurgaon, Noida, Faridabad, and Ghaziabad.",
+      "We're preparing to launch our services in Delhi NCR, covering the entire National Capital Region including Delhi, Gurgaon, Noida, Faridabad, and Ghaziabad.",
     longDescription:
-      "Times NRI provides comprehensive elderly care services throughout the Delhi National Capital Region. Our local team is familiar with the unique challenges of navigating healthcare and support services in this bustling metropolitan area. We have established relationships with top hospitals, specialists, and care providers across Delhi, Gurgaon, Noida, Faridabad, and Ghaziabad.",
+      "Times NRI is preparing to launch comprehensive elderly care services throughout the Delhi National Capital Region. We're building relationships with top hospitals, specialists, and care providers across Delhi, Gurgaon, Noida, Faridabad, and Ghaziabad to ensure we can provide exceptional care when we launch.",
   },
   {
     id: "mumbai",
     name: "Mumbai",
-    status: "active",
+    status: "coming-soon",
     description:
-      "Our Mumbai services cover the entire Mumbai Metropolitan Region, including Thane, Navi Mumbai, and surrounding areas.",
+      "We're preparing to launch our services in Mumbai, covering the entire Mumbai Metropolitan Region including Thane, Navi Mumbai, and surrounding areas.",
     longDescription:
-      "Our Mumbai team provides exceptional elderly care services throughout the Mumbai Metropolitan Region. We understand the unique challenges of navigating healthcare in India's financial capital and have built strong relationships with leading medical facilities and specialists across Mumbai, Thane, and Navi Mumbai. Our local coordinators are familiar with the city's infrastructure and can efficiently manage transportation and logistics for your loved ones.",
+      "Our Mumbai launch will provide exceptional elderly care services throughout the Mumbai Metropolitan Region. We're establishing partnerships with leading medical facilities and specialists across Mumbai, Thane, and Navi Mumbai to ensure comprehensive care coverage when we go live.",
   },
   {
     id: "bangalore",
     name: "Bangalore",
-    status: "active",
+    status: "coming-soon",
     description:
-      "Our Bangalore services cover the entire city, including Electronic City, Whitefield, and surrounding areas.",
+      "We're preparing to launch our services in Bangalore, covering the entire city, including Electronic City, Whitefield, and surrounding areas.",
     longDescription:
-      "Times NRI's Bangalore team offers comprehensive elderly care services throughout India's technology hub. We have established partnerships with leading healthcare providers and specialists across the city, including in areas like Electronic City, Whitefield, and Indiranagar. Our local coordinators understand the unique healthcare landscape of Bangalore and can navigate the city efficiently to provide timely support to your loved ones.",
+      "Times NRI is preparing to launch comprehensive elderly care services throughout India's technology hub. We are establishing partnerships with leading healthcare providers and specialists across the city, including in areas like Electronic City, Whitefield, and Indiranagar. Our local coordinators understand the unique healthcare landscape of Bangalore and are preparing to navigate the city efficiently to provide timely support to your loved ones.",
   },
   {
     id: "hyderabad",
     name: "Hyderabad",
-    status: "active",
+    status: "coming-soon",
     description:
-      "Our Hyderabad services cover the entire city, including Secunderabad, Cyberabad, and surrounding areas.",
+      "We're preparing to launch our services in Hyderabad, covering the entire city, including Secunderabad, Cyberabad, and surrounding areas.",
     longDescription:
-      "Our Hyderabad team provides exceptional elderly care services throughout the city. We have established relationships with top healthcare providers in both the old and new parts of the city, including Secunderabad and Cyberabad. Our local coordinators are familiar with Hyderabad's healthcare ecosystem and can efficiently manage all aspects of elderly care, from routine check-ups to emergency response.",
+      "Our Hyderabad team is preparing to launch exceptional elderly care services throughout the city. We are establishing relationships with top healthcare providers in both the old and new parts of the city, including Secunderabad and Cyberabad. Our local coordinators will be familiar with Hyderabad's healthcare ecosystem and will efficiently manage all aspects of elderly care, from routine check-ups to emergency response.",
   },
   {
     id: "pune",
     name: "Pune",
-    status: "active",
-    description: "Our Pune services cover the entire city, including Hinjewadi, Kharadi, and surrounding areas.",
+    status: "coming-soon",
+    description:
+      "We're preparing to launch our services in Pune, covering the entire city, including Hinjewadi, Kharadi, and surrounding areas.",
     longDescription:
-      "Times NRI's Pune team offers comprehensive elderly care services throughout this cultural and educational hub. We have built strong relationships with leading healthcare providers and specialists across the city, including areas like Hinjewadi, Kharadi, and Koregaon Park. Our local coordinators understand Pune's unique healthcare landscape and can provide timely and efficient support to your loved ones.",
+      "Times NRI's Pune team is preparing to launch comprehensive elderly care services throughout this cultural and educational hub. We are building strong relationships with leading healthcare providers and specialists across the city, including areas like Hinjewadi, Kharadi, and Koregaon Park. Our local coordinators understand Pune's unique healthcare landscape and will provide timely and efficient support to your loved ones.",
   },
 ]
 

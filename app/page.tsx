@@ -598,7 +598,7 @@ export default function Home() {
               Where We Operate
             </motion.h2>
             <motion.p className="max-w-[700px] text-gray-600 text-lg" variants={itemVariants}>
-              Currently serving major Indian cities, with more locations coming soon.
+              We're preparing to launch in major Indian cities. Join our waitlist to be first in line.
             </motion.p>
           </motion.div>
           <motion.div variants={itemVariants}>

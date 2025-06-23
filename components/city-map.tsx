@@ -27,7 +27,8 @@ export function CityMap() {
         ))}
       </div>
       <p className="mt-6 text-gray-500 text-center">
-        Join the waitlist and we'll notify you when we launch in your location.
+        We're launching soon in these major Indian cities. Join the waitlist to be notified when we go live in your
+        location.
       </p>
     </div>
   )
