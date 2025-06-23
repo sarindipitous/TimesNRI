@@ -17,6 +17,7 @@ interface WaitlistFormProps {
   includeNameField?: boolean
   className?: string
   isDetailed?: boolean
+  onClose?: () => void
 }
 
 export function WaitlistForm({
@@ -25,6 +26,7 @@ export function WaitlistForm({
   includeNameField = true,
   className = "",
   isDetailed = false,
+  onClose,
 }: WaitlistFormProps) {
   const [email, setEmail] = useState("")
   const [name, setName] = useState("")
@@ -38,7 +40,6 @@ export function WaitlistForm({
   const [referralCopied, setReferralCopied] = useState(false)
   const [formMessage, setFormMessage] = useState("")
   const [formError, setFormError] = useState("")
-  const confettiCanvasRef = useRef<HTMLCanvasElement>(null)
   const formRef = useRef<HTMLFormElement>(null)
 
   // Basic email validation function for client-side
@@ -187,6 +188,13 @@ export function WaitlistForm({
     }
   }
 
+  const handleClose = () => {
+    setIsOpen(false)
+    if (onClose) {
+      onClose()
+    }
+  }
+
   if (!isDetailed) {
     return (
       <>
@@ -198,7 +206,7 @@ export function WaitlistForm({
               placeholder="Your name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="flex-1 border-gray-300 focus:border-accent focus:ring-accent h-12" // Increased height for touch
+              className="flex-1 border-gray-300 focus:border-accent focus:ring-accent h-12"
               required
             />
           )}
@@ -210,13 +218,9 @@ export function WaitlistForm({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="flex-1 border-gray-300 focus:border-accent focus:ring-accent h-12" // Increased height for touch
+              className="flex-1 border-gray-300 focus:border-accent focus:ring-accent h-12"
             />
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="bg-accent hover:bg-accent/90 text-white h-12 px-6" // Increased touch target
-            >
+            <Button type="submit" disabled={isSubmitting} className="bg-accent hover:bg-accent/90 text-white h-12 px-6">
               {isSubmitting ? "Joining..." : buttonText}
             </Button>
           </div>
@@ -224,7 +228,7 @@ export function WaitlistForm({
           {formMessage && <p className="text-sm text-green-500">{formMessage}</p>}
         </form>
 
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog open={isOpen} onOpenChange={handleClose}>
           <DialogContent className="sm:max-w-md" aria-describedby="waitlist-success-dialog-description">
             <DialogHeader>
               <DialogTitle className="text-center text-2xl">You're on the list!</DialogTitle>
@@ -245,14 +249,9 @@ export function WaitlistForm({
                       type="text"
                       value={referralLink}
                       readOnly
-                      className="flex-1 bg-transparent text-sm outline-none p-2" // Added padding
+                      className="flex-1 bg-transparent text-sm outline-none p-2"
                     />
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={copyReferralLink}
-                      className="h-10 w-10 p-2" // Increased touch target
-                    >
+                    <Button size="sm" variant="ghost" onClick={copyReferralLink} className="h-10 w-10 p-2">
                       {referralCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                     </Button>
                   </div>
@@ -260,7 +259,7 @@ export function WaitlistForm({
                     <Button
                       size="sm"
                       variant="outline"
-                      className="flex items-center space-x-1 h-12 px-4" // Increased touch target
+                      className="flex items-center space-x-1 h-12 px-4"
                       onClick={() => {
                         window.open(
                           `https://wa.me/?text=I'm joining the Times NRI waitlist for elderly care services in India. Join me: ${referralLink}`,
@@ -276,7 +275,7 @@ export function WaitlistForm({
               )}
 
               <p className="text-sm text-gray-500">Email: {email}</p>
-              <Button className="mt-4 bg-primary h-12 px-6" onClick={() => setIsOpen(false)}>
+              <Button className="mt-4 bg-primary h-12 px-6" onClick={handleClose}>
                 Close
               </Button>
             </div>
@@ -300,7 +299,7 @@ export function WaitlistForm({
                 placeholder="Your name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12" // Increased height for touch
+                className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12"
                 required
               />
               <Input
@@ -310,12 +309,10 @@ export function WaitlistForm({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12" // Increased height for touch
+                className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12"
               />
               <Select value={city} onValueChange={setCity}>
                 <SelectTrigger className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12">
-                  {" "}
-                  {/* Increased height for touch */}
                   <SelectValue placeholder="Where are you based?" />
                 </SelectTrigger>
                 <SelectContent>
@@ -335,7 +332,7 @@ export function WaitlistForm({
               onClick={() => {
                 if (validateForm()) setStep(2)
               }}
-              className="w-full bg-accent hover:bg-accent/90 text-white mt-2 flex items-center justify-center h-12" // Increased height for touch
+              className="w-full bg-accent hover:bg-accent/90 text-white mt-2 flex items-center justify-center h-12"
               disabled={!name || !email || !city}
             >
               Continue <ArrowRight className="ml-2 h-4 w-4" />
@@ -349,8 +346,6 @@ export function WaitlistForm({
             <div className="space-y-3">
               <Select value={parentLocation} onValueChange={setParentLocation}>
                 <SelectTrigger className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12">
-                  {" "}
-                  {/* Increased height for touch */}
                   <SelectValue placeholder="Where are your parents located?" />
                 </SelectTrigger>
                 <SelectContent>
@@ -365,8 +360,6 @@ export function WaitlistForm({
               </Select>
               <Select value={careNeeds} onValueChange={setCareNeeds}>
                 <SelectTrigger className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12">
-                  {" "}
-                  {/* Increased height for touch */}
                   <SelectValue placeholder="What type of care do they need?" />
                 </SelectTrigger>
                 <SelectContent>
@@ -383,7 +376,7 @@ export function WaitlistForm({
               <Button
                 type="button"
                 onClick={() => setStep(1)}
-                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 h-12" // Increased height for touch
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 h-12"
               >
                 Back
               </Button>
@@ -392,7 +385,7 @@ export function WaitlistForm({
                 onClick={() => {
                   if (validateForm()) setStep(3)
                 }}
-                className="flex-1 bg-accent hover:bg-accent/90 text-white flex items-center justify-center h-12" // Increased height for touch
+                className="flex-1 bg-accent hover:bg-accent/90 text-white flex items-center justify-center h-12"
                 disabled={!parentLocation || !careNeeds}
               >
                 Continue <ArrowRight className="ml-2 h-4 w-4" />
@@ -430,14 +423,14 @@ export function WaitlistForm({
               <Button
                 type="button"
                 onClick={() => setStep(2)}
-                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 h-12" // Increased height for touch
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 h-12"
               >
                 Back
               </Button>
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex-1 bg-accent hover:bg-accent/90 text-white h-12" // Increased height for touch
+                className="flex-1 bg-accent hover:bg-accent/90 text-white h-12"
               >
                 {isSubmitting ? "Submitting..." : "Join Waitlist"}
               </Button>
@@ -448,7 +441,7 @@ export function WaitlistForm({
         {formMessage && <p className="text-sm text-green-500 mt-2">{formMessage}</p>}
       </form>
 
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <Dialog open={isOpen} onOpenChange={handleClose}>
         <DialogContent className="sm:max-w-md" aria-describedby="waitlist-success-dialog-description">
           <DialogHeader>
             <DialogTitle className="text-center text-2xl">You're on the list!</DialogTitle>
@@ -473,14 +466,9 @@ export function WaitlistForm({
                     type="text"
                     value={referralLink}
                     readOnly
-                    className="flex-1 bg-transparent text-sm outline-none p-2" // Added padding
+                    className="flex-1 bg-transparent text-sm outline-none p-2"
                   />
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={copyReferralLink}
-                    className="h-10 w-10 p-2" // Increased touch target
-                  >
+                  <Button size="sm" variant="ghost" onClick={copyReferralLink} className="h-10 w-10 p-2">
                     {referralCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                   </Button>
                 </div>
@@ -488,7 +476,7 @@ export function WaitlistForm({
                   <Button
                     size="sm"
                     variant="outline"
-                    className="flex items-center space-x-1 h-12 px-4" // Increased touch target
+                    className="flex items-center space-x-1 h-12 px-4"
                     onClick={() => {
                       window.open(
                         `https://wa.me/?text=I just joined the Times NRI waitlist for elderly care services in India. As an NRI, I found this service really promising for managing parent care from abroad: ${referralLink}`,
@@ -503,7 +491,7 @@ export function WaitlistForm({
               </div>
             )}
 
-            <Button className="mt-4 bg-primary h-12 px-6" onClick={() => setIsOpen(false)}>
+            <Button className="mt-4 bg-primary h-12 px-6" onClick={handleClose}>
               Close
             </Button>
           </div>
