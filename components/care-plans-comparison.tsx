@@ -1,7 +1,8 @@
 "use client"
-import { Check, X, Crown, Heart, Shield, Plus } from "lucide-react"
+import { Check, X, Crown, Heart, Shield, Plus, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { useState } from "react"
 
 interface ComparisonFeature {
   category: string
@@ -258,12 +259,53 @@ const comparisonData: ComparisonFeature[] = [
   },
 ]
 
+const plans = [
+  {
+    id: "peace",
+    name: "Peace",
+    price: "$50",
+    description: "Peace of mind, always within reach",
+    icon: Heart,
+    color: "blue",
+    bgColor: "bg-blue-50",
+    borderColor: "border-blue-200",
+    textColor: "text-blue-600",
+    buttonColor: "bg-blue-600 hover:bg-blue-700",
+  },
+  {
+    id: "presence",
+    name: "Presence",
+    price: "$200",
+    description: "Your caring presence, delivered daily",
+    icon: Shield,
+    color: "accent",
+    bgColor: "bg-accent/10",
+    borderColor: "border-accent/30",
+    textColor: "text-accent",
+    buttonColor: "bg-accent hover:bg-accent/90",
+  },
+  {
+    id: "honour",
+    name: "Honour",
+    price: "$500",
+    description: "The dignity and care they gave you, returned in full",
+    icon: Crown,
+    color: "purple",
+    bgColor: "bg-purple-50",
+    borderColor: "border-purple-200",
+    textColor: "text-purple-600",
+    buttonColor: "bg-purple-600 hover:bg-purple-700",
+  },
+]
+
 interface CarePlansComparisonProps {
   onClose: () => void
   onSelectPlan?: (plan: string) => void
 }
 
 export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparisonProps) {
+  const [selectedPlanIndex, setSelectedPlanIndex] = useState(1) // Default to Presence plan
+
   const renderFeatureValue = (value: boolean | string, planType: "peace" | "presence" | "honour") => {
     if (value === true) {
       return <Check className="h-5 w-5 text-green-500 mx-auto flex-shrink-0" />
@@ -299,99 +341,124 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
     return null
   }
 
+  const currentPlan = plans[selectedPlanIndex]
+  const IconComponent = currentPlan.icon
+
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl w-full max-w-7xl h-[90vh] flex flex-col shadow-2xl">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4">
+      <div className="bg-white rounded-2xl sm:rounded-3xl w-full max-w-7xl h-[95vh] sm:h-[90vh] flex flex-col shadow-2xl">
         {/* Fixed Header */}
-        <div className="flex-shrink-0 border-b border-gray-100 p-6 flex items-center justify-between rounded-t-3xl bg-white">
-          <div>
-            <h3 className="text-2xl font-bold text-gray-900">Compare Care Plans</h3>
-            <p className="text-sm text-gray-500 mt-1">Choose the right level of care for your loved ones</p>
+        <div className="flex-shrink-0 border-b border-gray-100 p-4 sm:p-6 rounded-t-2xl sm:rounded-t-3xl bg-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-900">Compare Care Plans</h3>
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                Choose the right level of care for your loved ones
+              </p>
+            </div>
+            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+              <X className="h-5 w-5 sm:h-6 sm:w-6 text-gray-500" />
+            </button>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <X className="h-6 w-6 text-gray-500" />
-          </button>
+        </div>
+
+        {/* Mobile Plan Selector */}
+        <div className="lg:hidden flex-shrink-0 bg-white border-b border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setSelectedPlanIndex(Math.max(0, selectedPlanIndex - 1))}
+              disabled={selectedPlanIndex === 0}
+              className="p-2 rounded-full bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+
+            <div className="flex-1 mx-4">
+              <div className={`${currentPlan.bgColor} rounded-xl p-4 border-2 ${currentPlan.borderColor} shadow-sm`}>
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <IconComponent className={`h-5 w-5 ${currentPlan.textColor}`} />
+                  <h4 className="font-bold text-gray-900">{currentPlan.name}</h4>
+                </div>
+                <div className={`text-2xl font-bold ${currentPlan.textColor} mb-1 text-center`}>
+                  {currentPlan.price}
+                </div>
+                <div className="text-xs text-gray-600 mb-3 text-center">per month</div>
+                <div className={`text-xs ${currentPlan.textColor} font-medium italic mb-3 leading-relaxed text-center`}>
+                  {currentPlan.description}
+                </div>
+                <Link href={`/waitlist?plan=${currentPlan.id}`}>
+                  <Button size="sm" className={`w-full ${currentPlan.buttonColor} text-white font-semibold py-2`}>
+                    Choose {currentPlan.name}
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setSelectedPlanIndex(Math.min(plans.length - 1, selectedPlanIndex + 1))}
+              disabled={selectedPlanIndex === plans.length - 1}
+              className="p-2 rounded-full bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="flex justify-center mt-3 gap-2">
+            {plans.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setSelectedPlanIndex(index)}
+                className={`w-2 h-2 rounded-full transition-colors ${
+                  index === selectedPlanIndex ? "bg-primary" : "bg-gray-300"
+                }`}
+              />
+            ))}
+          </div>
         </div>
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-auto">
-          {/* Plan Headers - Sticky */}
-          <div className="sticky top-0 bg-white border-b border-gray-200 z-10 shadow-sm">
+          {/* Desktop Plan Headers - Hidden on mobile */}
+          <div className="hidden lg:block sticky top-0 bg-white border-b border-gray-200 z-10 shadow-sm">
             <div className="grid grid-cols-4 gap-6 p-6 min-w-[1000px]">
               <div className="font-bold text-gray-900 text-lg flex items-center">Features</div>
 
-              {/* Peace Plan Header */}
-              <div className="text-center">
-                <div className="bg-blue-50 rounded-2xl p-6 border-2 border-blue-200 shadow-sm">
-                  <div className="flex items-center justify-center gap-2 mb-4">
-                    <Heart className="h-6 w-6 text-blue-600" />
-                    <h4 className="font-bold text-gray-900 text-lg">Peace</h4>
+              {plans.map((plan) => {
+                const IconComponent = plan.icon
+                return (
+                  <div key={plan.id} className="text-center">
+                    <div className={`${plan.bgColor} rounded-2xl p-6 border-2 ${plan.borderColor} shadow-sm`}>
+                      <div className="flex items-center justify-center gap-2 mb-4">
+                        <IconComponent className={`h-6 w-6 ${plan.textColor}`} />
+                        <h4 className="font-bold text-gray-900 text-lg">{plan.name}</h4>
+                      </div>
+                      <div className={`text-3xl font-bold ${plan.textColor} mb-2`}>{plan.price}</div>
+                      <div className="text-sm text-gray-600 mb-3">per month</div>
+                      <div className={`text-xs ${plan.textColor} font-medium italic mb-4 leading-relaxed`}>
+                        {plan.description}
+                      </div>
+                      <Link href={`/waitlist?plan=${plan.id}`}>
+                        <Button size="sm" className={`w-full ${plan.buttonColor} text-white font-semibold py-2`}>
+                          Choose {plan.name}
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
-                  <div className="text-3xl font-bold text-blue-600 mb-2">$50</div>
-                  <div className="text-sm text-gray-600 mb-3">per month</div>
-                  <div className="text-xs text-blue-600 font-medium italic mb-4 leading-relaxed">
-                    Peace of mind, always within reach
-                  </div>
-                  <Link href="/waitlist?plan=peace">
-                    <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2">
-                      Choose Peace
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-
-              {/* Presence Plan Header */}
-              <div className="text-center">
-                <div className="bg-accent/10 rounded-2xl p-6 border-2 border-accent/30 shadow-sm">
-                  <div className="flex items-center justify-center gap-2 mb-4">
-                    <Shield className="h-6 w-6 text-accent" />
-                    <h4 className="font-bold text-gray-900 text-lg">Presence</h4>
-                  </div>
-                  <div className="text-3xl font-bold text-accent mb-2">$200</div>
-                  <div className="text-sm text-gray-600 mb-3">per month</div>
-                  <div className="text-xs text-accent font-medium italic mb-4 leading-relaxed">
-                    Your caring presence, delivered daily
-                  </div>
-                  <Link href="/waitlist?plan=presence">
-                    <Button size="sm" className="w-full bg-accent hover:bg-accent/90 text-white font-semibold py-2">
-                      Choose Presence
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-
-              {/* Honour Plan Header */}
-              <div className="text-center">
-                <div className="bg-purple-50 rounded-2xl p-6 border-2 border-purple-200 shadow-sm">
-                  <div className="flex items-center justify-center gap-2 mb-4">
-                    <Crown className="h-6 w-6 text-purple-600" />
-                    <h4 className="font-bold text-gray-900 text-lg">Honour</h4>
-                  </div>
-                  <div className="text-3xl font-bold text-purple-600 mb-2">$500</div>
-                  <div className="text-sm text-gray-600 mb-3">per month</div>
-                  <div className="text-xs text-purple-600 font-medium italic mb-4 leading-relaxed">
-                    The dignity and care they gave you, returned in full
-                  </div>
-                  <Link href="/waitlist?plan=honour">
-                    <Button
-                      size="sm"
-                      className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2"
-                    >
-                      Choose Honour
-                    </Button>
-                  </Link>
-                </div>
-              </div>
+                )
+              })}
             </div>
           </div>
 
           {/* Feature Comparison */}
-          <div className="p-6 space-y-10 min-w-[1000px]">
+          <div className="p-4 sm:p-6 space-y-6 sm:space-y-10">
             {comparisonData.map((category, categoryIndex) => (
-              <div key={categoryIndex} className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-3xl p-8 shadow-sm">
-                <h5 className="font-bold text-2xl text-gray-900 mb-8 pb-4 border-b-2 border-gray-300 flex items-center gap-4">
+              <div
+                key={categoryIndex}
+                className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-sm"
+              >
+                <h5 className="font-bold text-lg sm:text-2xl text-gray-900 mb-4 sm:mb-8 pb-2 sm:pb-4 border-b-2 border-gray-300 flex items-center gap-2 sm:gap-4">
                   <div
-                    className={`w-3 h-10 rounded-full ${
+                    className={`w-2 sm:w-3 h-6 sm:h-10 rounded-full ${
                       categoryIndex === 0
                         ? "bg-red-500"
                         : categoryIndex === 1
@@ -403,23 +470,35 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
                   ></div>
                   {category.category}
                 </h5>
-                <div className="space-y-3">
+
+                <div className="space-y-2 sm:space-y-3">
                   {category.features.map((feature, featureIndex) => (
-                    <div
-                      key={featureIndex}
-                      className="grid grid-cols-4 gap-6 py-5 px-6 bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 border border-gray-100"
-                    >
-                      <div className="text-sm text-gray-800 font-medium leading-relaxed pr-4 flex items-center">
-                        {feature.name}
+                    <div key={featureIndex}>
+                      {/* Desktop Layout */}
+                      <div className="hidden lg:grid grid-cols-4 gap-6 py-5 px-6 bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 border border-gray-100 min-w-[1000px]">
+                        <div className="text-sm text-gray-800 font-medium leading-relaxed pr-4 flex items-center">
+                          {feature.name}
+                        </div>
+                        <div className="flex justify-center items-center min-h-[40px]">
+                          {renderFeatureValue(feature.peace, "peace")}
+                        </div>
+                        <div className="flex justify-center items-center min-h-[40px]">
+                          {renderFeatureValue(feature.presence, "presence")}
+                        </div>
+                        <div className="flex justify-center items-center min-h-[40px]">
+                          {renderFeatureValue(feature.honour, "honour")}
+                        </div>
                       </div>
-                      <div className="flex justify-center items-center min-h-[40px]">
-                        {renderFeatureValue(feature.peace, "peace")}
-                      </div>
-                      <div className="flex justify-center items-center min-h-[40px]">
-                        {renderFeatureValue(feature.presence, "presence")}
-                      </div>
-                      <div className="flex justify-center items-center min-h-[40px]">
-                        {renderFeatureValue(feature.honour, "honour")}
+
+                      {/* Mobile Layout */}
+                      <div className="lg:hidden bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                        <div className="text-sm text-gray-800 font-medium leading-relaxed mb-3">{feature.name}</div>
+                        <div className="flex justify-center">
+                          {renderFeatureValue(
+                            feature[currentPlan.id as keyof typeof feature] as boolean | string,
+                            currentPlan.id as "peace" | "presence" | "honour",
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -429,12 +508,12 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
           </div>
 
           {/* Value-Added Services Note */}
-          <div className="p-6 bg-gradient-to-r from-primary/5 to-accent/5 border-t border-gray-200 min-w-[1000px]">
-            <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
-              <div className="flex items-center gap-3 mb-6">
-                <h6 className="font-bold text-xl text-gray-900">Understanding Your Options</h6>
+          <div className="p-4 sm:p-6 bg-gradient-to-r from-primary/5 to-accent/5 border-t border-gray-200">
+            <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-sm border border-gray-100">
+              <div className="flex items-center gap-3 mb-4 sm:mb-6">
+                <h6 className="font-bold text-lg sm:text-xl text-gray-900">Understanding Your Options</h6>
               </div>
-              <div className="grid md:grid-cols-3 gap-6 text-sm text-gray-700">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 text-sm text-gray-700">
                 <div className="space-y-3">
                   <p className="flex items-start gap-3">
                     <Check className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
@@ -468,7 +547,7 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
                     </span>
                   </p>
                 </div>
-                <div className="bg-accent/5 rounded-xl p-4">
+                <div className="bg-accent/5 rounded-xl p-4 sm:col-span-2 lg:col-span-1">
                   <p className="text-accent font-semibold mb-2">Our Promise</p>
                   <p className="text-xs text-gray-600 leading-relaxed">
                     Every service you need is available. If it's not included in your plan, we offer it as a value-added
