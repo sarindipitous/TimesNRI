@@ -204,8 +204,7 @@ export function PricingSection() {
 
         <div className="bg-gradient-to-r from-accent/10 to-orange-100 rounded-2xl p-6 max-w-3xl mx-auto border border-accent/20">
           <p className="text-accent font-semibold text-lg">
-            🪷 <span className="font-bold">Launch Special:</span> Because love shouldn't wait - 50% off for early
-            members
+            <span className="font-bold">Launch Special:</span> Because love shouldn't wait - 50% off for early members
           </p>
         </div>
       </div>
@@ -441,7 +440,6 @@ export function PricingSection() {
       </div>
 
       <div className="text-center mt-16 bg-gradient-to-r from-primary/5 to-accent/5 rounded-3xl p-12 max-w-4xl mx-auto border border-primary/10">
-        <div className="text-4xl mb-4">🪷</div>
         <h4 className="font-bold text-gray-900 mb-4 text-xl">Times NRI</h4>
         <p className="text-gray-700 text-lg leading-relaxed">
           This isn't a healthcare service.

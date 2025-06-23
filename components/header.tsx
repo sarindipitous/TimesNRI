@@ -75,8 +75,7 @@ export function Header() {
         <div className="container mx-auto px-4 md:px-6">
           <div className="flex h-16 md:h-20 items-center justify-between">
             {/* Logo */}
-            <div className="flex items-center gap-3">
-              <div className="text-2xl">🪷</div>
+            <div className="flex items-center">
               <div className="flex flex-col">
                 <span className="font-bold text-lg text-primary">Times NRI</span>
                 <span className="text-xs text-gray-600 -mt-1">Elderly Care Concierge</span>
@@ -116,8 +115,7 @@ export function Header() {
               <SheetContent side="right" className="w-80 p-0">
                 <div className="flex flex-col h-full">
                   <div className="flex items-center justify-between p-6 border-b">
-                    <div className="flex items-center gap-3">
-                      <div className="text-2xl">🪷</div>
+                    <div className="flex items-center">
                       <div className="flex flex-col">
                         <span className="font-bold text-lg text-primary">Times NRI</span>
                         <span className="text-xs text-gray-600 -mt-1">Elderly Care Concierge</span>

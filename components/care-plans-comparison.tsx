@@ -317,10 +317,7 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
           {/* Plan Headers - Sticky */}
           <div className="sticky top-0 bg-white border-b border-gray-200 z-10 shadow-sm">
             <div className="grid grid-cols-4 gap-6 p-6 min-w-[1000px]">
-              <div className="font-bold text-gray-900 text-lg flex items-center">
-                <div className="text-4xl mr-3">🪷</div>
-                Features
-              </div>
+              <div className="font-bold text-gray-900 text-lg flex items-center">Features</div>
 
               {/* Peace Plan Header */}
               <div className="text-center">
@@ -446,7 +443,6 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
           <div className="p-6 bg-gradient-to-r from-primary/5 to-accent/5 border-t border-gray-200 min-w-[1000px]">
             <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
               <div className="flex items-center gap-3 mb-6">
-                <div className="text-3xl">🪷</div>
                 <h6 className="font-bold text-xl text-gray-900">Understanding Your Options</h6>
               </div>
               <div className="grid md:grid-cols-3 gap-6 text-sm text-gray-700">

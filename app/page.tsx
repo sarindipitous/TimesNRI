@@ -308,14 +308,6 @@ export default function Home() {
               transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
             >
               <div className="space-y-6">
-                <motion.div
-                  className="text-4xl mb-4"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5, delay: 0.1 }}
-                >
-                  🪷
-                </motion.div>
                 <motion.h1
                   className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl/none text-primary leading-tight"
                   initial={{ opacity: 0, y: 20 }}
@@ -470,9 +462,6 @@ export default function Home() {
             className="flex flex-col items-center justify-center space-y-4 text-center mb-16"
             variants={itemVariants}
           >
-            <motion.div className="text-4xl mb-4" variants={itemVariants}>
-              🪷
-            </motion.div>
             <motion.h2 className="text-3xl font-bold tracking-tight sm:text-4xl text-primary" variants={itemVariants}>
               Times NRI is built around the four things that ageing parents truly need
             </motion.h2>
@@ -639,9 +628,6 @@ export default function Home() {
         <div className="container px-4 md:px-6">
           <div className="max-w-4xl mx-auto text-center">
             <motion.div className="flex flex-col justify-center space-y-8" variants={itemVariants}>
-              <motion.div className="text-6xl mb-6" variants={itemVariants}>
-                🪷
-              </motion.div>
               <div className="space-y-6">
                 <motion.h2 className="text-4xl font-bold tracking-tight text-primary" variants={itemVariants}>
                   Times NRI
