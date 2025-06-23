@@ -345,11 +345,8 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
 
               {/* Presence Plan Header */}
               <div className="text-center">
-                <div className="bg-accent/10 rounded-2xl p-6 border-2 border-accent/30 shadow-sm relative">
-                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-accent text-white text-xs font-bold px-4 py-1 rounded-full">
-                    Most Popular
-                  </div>
-                  <div className="flex items-center justify-center gap-2 mb-4 mt-2">
+                <div className="bg-accent/10 rounded-2xl p-6 border-2 border-accent/30 shadow-sm">
+                  <div className="flex items-center justify-center gap-2 mb-4">
                     <Shield className="h-6 w-6 text-accent" />
                     <h4 className="font-bold text-gray-900 text-lg">Presence</h4>
                   </div>

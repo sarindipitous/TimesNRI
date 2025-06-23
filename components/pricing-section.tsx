@@ -272,12 +272,8 @@ export function PricingSection() {
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-xl border-2 border-accent overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 relative lg:scale-105">
-          <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-accent to-orange-500 text-white text-center py-3 font-semibold">
-            ⭐ Most Popular Choice
-          </div>
-
-          <div className="p-8 pt-16">
+        <div className="bg-white rounded-3xl shadow-xl border-2 border-accent overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-2">
+          <div className="p-8">
             <div className="flex items-center gap-3 mb-6">
               <div className="bg-accent/10 p-3 rounded-2xl">
                 <Shield className="h-6 w-6 text-accent" />
