@@ -14,7 +14,7 @@ const menuItems = [
   { id: "pricing", label: "Care Packages" },
   { id: "testimonials", label: "Testimonials" },
   { id: "cities", label: "Locations" },
-  { id: "story", label: "Our Story" },
+  { id: "story", label: "Our Mission" },
   { id: "faq", label: "FAQ" },
 ]
 
@@ -24,6 +24,8 @@ function getDisplayName(id: string): string {
       return "FAQ"
     case "pricing":
       return "Care Packages"
+    case "story":
+      return "Our Mission"
     default:
       return menuItems.find((item) => item.id === id)?.label || id
   }
