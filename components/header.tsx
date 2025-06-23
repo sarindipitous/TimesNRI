@@ -156,7 +156,13 @@ export function Header() {
       </header>
 
       {/* Waitlist Modal */}
-      {showWaitlist && <WaitlistForm onClose={() => setShowWaitlist(false)} />}
+      <WaitlistForm
+        isOpen={showWaitlist}
+        onOpenChange={setShowWaitlist}
+        includeNameField={true}
+        isDetailed={true}
+        source="header-cta"
+      />
     </>
   )
 }
