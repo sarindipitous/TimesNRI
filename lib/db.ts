@@ -16,8 +16,9 @@ Add it in Vercel → Project Settings → Environment Variables (or .env locally
   }
 }
 
-export const sql = hasDb ? neon(databaseUrl!) : (createNoOpClient() as typeof neon("")
-)
+export const sql: ReturnType<typeof neon> = hasDb
+  ? neon(databaseUrl!)
+  : (createNoOpClient() as unknown as ReturnType<typeof neon>)
 
 // ──────────────────────────────────────────────────────────────────────────────
 //  Types
@@ -27,7 +28,7 @@ export interface WaitlistSubmission {
   email: string
   name?: string
   source?: string
-  location?: string\
+  location?: string
   parent_location?: string
   care_needs?: string
   waitlist_number?: number
