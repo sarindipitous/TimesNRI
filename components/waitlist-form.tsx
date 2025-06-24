@@ -66,8 +66,10 @@ export function WaitlistForm({
       localStorage.setItem("referredBy", ref)
     }
 
-    // Set plan based on URL parameter if not already set
-    if (planParam && !preSelectedPlan) {
+    // Set plan based on preSelectedPlan prop first, then URL parameter
+    if (preSelectedPlan) {
+      setCarePlan(preSelectedPlan)
+    } else if (planParam) {
       const planMap: Record<string, string> = {
         peace: "Peace: $50/month",
         presence: "Presence: $200/month",
