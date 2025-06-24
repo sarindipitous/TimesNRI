@@ -54,6 +54,16 @@ export function Header() {
       return
     }
 
+    // Check if we're on the main page
+    const isOnMainPage = window.location.pathname === "/"
+
+    if (!isOnMainPage) {
+      // If we're not on the main page, navigate to main page with hash
+      window.location.href = `/#${sectionId}`
+      return
+    }
+
+    // If we're on the main page, scroll to the section
     const element = document.getElementById(sectionId)
     if (element) {
       const headerHeight = 80
