@@ -245,6 +245,10 @@ export async function updateWaitlistEntry(formData: FormData) {
     const location = formData.get("location") as string
     const parentLocation = formData.get("parentLocation") as string
     const careNeeds = formData.get("careNeeds") as string
+    const carePlan = formData.get("carePlan") as string
+    const carePlanInterest = formData.get("carePlanInterest") as string
+
+    console.log("Update request:", { id, name, email, location, parentLocation, careNeeds, carePlan, carePlanInterest })
 
     if (!id || isNaN(id)) {
       return {
@@ -266,6 +270,8 @@ export async function updateWaitlistEntry(formData: FormData) {
       location,
       parent_location: parentLocation,
       care_needs: careNeeds,
+      care_plan: carePlan,
+      care_plan_interest: carePlanInterest,
     })
 
     if (!updatedSubmission) {
@@ -284,7 +290,8 @@ export async function updateWaitlistEntry(formData: FormData) {
     console.error("Error in updateWaitlistEntry:", error)
     return {
       success: false,
-      message: "An unexpected error occurred. Please try again.",
+      message:
+        "An unexpected error occurred while updating: " + (error instanceof Error ? error.message : String(error)),
     }
   }
 }
@@ -293,19 +300,24 @@ export async function deleteWaitlistEntry(formData: FormData) {
   try {
     const id = Number.parseInt(formData.get("id") as string)
 
+    console.log("Delete request for ID:", id)
+
     if (!id || isNaN(id)) {
+      console.log("Invalid ID provided:", formData.get("id"))
       return {
         success: false,
         message: "Invalid submission ID.",
       }
     }
 
+    console.log("Attempting to delete waitlist entry with ID:", id)
     const success = await deleteWaitlistSubmission(id)
+    console.log("Delete operation result:", success)
 
     if (!success) {
       return {
         success: false,
-        message: "Failed to delete waitlist entry. Please try again.",
+        message: "Failed to delete waitlist entry. Entry may not exist or database error occurred.",
       }
     }
 
@@ -317,7 +329,8 @@ export async function deleteWaitlistEntry(formData: FormData) {
     console.error("Error in deleteWaitlistEntry:", error)
     return {
       success: false,
-      message: "An unexpected error occurred. Please try again.",
+      message:
+        "An unexpected error occurred while deleting: " + (error instanceof Error ? error.message : String(error)),
     }
   }
 }
