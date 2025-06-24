@@ -33,6 +33,7 @@ export async function submitToWaitlist(formData: FormData) {
     const parentLocation = (formData.get("parentLocation") as string) || undefined
     const careNeeds = (formData.get("careNeeds") as string) || undefined
     const referredBy = (formData.get("referredBy") as string) || undefined
+    const carePlan = (formData.get("carePlan") as string) || undefined
 
     console.log("Processed form data:", {
       email,
@@ -41,7 +42,7 @@ export async function submitToWaitlist(formData: FormData) {
       location,
       parentLocation,
       careNeeds,
-      referredBy,
+      carePlan,
       emailValid: isValidEmail(email),
     })
 
@@ -69,7 +70,7 @@ export async function submitToWaitlist(formData: FormData) {
       // Add to waitlist with all available fields
       let submission
       try {
-        submission = await addToWaitlist(email, source, name, location, parentLocation, careNeeds)
+        submission = await addToWaitlist(email, source, name, location, parentLocation, careNeeds, carePlan)
         console.log("Database response:", submission)
       } catch (dbError) {
         console.error("Database operation error:", dbError)

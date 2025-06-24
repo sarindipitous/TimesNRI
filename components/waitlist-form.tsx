@@ -19,7 +19,8 @@ interface WaitlistFormProps {
   onClose?: () => void
   isOpen?: boolean
   onOpenChange?: (open: boolean) => void
-  standalone?: boolean // New prop for standalone mode
+  standalone?: boolean
+  preSelectedPlan?: string
 }
 
 export function WaitlistForm({
@@ -31,13 +32,15 @@ export function WaitlistForm({
   onClose,
   isOpen = false,
   onOpenChange,
-  standalone = false, // Default to false for backward compatibility
+  standalone = false,
+  preSelectedPlan,
 }: WaitlistFormProps) {
   const [email, setEmail] = useState("")
   const [name, setName] = useState("")
   const [city, setCity] = useState("")
   const [parentLocation, setParentLocation] = useState("")
   const [careNeeds, setCareNeeds] = useState("")
+  const [carePlan, setCarePlan] = useState(preSelectedPlan || "")
   const [step, setStep] = useState(1)
   const [isSuccessOpen, setIsSuccessOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -53,15 +56,26 @@ export function WaitlistForm({
     return emailRegex.test(email)
   }
 
-  // Check for referral in URL
+  // Check for referral in URL and plan parameter
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
     const ref = urlParams.get("ref")
+    const planParam = urlParams.get("plan")
+
     if (ref) {
-      // Store the referrer in localStorage
       localStorage.setItem("referredBy", ref)
     }
-  }, [])
+
+    // Set plan based on URL parameter if not already set
+    if (planParam && !preSelectedPlan) {
+      const planMap: Record<string, string> = {
+        peace: "Peace: $50/month",
+        presence: "Presence: $200/month",
+        honour: "Honour: $500/month (By Invitation Only)",
+      }
+      setCarePlan(planMap[planParam] || "")
+    }
+  }, [preSelectedPlan])
 
   const triggerConfetti = async () => {
     // Only run in the browser
@@ -151,6 +165,9 @@ export function WaitlistForm({
         formData.append("city", city)
         formData.append("parentLocation", parentLocation)
         formData.append("careNeeds", careNeeds)
+        if (carePlan) {
+          formData.append("carePlan", carePlan)
+        }
       }
 
       if (referredBy) {
@@ -163,6 +180,7 @@ export function WaitlistForm({
         city,
         parentLocation,
         careNeeds,
+        carePlan,
         source,
         referredBy,
       })
@@ -182,6 +200,7 @@ export function WaitlistForm({
         setCity("")
         setParentLocation("")
         setCareNeeds("")
+        setCarePlan("")
         setStep(1)
 
         // Show waitlist number if available
@@ -340,6 +359,18 @@ export function WaitlistForm({
                         <SelectItem value="all">All of the above</SelectItem>
                       </SelectContent>
                     </Select>
+                    <Select value={carePlan} onValueChange={setCarePlan}>
+                      <SelectTrigger className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12">
+                        <SelectValue placeholder="Which care plan interests you?" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Peace: $50/month">Peace: $50/month</SelectItem>
+                        <SelectItem value="Presence: $200/month">Presence: $200/month</SelectItem>
+                        <SelectItem value="Honour: $500/month (By Invitation Only)">
+                          Honour: $500/month (By Invitation Only)
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   {formError && <p className="text-sm text-red-500">{formError}</p>}
                   <div className="flex space-x-2">
@@ -383,6 +414,11 @@ export function WaitlistForm({
                     <p>
                       <span className="font-medium">Care needs:</span> {careNeeds}
                     </p>
+                    {carePlan && (
+                      <p>
+                        <span className="font-medium">Interested in:</span> {carePlan}
+                      </p>
+                    )}
                   </div>
                   <p className="text-xs text-gray-500">
                     By joining our waitlist, you'll be among the first to know when we launch in your parents' city.
@@ -601,6 +637,18 @@ export function WaitlistForm({
                             <SelectItem value="all">All of the above</SelectItem>
                           </SelectContent>
                         </Select>
+                        <Select value={carePlan} onValueChange={setCarePlan}>
+                          <SelectTrigger className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12">
+                            <SelectValue placeholder="Which care plan interests you?" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Peace: $50/month">Peace: $50/month</SelectItem>
+                            <SelectItem value="Presence: $200/month">Presence: $200/month</SelectItem>
+                            <SelectItem value="Honour: $500/month (By Invitation Only)">
+                              Honour: $500/month (By Invitation Only)
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                       {formError && <p className="text-sm text-red-500">{formError}</p>}
                       <div className="flex space-x-2">
@@ -644,6 +692,11 @@ export function WaitlistForm({
                         <p>
                           <span className="font-medium">Care needs:</span> {careNeeds}
                         </p>
+                        {carePlan && (
+                          <p>
+                            <span className="font-medium">Interested in:</span> {carePlan}
+                          </p>
+                        )}
                       </div>
                       <p className="text-xs text-gray-500">
                         By joining our waitlist, you'll be among the first to know when we launch in your parents' city.
