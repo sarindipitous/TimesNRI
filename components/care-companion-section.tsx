@@ -90,7 +90,7 @@ export function CareCompanionSection() {
                 <p className="text-xs text-gray-600">
                   "Just confirmed tomorrow's physiotherapy session with Dr. Sharma. I'll be there to assist."
                 </p>
-                <p className="text-xs text-accent font-medium mt-1">- Priya, Your Care Companion</p>
+                <p className="text-xs text-accent font-medium mt-1">- Neha, Your Care Companion</p>
               </motion.div>
             </div>
           </motion.div>
