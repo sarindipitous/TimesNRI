@@ -32,6 +32,7 @@ export interface WaitlistSubmission {
   parent_location?: string
   care_needs?: string
   care_plan?: string
+  care_plan_interest?: string
   waitlist_number?: number
   created_at: Date
 }
@@ -65,6 +66,7 @@ export async function addToWaitlist(
   parent_location?: string,
   care_needs?: string,
   care_plan?: string,
+  care_plan_interest?: string,
 ): Promise<WaitlistSubmission | null> {
   if (!hasDb) return noDb(null, "addToWaitlist")
   try {
@@ -81,7 +83,8 @@ export async function addToWaitlist(
           location = COALESCE(${location}, location),
           parent_location = COALESCE(${parent_location}, parent_location),
           care_needs = COALESCE(${care_needs}, care_needs),
-          care_plan = COALESCE(${care_plan}, care_plan)
+          care_plan = COALESCE(${care_plan}, care_plan),
+          care_plan_interest = COALESCE(${care_plan_interest}, care_plan_interest)
       WHERE id = ${id}
       RETURNING *`
     return updated[0] as WaitlistSubmission

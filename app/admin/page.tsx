@@ -25,6 +25,7 @@ export default function AdminPage() {
     location: "",
     parentLocation: "",
     careNeeds: "",
+    carePlanInterest: "",
   })
 
   const fetchSubmissions = async () => {
@@ -84,6 +85,7 @@ export default function AdminPage() {
       location: submission.location || "",
       parentLocation: submission.parent_location || "",
       careNeeds: submission.care_needs || "",
+      carePlanInterest: submission.care_plan_interest || "",
     })
   }
 
@@ -108,6 +110,7 @@ export default function AdminPage() {
       formData.append("location", editForm.location)
       formData.append("parentLocation", editForm.parentLocation)
       formData.append("careNeeds", editForm.careNeeds)
+      formData.append("carePlanInterest", editForm.carePlanInterest)
 
       const result = await updateWaitlistEntry(formData)
 
@@ -241,7 +244,7 @@ export default function AdminPage() {
         </TabsList>
 
         <TabsContent value="all">
-          <div className="border rounded-md">
+          <div className="border rounded-md overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -250,6 +253,7 @@ export default function AdminPage() {
                   <TableHead>Location</TableHead>
                   <TableHead>Parent Location</TableHead>
                   <TableHead>Care Needs</TableHead>
+                  <TableHead>Plan Interest</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -257,13 +261,13 @@ export default function AdminPage() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-4">
+                    <TableCell colSpan={8} className="text-center py-4">
                       Loading...
                     </TableCell>
                   </TableRow>
                 ) : filteredSubmissions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-4">
+                    <TableCell colSpan={8} className="text-center py-4">
                       No submissions found
                     </TableCell>
                   </TableRow>
@@ -291,6 +295,13 @@ export default function AdminPage() {
                           <TableCell>
                             <Input name="careNeeds" value={editForm.careNeeds} onChange={handleEditFormChange} />
                           </TableCell>
+                          <TableCell>
+                            <Input
+                              name="carePlanInterest"
+                              value={editForm.carePlanInterest}
+                              onChange={handleEditFormChange}
+                            />
+                          </TableCell>
                           <TableCell>{new Date(submission.created_at).toLocaleDateString()}</TableCell>
                           <TableCell>
                             <div className="flex gap-2">
@@ -310,6 +321,15 @@ export default function AdminPage() {
                           <TableCell>{submission.location || "-"}</TableCell>
                           <TableCell>{submission.parent_location || "-"}</TableCell>
                           <TableCell>{submission.care_needs || "-"}</TableCell>
+                          <TableCell>
+                            {submission.care_plan_interest ? (
+                              <div className="max-w-xs truncate" title={submission.care_plan_interest}>
+                                {submission.care_plan_interest}
+                              </div>
+                            ) : (
+                              <span className="text-gray-400 italic">Not provided</span>
+                            )}
+                          </TableCell>
                           <TableCell>
                             {new Date(submission.created_at).toLocaleDateString()}
                             {isRecent(submission.created_at) && <Badge className="ml-2 bg-green-500">New</Badge>}
@@ -335,7 +355,7 @@ export default function AdminPage() {
         </TabsContent>
 
         <TabsContent value="recent">
-          <div className="border rounded-md">
+          <div className="border rounded-md overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -344,6 +364,7 @@ export default function AdminPage() {
                   <TableHead>Location</TableHead>
                   <TableHead>Parent Location</TableHead>
                   <TableHead>Care Needs</TableHead>
+                  <TableHead>Plan Interest</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -351,7 +372,7 @@ export default function AdminPage() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-4">
+                    <TableCell colSpan={8} className="text-center py-4">
                       Loading...
                     </TableCell>
                   </TableRow>
@@ -365,6 +386,15 @@ export default function AdminPage() {
                         <TableCell>{submission.location || "-"}</TableCell>
                         <TableCell>{submission.parent_location || "-"}</TableCell>
                         <TableCell>{submission.care_needs || "-"}</TableCell>
+                        <TableCell>
+                          {submission.care_plan_interest ? (
+                            <div className="max-w-xs truncate" title={submission.care_plan_interest}>
+                              {submission.care_plan_interest}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 italic">Not provided</span>
+                          )}
+                        </TableCell>
                         <TableCell>{new Date(submission.created_at).toLocaleDateString()}</TableCell>
                         <TableCell>
                           <div className="flex gap-2">
