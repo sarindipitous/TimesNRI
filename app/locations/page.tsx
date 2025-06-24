@@ -6,14 +6,14 @@ import { getCanonicalUrl } from "@/utils/url-utils"
 import { MapPin, CheckCircle, Clock } from "lucide-react"
 
 export const metadata: Metadata = {
-  title: "Our Service Locations - Times NRI Elderly Care",
+  title: "Our Service Locations - Times NRI Senior Care & Wellness",
   description:
     "We're launching soon in major Indian cities including Delhi NCR, Mumbai, Bangalore, Hyderabad, Pune, Chennai, and Kolkata. Join our waitlist to be notified when we go live.",
   alternates: {
     canonical: getCanonicalUrl("/locations"),
   },
   openGraph: {
-    title: "Our Service Locations - Times NRI Elderly Care",
+    title: "Our Service Locations - Times NRI Senior Care & Wellness",
     description:
       "We're launching soon in major Indian cities including Delhi NCR, Mumbai, Bangalore, Hyderabad, Pune, Chennai, and Kolkata. Join our waitlist to be notified when we go live.",
     url: getCanonicalUrl("/locations"),

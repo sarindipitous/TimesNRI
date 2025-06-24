@@ -88,7 +88,7 @@ export function Header() {
           <div className="flex items-center">
             <div className="flex flex-col">
               <span className="font-bold text-lg text-primary">Times NRI</span>
-              <span className="text-xs text-gray-600 -mt-1">Elderly Care Concierge</span>
+              <span className="text-xs text-gray-600 -mt-1">Senior Care & Wellness Membership</span>
             </div>
           </div>
 
@@ -125,7 +125,7 @@ export function Header() {
                   <div className="flex items-center">
                     <div className="flex flex-col">
                       <span className="font-bold text-lg text-primary">Times NRI</span>
-                      <span className="text-xs text-gray-600 -mt-1">Elderly Care Concierge</span>
+                      <span className="text-xs text-gray-600 -mt-1">Senior Care & Wellness Membership</span>
                     </div>
                   </div>
                 </div>

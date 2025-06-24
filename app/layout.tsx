@@ -3,9 +3,9 @@ import type { Metadata } from "next"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "Times NRI - Elderly Care Concierge",
+  title: "Times NRI - Senior Care & Wellness Membership",
   description:
-    "A verified, on-demand care concierge for your parents in India. We provide the support they need, with the transparency you deserve.",
+    "A verified, on-demand care membership for your parents in India. We provide the support they need, with the transparency you deserve.",
   generator: "Next.js",
   icons: {
     icon: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/timesnri_favicon-DSLvV0iLnWRwxijoGciCPulU5NAWQ1.ico",

@@ -9,9 +9,9 @@ export function Faq() {
 
   const faqs = [
     {
-      question: "What is Times NRI's Elderly Care Concierge?",
+      question: "What is Times NRI's Senior Care & Wellness Membership?",
       answer:
-        "A premium, on-demand coordination service designed for NRIs to support their aging parents in India with emergency assistance, caregiving, and healthcare management.",
+        "A premium, on-demand care membership designed for NRIs to support their aging parents in India with emergency assistance, caregiving, and healthcare management.",
     },
     {
       question: "How do I know the caregivers and attendants are trustworthy?",
@@ -21,12 +21,12 @@ export function Faq() {
     {
       question: "Which Indian cities do you currently operate in?",
       answer:
-        "We are currently live in Delhi NCR, Mumbai, Pune, Bangalore, and Hyderabad — with Chennai and more cities launching soon.",
+        "We are preparing to launch in Delhi NCR, Mumbai, Pune, Bangalore, Hyderabad, Chennai, Kolkata, and more cities. Join our waitlist to be notified when we go live in your area.",
     },
     {
       question: "Can I customise the care package for my parent's specific needs?",
       answer:
-        "Absolutely. Our concierge team will help you create a care plan based on your parent's health, lifestyle, and preferences.",
+        "Absolutely. Our care team will help you create a care plan based on your parent's health, lifestyle, and preferences.",
     },
     {
       question: "Will I receive updates or reports about what's happening?",
@@ -34,7 +34,7 @@ export function Faq() {
         "Yes. You'll get real-time updates, visit summaries, and billing reports directly to your email or dashboard.",
     },
     {
-      question: "Can the concierge accompany my parent to doctor appointments?",
+      question: "Can the care team accompany my parent to doctor appointments?",
       answer: "Yes. Accompanied doctor visits are included in the core services.",
     },
     {

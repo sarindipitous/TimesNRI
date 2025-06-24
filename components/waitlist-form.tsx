@@ -386,7 +386,7 @@ export function WaitlistForm({
                   </div>
                   <p className="text-xs text-gray-500">
                     By joining our waitlist, you'll be among the first to know when we launch in your parents' city.
-                    We'll also send you resources on elderly care in India.
+                    We'll also send you resources on senior care in India.
                   </p>
                   {formError && <p className="text-sm text-red-500">{formError}</p>}
                   <div className="flex space-x-2">
@@ -450,7 +450,7 @@ export function WaitlistForm({
                       className="flex items-center space-x-1 h-12 px-4 border-green-300 text-green-700 hover:bg-green-50"
                       onClick={() => {
                         window.open(
-                          `https://wa.me/?text=I just joined the Times NRI waitlist for elderly care services in India. As an NRI, I found this service really promising for managing parent care from abroad: ${referralLink}`,
+                          `https://wa.me/?text=I just joined the Times NRI waitlist for senior care services in India. As an NRI, I found this service really promising for managing parent care from abroad: ${referralLink}`,
                           "_blank",
                         )
                       }}
@@ -478,7 +478,7 @@ export function WaitlistForm({
           </DialogHeader>
           <div className="p-6">
             <p id="waitlist-dialog-description" className="text-center mb-6 text-gray-600">
-              Be among the first to access our Elderly Care Concierge service when we launch in your city.
+              Be among the first to access our Senior Care & Wellness Membership when we launch in your city.
             </p>
 
             <form ref={formRef} onSubmit={handleSubmit} className="w-full">
@@ -647,7 +647,7 @@ export function WaitlistForm({
                       </div>
                       <p className="text-xs text-gray-500">
                         By joining our waitlist, you'll be among the first to know when we launch in your parents' city.
-                        We'll also send you resources on elderly care in India.
+                        We'll also send you resources on senior care in India.
                       </p>
                       {formError && <p className="text-sm text-red-500">{formError}</p>}
                       <div className="flex space-x-2">
@@ -715,7 +715,7 @@ export function WaitlistForm({
                     className="flex items-center space-x-1 h-12 px-4"
                     onClick={() => {
                       window.open(
-                        `https://wa.me/?text=I just joined the Times NRI waitlist for elderly care services in India. As an NRI, I found this service really promising for managing parent care from abroad: ${referralLink}`,
+                        `https://wa.me/?text=I just joined the Times NRI waitlist for senior care services in India. As an NRI, I found this service really promising for managing parent care from abroad: ${referralLink}`,
                         "_blank",
                       )
                     }}

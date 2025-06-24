@@ -73,13 +73,13 @@ export async function generateMetadata({
   }
 
   return {
-    title: `${service.title} - Times NRI Elderly Care`,
+    title: `${service.title} - Times NRI Senior Care & Wellness`,
     description: service.description,
     alternates: {
       canonical: getCanonicalUrl(`/services/${params.service}`),
     },
     openGraph: {
-      title: `${service.title} - Times NRI Elderly Care`,
+      title: `${service.title} - Times NRI Senior Care & Wellness`,
       description: service.description,
       url: getCanonicalUrl(`/services/${params.service}`),
       siteName: "Times NRI",

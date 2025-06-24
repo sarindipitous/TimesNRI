@@ -6,16 +6,16 @@ import Link from "next/link"
 import { getCanonicalUrl } from "@/utils/url-utils"
 
 export const metadata: Metadata = {
-  title: "Our Services - Times NRI Elderly Care",
+  title: "Our Services - Times NRI Senior Care & Wellness",
   description:
-    "Explore our range of elderly care services designed specifically for NRI families with parents in India.",
+    "Explore our range of senior care services designed specifically for NRI families with parents in India.",
   alternates: {
     canonical: getCanonicalUrl("/services"),
   },
   openGraph: {
-    title: "Our Services - Times NRI Elderly Care",
+    title: "Our Services - Times NRI Senior Care & Wellness",
     description:
-      "Explore our range of elderly care services designed specifically for NRI families with parents in India.",
+      "Explore our range of senior care services designed specifically for NRI families with parents in India.",
     url: getCanonicalUrl("/services"),
     siteName: "Times NRI",
     type: "website",
@@ -107,7 +107,7 @@ export default function ServicesPage() {
                 Everything they need. Handled by people you can trust.
               </h1>
               <p className="max-w-[700px] text-gray-600 text-lg">
-                Professional, verified services designed specifically for elderly parents in India.
+                Professional, verified services designed specifically for senior parents in India.
               </p>
             </div>
             <div className="mx-auto grid max-w-5xl grid-cols-1 gap-8 py-8 sm:grid-cols-2 md:grid-cols-3">
