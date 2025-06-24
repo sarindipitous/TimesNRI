@@ -143,7 +143,7 @@ export function PricingSection({ className }: PricingProps) {
                   <Button
                     className="w-full bg-purple-600 hover:bg-purple-700 text-white"
                     onClick={() => {
-                      setSelectedPlan(`${plan.name}: ${plan.price}/month`)
+                      setSelectedPlan("Honour: $500/month (By Invitation Only)")
                       setIsWaitlistOpen(true)
                     }}
                   >
@@ -193,7 +193,7 @@ export function PricingSection({ className }: PricingProps) {
             const planMap: Record<string, string> = {
               peace: "Peace: $50/month",
               presence: "Presence: $200/month",
-              honour: "Honour: $500/month",
+              honour: "Honour: $500/month (By Invitation Only)",
             }
             setSelectedPlan(planMap[plan] || "")
             setIsWaitlistOpen(true)
