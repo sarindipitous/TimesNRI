@@ -4,8 +4,16 @@ import type React from "react"
 import { Button } from "@/components/ui/button"
 import { Check, Star, Heart, Shield, Crown, X, Info, ArrowRight, Zap } from "lucide-react"
 import { useState } from "react"
-import { CarePlansComparison } from "./care-plans-comparison"
 import Link from "next/link"
+import dynamic from "next/dynamic"
+
+/*
+ * Lazy-load the big comparison modal so it's excluded
+ * from the initial bundle.  `ssr:false` keeps it out
+ * of the server render as well, preventing hydration
+ * size blow-ups that were crashing v0.
+ */
+const CarePlansComparison = dynamic(() => import("./care-plans-comparison"), { ssr: false })
 
 interface PlanDetails {
   name: string
@@ -144,7 +152,7 @@ const planDetails: Record<string, PlanDetails> = {
         category: "Health & Wellness",
         items: [
           "Comprehensive Annual Health Test + Microbiome analysis",
-          "Ultrahuman Ring (fall detection + vitals tracking)",
+          "Health monitoring wearables (fall detection + vitals tracking)",
           "2 At-home Doctor Visits per month",
           "12 Physiotherapy sessions at home per year",
         ],
@@ -180,9 +188,9 @@ export function PricingSection() {
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full min-h-screen bg-secondary">
       {/* Header Section */}
-      <div className="flex flex-col items-center justify-center space-y-4 sm:space-y-6 text-center mb-12 sm:mb-16 px-4">
+      <div className="flex flex-col items-center justify-center space-y-4 sm:space-y-6 text-center mb-8 sm:mb-12 lg:mb-16 px-4 pt-8">
         <div className="inline-flex items-center justify-center rounded-full bg-primary-light px-3 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-medium text-primary mb-2 sm:mb-4">
           <Star className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
           Care Plans
@@ -203,71 +211,65 @@ export function PricingSection() {
         </div>
       </div>
 
-      {/* Care Plans Grid - Mobile Optimized */}
-      <div className="w-full px-4 sm:px-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 max-w-7xl mx-auto">
+      {/* Mobile Care Plans - Simple Stack */}
+      <div className="block px-4 sm:px-6 lg:px-8 pb-8">
+        <div className="max-w-7xl mx-auto">
           {/* Peace Plan */}
-          <div className="bg-white rounded-2xl sm:rounded-3xl shadow-lg border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 sm:hover:-translate-y-2 w-full">
-            <div className="p-6 sm:p-8">
-              <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                <div className="bg-blue-100 p-2 sm:p-3 rounded-xl sm:rounded-2xl">
-                  <Heart className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+          <div className="mb-8 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="bg-blue-100 p-3 rounded-xl">
+                  <Heart className="h-6 w-6 text-blue-600" />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-xl sm:text-2xl font-bold text-gray-900">Peace</h3>
-                  <p className="text-xs sm:text-sm text-gray-600 mt-1 leading-tight">
-                    For when you need to know someone's always there
-                  </p>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-gray-900">Peace</h3>
+                  <p className="text-sm text-gray-600 mt-1">For when you need to know someone's always there</p>
                 </div>
               </div>
 
-              <div className="mb-6 sm:mb-8">
+              <div className="mb-6">
                 <div className="flex items-baseline gap-2 mb-2">
-                  <span className="text-3xl sm:text-4xl font-bold text-gray-900">$50</span>
-                  <span className="text-base sm:text-lg text-gray-500">/month</span>
+                  <span className="text-3xl font-bold text-gray-900">$50</span>
+                  <span className="text-lg text-gray-500">/month</span>
                 </div>
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="text-xs sm:text-sm line-through text-gray-400">$100</span>
+                  <span className="text-sm line-through text-gray-400">$100</span>
                   <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-1 rounded-full">
                     Save 50%
                   </span>
                 </div>
-                <p className="text-xs sm:text-sm text-blue-600 font-medium italic">
-                  Peace of mind, always within reach
-                </p>
+                <p className="text-sm text-blue-600 font-medium italic">Peace of mind, always within reach</p>
               </div>
 
-              <div className="space-y-3 sm:space-y-4 mb-6">
+              <div className="space-y-3 mb-6">
                 <div className="flex items-start gap-3">
-                  <Check className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm sm:text-base text-gray-700">24/7 Emergency Helpline & Doctor on Call</span>
+                  <Check className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm text-gray-700">24/7 Emergency Helpline & Doctor on Call</span>
                 </div>
                 <div className="flex items-start gap-3">
-                  <Check className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm sm:text-base text-gray-700">
-                    Emergency ambulance & hospital coordination
-                  </span>
+                  <Check className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm text-gray-700">Emergency ambulance & hospital coordination</span>
                 </div>
                 <div className="flex items-start gap-3">
-                  <Check className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm sm:text-base text-gray-700">Medication management & delivery</span>
+                  <Check className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm text-gray-700">Medication management & delivery</span>
                 </div>
                 <div className="flex items-start gap-3">
-                  <Check className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm sm:text-base text-gray-700">Wellness content & spiritual support</span>
+                  <Check className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm text-gray-700">Wellness content & spiritual support</span>
                 </div>
               </div>
 
               <button
                 onClick={() => openPlanDetails("peace")}
-                className="w-full mb-3 sm:mb-4 text-blue-600 hover:text-blue-700 font-medium text-xs sm:text-sm flex items-center justify-center gap-2 py-2 sm:py-2 border border-blue-200 rounded-lg sm:rounded-xl hover:bg-blue-50 transition-colors"
+                className="w-full mb-4 text-blue-600 hover:text-blue-700 font-medium text-sm flex items-center justify-center gap-2 py-2 border border-blue-200 rounded-xl hover:bg-blue-50 transition-colors"
               >
-                <Info className="h-3 w-3 sm:h-4 sm:w-4" />
+                <Info className="h-4 w-4" />
                 View Full Details
               </button>
 
               <Link href="/waitlist?plan=peace">
-                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 sm:py-6 rounded-xl sm:rounded-2xl font-semibold text-base sm:text-lg">
+                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-semibold text-lg">
                   Choose Peace
                 </Button>
               </Link>
@@ -275,70 +277,64 @@ export function PricingSection() {
           </div>
 
           {/* Presence Plan */}
-          <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl border-2 border-accent overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 sm:hover:-translate-y-2 w-full">
-            <div className="p-6 sm:p-8">
-              <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                <div className="bg-accent/10 p-2 sm:p-3 rounded-xl sm:rounded-2xl">
-                  <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-accent" />
+          <div className="mb-8 bg-white rounded-2xl shadow-xl border-2 border-accent overflow-hidden">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="bg-accent/10 p-3 rounded-xl">
+                  <Shield className="h-6 w-6 text-accent" />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-xl sm:text-2xl font-bold text-gray-900">Presence</h3>
-                  <p className="text-xs sm:text-sm text-gray-600 mt-1 leading-tight">
-                    For when you want to be felt - even if you're far
-                  </p>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-gray-900">Presence</h3>
+                  <p className="text-sm text-gray-600 mt-1">For when you want to be felt - even if you're far</p>
                 </div>
               </div>
 
-              <div className="mb-6 sm:mb-8">
+              <div className="mb-6">
                 <div className="flex items-baseline gap-2 mb-2">
-                  <span className="text-3xl sm:text-4xl font-bold text-gray-900">$200</span>
-                  <span className="text-base sm:text-lg text-gray-500">/month</span>
+                  <span className="text-3xl font-bold text-gray-900">$200</span>
+                  <span className="text-lg text-gray-500">/month</span>
                 </div>
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="text-xs sm:text-sm line-through text-gray-400">$400</span>
+                  <span className="text-sm line-through text-gray-400">$400</span>
                   <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-1 rounded-full">
                     Save 50%
                   </span>
                 </div>
-                <p className="text-xs sm:text-sm text-accent font-medium italic">
-                  Your caring presence, delivered daily
-                </p>
+                <p className="text-sm text-accent font-medium italic">Your caring presence, delivered daily</p>
               </div>
 
-              <div className="space-y-3 sm:space-y-4 mb-6">
-                <div className="bg-gray-50 rounded-lg sm:rounded-xl p-2 sm:p-3">
-                  <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1 sm:mb-2">
-                    Everything in Peace, plus:
-                  </p>
+              <div className="space-y-3 mb-6">
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-sm font-medium text-gray-600">Everything in Peace, plus:</p>
                 </div>
                 <div className="flex items-start gap-3">
-                  <Check className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm sm:text-base text-gray-700">Care Companion visits (2/month)</span>
+                  <Check className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm text-gray-700">Care Companion visits (2/month)</span>
                 </div>
                 <div className="flex items-start gap-3">
-                  <Check className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm sm:text-base text-gray-700">Complete health monitoring & tests</span>
+                  <Check className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm text-gray-700">Complete health monitoring & tests</span>
                 </div>
                 <div className="flex items-start gap-3">
-                  <Check className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm sm:text-base text-gray-700">Community access & engagement programs</span>
+                  <Check className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm text-gray-700">Community access & engagement programs</span>
                 </div>
                 <div className="flex items-start gap-3">
-                  <Check className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm sm:text-base text-gray-700">Full concierge services</span>
+                  <Check className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm text-gray-700">Full concierge services</span>
                 </div>
               </div>
 
               <button
                 onClick={() => openPlanDetails("presence")}
-                className="w-full mb-3 sm:mb-4 text-accent hover:text-accent/80 font-medium text-xs sm:text-sm flex items-center justify-center gap-2 py-2 sm:py-2 border border-accent/30 rounded-lg sm:rounded-xl hover:bg-accent/5 transition-colors"
+                className="w-full mb-4 text-accent hover:text-accent/80 font-medium text-sm flex items-center justify-center gap-2 py-2 border border-accent/30 rounded-xl hover:bg-accent/5 transition-colors"
               >
-                <Info className="h-3 w-3 sm:h-4 sm:w-4" />
+                <Info className="h-4 w-4" />
                 View Full Details
               </button>
 
               <Link href="/waitlist?plan=presence">
-                <Button className="w-full bg-accent hover:bg-accent/90 text-white py-4 sm:py-6 rounded-xl sm:rounded-2xl font-semibold text-base sm:text-lg">
+                <Button className="w-full bg-accent hover:bg-accent/90 text-white py-4 rounded-xl font-semibold text-lg">
                   Choose Presence
                 </Button>
               </Link>
@@ -346,72 +342,68 @@ export function PricingSection() {
           </div>
 
           {/* Honour Plan */}
-          <div className="bg-white rounded-2xl sm:rounded-3xl shadow-lg border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 sm:hover:-translate-y-2 w-full md:col-span-2 lg:col-span-1">
-            <div className="p-6 sm:p-8">
-              <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                <div className="bg-purple-100 p-2 sm:p-3 rounded-xl sm:rounded-2xl">
-                  <Crown className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
+          <div className="mb-8 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="bg-purple-100 p-3 rounded-xl">
+                  <Crown className="h-6 w-6 text-purple-600" />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-xl sm:text-2xl font-bold text-gray-900">Honour</h3>
-                  <p className="text-xs sm:text-sm text-gray-600 mt-1 leading-tight">
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-gray-900">Honour</h3>
+                  <p className="text-sm text-gray-600 mt-1">
                     For when you believe that only the very best will do for them
                   </p>
                 </div>
               </div>
 
-              <div className="mb-6 sm:mb-8">
+              <div className="mb-6">
                 <div className="flex items-baseline gap-2 mb-2">
-                  <span className="text-3xl sm:text-4xl font-bold text-gray-900">$500</span>
-                  <span className="text-base sm:text-lg text-gray-500">/month</span>
+                  <span className="text-3xl font-bold text-gray-900">$500</span>
+                  <span className="text-lg text-gray-500">/month</span>
                 </div>
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="text-xs sm:text-sm line-through text-gray-400">$1000</span>
+                  <span className="text-sm line-through text-gray-400">$1000</span>
                   <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-1 rounded-full">
                     Save 50%
                   </span>
                 </div>
-                <p className="text-xs sm:text-sm text-purple-600 font-medium italic">
+                <p className="text-sm text-purple-600 font-medium italic">
                   The dignity and care they gave you, returned in full
                 </p>
               </div>
 
-              <div className="space-y-3 sm:space-y-4 mb-6">
-                <div className="bg-gray-50 rounded-lg sm:rounded-xl p-2 sm:p-3">
-                  <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1 sm:mb-2">
-                    Everything in Presence, plus:
-                  </p>
+              <div className="space-y-3 mb-6">
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-sm font-medium text-gray-600">Everything in Presence, plus:</p>
                 </div>
                 <div className="flex items-start gap-3">
-                  <Check className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm sm:text-base text-gray-700">Unlimited emergency support</span>
+                  <Check className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm text-gray-700">Unlimited emergency support</span>
                 </div>
                 <div className="flex items-start gap-3">
-                  <Check className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm sm:text-base text-gray-700">Priority hospital access & bedside doctors</span>
+                  <Check className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm text-gray-700">Priority hospital access & bedside doctors</span>
                 </div>
                 <div className="flex items-start gap-3">
-                  <Check className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm sm:text-base text-gray-700">
-                    Advanced health monitoring (Ultrahuman Ring)
-                  </span>
+                  <Check className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm text-gray-700">Advanced health monitoring wearables</span>
                 </div>
                 <div className="flex items-start gap-3">
-                  <Check className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm sm:text-base text-gray-700">Premium travel & concierge services</span>
+                  <Check className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm text-gray-700">Premium travel & concierge services</span>
                 </div>
               </div>
 
               <button
                 onClick={() => openPlanDetails("honour")}
-                className="w-full mb-3 sm:mb-4 text-purple-600 hover:text-purple-700 font-medium text-xs sm:text-sm flex items-center justify-center gap-2 py-2 sm:py-2 border border-purple-200 rounded-lg sm:rounded-xl hover:bg-purple-50 transition-colors"
+                className="w-full mb-4 text-purple-600 hover:text-purple-700 font-medium text-sm flex items-center justify-center gap-2 py-2 border border-purple-200 rounded-xl hover:bg-purple-50 transition-colors"
               >
-                <Info className="h-3 w-3 sm:h-4 sm:w-4" />
+                <Info className="h-4 w-4" />
                 View Full Details
               </button>
 
               <Link href="/waitlist?plan=honour">
-                <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 sm:py-6 rounded-xl sm:rounded-2xl font-semibold text-base sm:text-lg">
+                <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 rounded-xl font-semibold text-lg">
                   Choose Honour
                 </Button>
               </Link>
@@ -449,7 +441,7 @@ export function PricingSection() {
                 >
                   <span className="flex items-center gap-2 sm:gap-3">
                     Compare All Care Plans
-                    <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <ArrowRight className="h-4 w-4 sm:h-5 w-5" />
                   </span>
                 </Button>
               </Link>
@@ -463,7 +455,7 @@ export function PricingSection() {
       </div>
 
       {/* What makes us different section */}
-      <div className="mt-16 sm:mt-20 max-w-6xl mx-auto px-4 sm:px-6">
+      <div className="mt-16 sm:mt-20 max-w-6xl mx-auto px-4 sm:px-6 pb-16">
         <div className="text-center mb-8 sm:mb-12">
           <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">What makes us different?</h3>
           <div className="max-w-3xl mx-auto space-y-3 sm:space-y-4 text-gray-600 text-base sm:text-lg leading-relaxed">
@@ -482,7 +474,7 @@ export function PricingSection() {
       </div>
 
       {/* Final CTA section */}
-      <div className="text-center mt-12 sm:mt-16 bg-gradient-to-r from-primary/5 to-accent/5 rounded-2xl sm:rounded-3xl p-8 sm:p-12 max-w-4xl mx-auto border border-primary/10">
+      <div className="text-center mt-12 sm:mt-16 bg-gradient-to-r from-primary/5 to-accent/5 rounded-2xl sm:rounded-3xl p-8 sm:p-12 max-w-4xl mx-auto border border-primary/10 mb-16">
         <h4 className="font-bold text-gray-900 mb-3 sm:mb-4 text-lg sm:text-xl">Times NRI</h4>
         <p className="text-gray-700 text-base sm:text-lg leading-relaxed">
           This isn't a healthcare service.

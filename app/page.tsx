@@ -555,9 +555,11 @@ export default function Home() {
       </AnimatedSection>
 
       {/* Care Plans Section */}
-      <AnimatedSection id="pricing" className="bg-secondary py-16 md:py-24 border-t border-gray-100">
-        <PricingSection />
-      </AnimatedSection>
+      <section id="pricing" className="bg-secondary py-16 md:py-24 border-t border-gray-100">
+        <div className="container px-4 md:px-6">
+          <PricingSection />
+        </div>
+      </section>
 
       {/* Testimonials */}
       <AnimatedSection id="testimonials" className="bg-primary text-white py-16 md:py-24">

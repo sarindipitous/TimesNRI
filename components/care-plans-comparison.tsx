@@ -102,7 +102,7 @@ const comparisonData: ComparisonFeature[] = [
         honour: "If diabetic",
       },
       {
-        name: "Ultrahuman Ring (fall detection + vitals tracking)",
+        name: "Health monitoring wearables (fall detection + vitals tracking)",
         peace: "Value-Added",
         presence: "Value-Added",
         honour: true,

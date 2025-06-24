@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Check, Copy, Share2, ArrowRight } from "lucide-react"
-import confetti from "canvas-confetti"
 import { submitToWaitlist } from "@/app/actions/waitlist"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
@@ -64,18 +63,25 @@ export function WaitlistForm({
     }
   }, [])
 
-  const triggerConfetti = () => {
-    if (typeof window !== "undefined") {
+  const triggerConfetti = async () => {
+    // Only run in the browser
+    if (typeof window === "undefined") return
+
+    try {
+      const { default: confetti } = await import("canvas-confetti")
       confetti({
         particleCount: 100,
         spread: 70,
         origin: { y: 0.6 },
       })
 
-      // Optional: vibration for mobile
+      // Optional mobile vibration feedback
       if (navigator.vibrate) {
         navigator.vibrate(100)
       }
+    } catch (err) {
+      // Silently ignore if the import fails (e.g. offline)
+      console.error("Unable to load canvas-confetti:", err)
     }
   }
 
@@ -167,10 +173,10 @@ export function WaitlistForm({
 
       if (result.success) {
         setIsSuccessOpen(true)
+        await triggerConfetti()
         if (result.referralLink) {
           setReferralLink(result.referralLink)
         }
-        triggerConfetti()
         setEmail("")
         setName("")
         setCity("")
