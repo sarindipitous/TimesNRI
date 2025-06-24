@@ -140,8 +140,14 @@ export function PricingSection({ className }: PricingProps) {
 
               <CardFooter>
                 {plan.inviteOnly ? (
-                  <Button className="w-full" variant="outline" disabled>
-                    By Invitation Only
+                  <Button
+                    className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                    onClick={() => {
+                      setSelectedPlan(`${plan.name}: ${plan.price}/month`)
+                      setIsWaitlistOpen(true)
+                    }}
+                  >
+                    Request Invitation
                   </Button>
                 ) : (
                   <Button
