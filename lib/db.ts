@@ -4,7 +4,7 @@
 import { neon } from "@neondatabase/serverless"
 
 const databaseUrl = process.env.DATABASE_URL?.trim()
-const hasDb = Boolean(databaseUrl)
+export const hasDb = Boolean(databaseUrl)
 
 function createNoOpClient() {
   return async () => {
@@ -56,7 +56,7 @@ function noDb<T>(fallback: T, fnName: string): T {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-//  CREATE helpers
+//  CREATE helpers - ATOMIC OPERATION
 // ──────────────────────────────────────────────────────────────────────────────
 export async function addToWaitlist(
   email: string,
@@ -69,27 +69,67 @@ export async function addToWaitlist(
   care_plan_interest?: string,
 ): Promise<WaitlistSubmission | null> {
   if (!hasDb) return noDb(null, "addToWaitlist")
+
   try {
-    const inserted =
-      await sql`INSERT INTO waitlist_submissions (email) VALUES (${email}) ON CONFLICT DO NOTHING RETURNING id`
+    // Use a single INSERT with all data to avoid partial entries
+    const result = await sql`
+      INSERT INTO waitlist_submissions (
+        email, 
+        source, 
+        name, 
+        location, 
+        parent_location, 
+        care_needs, 
+        care_plan, 
+        care_plan_interest
+      ) 
+      VALUES (
+        ${email}, 
+        ${source || null}, 
+        ${name || null}, 
+        ${location || null}, 
+        ${parent_location || null}, 
+        ${care_needs || null}, 
+        ${care_plan || null}, 
+        ${care_plan_interest || null}
+      )
+      ON CONFLICT (email) DO UPDATE SET
+        source = COALESCE(EXCLUDED.source, waitlist_submissions.source),
+        name = COALESCE(EXCLUDED.name, waitlist_submissions.name),
+        location = COALESCE(EXCLUDED.location, waitlist_submissions.location),
+        parent_location = COALESCE(EXCLUDED.parent_location, waitlist_submissions.parent_location),
+        care_needs = COALESCE(EXCLUDED.care_needs, waitlist_submissions.care_needs),
+        care_plan = COALESCE(EXCLUDED.care_plan, waitlist_submissions.care_plan),
+        care_plan_interest = COALESCE(EXCLUDED.care_plan_interest, waitlist_submissions.care_plan_interest)
+      RETURNING *
+    `
 
-    const id = inserted[0]?.id
-    if (!id) return null
-
-    const updated = await sql`
-      UPDATE waitlist_submissions
-      SET source = COALESCE(${source}, source),
-          name   = COALESCE(${name},   name),
-          location = COALESCE(${location}, location),
-          parent_location = COALESCE(${parent_location}, parent_location),
-          care_needs = COALESCE(${care_needs}, care_needs),
-          care_plan = COALESCE(${care_plan}, care_plan),
-          care_plan_interest = COALESCE(${care_plan_interest}, care_plan_interest)
-      WHERE id = ${id}
-      RETURNING *`
-    return updated[0] as WaitlistSubmission
+    return result[0] as WaitlistSubmission
   } catch (e) {
     console.error("addToWaitlist error", e)
+
+    // If the error is about missing columns, try the fallback approach
+    if (e instanceof Error && e.message.includes("column") && e.message.includes("does not exist")) {
+      console.log("Attempting fallback approach without new columns...")
+      try {
+        const fallbackResult = await sql`
+          INSERT INTO waitlist_submissions (email, source, name, location, parent_location, care_needs) 
+          VALUES (${email}, ${source || null}, ${name || null}, ${location || null}, ${parent_location || null}, ${care_needs || null})
+          ON CONFLICT (email) DO UPDATE SET
+            source = COALESCE(EXCLUDED.source, waitlist_submissions.source),
+            name = COALESCE(EXCLUDED.name, waitlist_submissions.name),
+            location = COALESCE(EXCLUDED.location, waitlist_submissions.location),
+            parent_location = COALESCE(EXCLUDED.parent_location, waitlist_submissions.parent_location),
+            care_needs = COALESCE(EXCLUDED.care_needs, waitlist_submissions.care_needs)
+          RETURNING *
+        `
+        return fallbackResult[0] as WaitlistSubmission
+      } catch (fallbackError) {
+        console.error("Fallback approach also failed", fallbackError)
+        return null
+      }
+    }
+
     return null
   }
 }
