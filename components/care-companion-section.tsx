@@ -20,7 +20,7 @@ export function CareCompanionSection() {
       icon: <Phone className="h-6 w-6" />,
       title: "Always Reachable",
       description: "WhatsApp, call, or message - your Care Companion is available when you need them most.",
-      detail: "Whether it's 2 AM your time or a routine check-in, you have a direct line to someone who cares.",
+      detail: "Whether it's a weekend or a routine check-in, you have a direct line to someone who cares.",
     },
     {
       icon: <Clock className="h-6 w-6" />,
