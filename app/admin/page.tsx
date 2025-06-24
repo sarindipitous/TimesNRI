@@ -25,6 +25,7 @@ export default function AdminPage() {
     location: "",
     parentLocation: "",
     careNeeds: "",
+    carePlan: "",
     carePlanInterest: "",
   })
 
@@ -85,6 +86,7 @@ export default function AdminPage() {
       location: submission.location || "",
       parentLocation: submission.parent_location || "",
       careNeeds: submission.care_needs || "",
+      carePlan: submission.care_plan || "",
       carePlanInterest: submission.care_plan_interest || "",
     })
   }
@@ -110,6 +112,7 @@ export default function AdminPage() {
       formData.append("location", editForm.location)
       formData.append("parentLocation", editForm.parentLocation)
       formData.append("careNeeds", editForm.careNeeds)
+      formData.append("carePlan", editForm.carePlan)
       formData.append("carePlanInterest", editForm.carePlanInterest)
 
       const result = await updateWaitlistEntry(formData)
@@ -254,6 +257,7 @@ export default function AdminPage() {
                   <TableHead>Parent Location</TableHead>
                   <TableHead>Care Needs</TableHead>
                   <TableHead>Plan Interest</TableHead>
+                  <TableHead>Care Plan</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -261,13 +265,13 @@ export default function AdminPage() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-4">
+                    <TableCell colSpan={9} className="text-center py-4">
                       Loading...
                     </TableCell>
                   </TableRow>
                 ) : filteredSubmissions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-4">
+                    <TableCell colSpan={9} className="text-center py-4">
                       No submissions found
                     </TableCell>
                   </TableRow>
@@ -302,6 +306,9 @@ export default function AdminPage() {
                               onChange={handleEditFormChange}
                             />
                           </TableCell>
+                          <TableCell>
+                            <Input name="carePlan" value={editForm.carePlan} onChange={handleEditFormChange} />
+                          </TableCell>
                           <TableCell>{new Date(submission.created_at).toLocaleDateString()}</TableCell>
                           <TableCell>
                             <div className="flex gap-2">
@@ -325,6 +332,15 @@ export default function AdminPage() {
                             {submission.care_plan_interest ? (
                               <div className="max-w-xs truncate" title={submission.care_plan_interest}>
                                 {submission.care_plan_interest}
+                              </div>
+                            ) : (
+                              <span className="text-gray-400 italic">Not provided</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {submission.care_plan ? (
+                              <div className="max-w-xs truncate" title={submission.care_plan}>
+                                {submission.care_plan}
                               </div>
                             ) : (
                               <span className="text-gray-400 italic">Not provided</span>
@@ -365,6 +381,7 @@ export default function AdminPage() {
                   <TableHead>Parent Location</TableHead>
                   <TableHead>Care Needs</TableHead>
                   <TableHead>Plan Interest</TableHead>
+                  <TableHead>Care Plan</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -372,7 +389,7 @@ export default function AdminPage() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-4">
+                    <TableCell colSpan={9} className="text-center py-4">
                       Loading...
                     </TableCell>
                   </TableRow>
@@ -390,6 +407,15 @@ export default function AdminPage() {
                           {submission.care_plan_interest ? (
                             <div className="max-w-xs truncate" title={submission.care_plan_interest}>
                               {submission.care_plan_interest}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 italic">Not provided</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {submission.care_plan ? (
+                            <div className="max-w-xs truncate" title={submission.care_plan}>
+                              {submission.care_plan}
                             </div>
                           ) : (
                             <span className="text-gray-400 italic">Not provided</span>
