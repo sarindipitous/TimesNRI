@@ -48,8 +48,8 @@ const LazyCityMap = dynamic(() => import("../components/city-map").then((mod) =>
   ssr: false,
 })
 
-const LazyHowItWorks = dynamic(
-  () => import("../components/how-it-works").then((mod) => ({ default: mod.HowItWorks })),
+const LazyCareCompanion = dynamic(
+  () => import("../components/care-companion-section").then((mod) => ({ default: mod.CareCompanionSection })),
   {
     loading: () => (
       <div className="h-64 flex items-center justify-center">
@@ -519,39 +519,19 @@ export default function Home() {
         </div>
       </AnimatedSection>
 
-      {/* How It Works */}
-      <AnimatedSection id="how-it-works" className="bg-secondary py-16 md:py-24">
-        <div className="container px-4 md:px-6">
-          <motion.div
-            className="flex flex-col items-center justify-center space-y-4 text-center mb-12"
-            variants={itemVariants}
-          >
-            <motion.div
-              className="inline-flex items-center justify-center rounded-full bg-primary-light px-3 py-1 text-sm font-medium text-primary mb-2"
-              whileHover={{ scale: 1.05 }}
-              variants={itemVariants}
-            >
-              The Process
-            </motion.div>
-            <motion.h2 className="text-3xl font-bold tracking-tight sm:text-4xl text-primary" variants={itemVariants}>
-              Simple. Human. Reliable.
-            </motion.h2>
-            <motion.p className="max-w-[700px] text-gray-600 text-lg" variants={itemVariants}>
-              We've designed a seamless experience that gives you peace of mind, no matter the distance.
-            </motion.p>
-          </motion.div>
-          <motion.div variants={itemVariants}>
-            <LazyLoadComponent
-              component={LazyHowItWorks}
-              placeholder={
-                <div className="h-64 flex items-center justify-center">
-                  <p>Loading...</p>
-                </div>
-              }
-              id="how-it-works"
-            />
-          </motion.div>
-        </div>
+      {/* Care Companion Section */}
+      <AnimatedSection id="care-companion" className="bg-white">
+        <motion.div variants={itemVariants}>
+          <LazyLoadComponent
+            component={LazyCareCompanion}
+            placeholder={
+              <div className="h-64 flex items-center justify-center">
+                <p>Loading...</p>
+              </div>
+            }
+            id="care-companion"
+          />
+        </motion.div>
       </AnimatedSection>
 
       {/* Care Plans Section */}

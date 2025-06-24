@@ -10,7 +10,7 @@ const menuItems = [
   { id: "hero", label: "Home" },
   { id: "about", label: "About" },
   { id: "services", label: "Services" },
-  { id: "how-it-works", label: "How It Works" },
+  { id: "care-companion", label: "Care Companion" },
   { id: "pricing", label: "Care Packages" },
   { id: "testimonials", label: "Testimonials" },
   { id: "cities", label: "Locations" },
@@ -27,6 +27,8 @@ function getDisplayName(id: string): string {
       return "Care Packages"
     case "story":
       return "Our Mission"
+    case "care-companion":
+      return "Care Companion"
     default:
       return menuItems.find((item) => item.id === id)?.label || id
   }
