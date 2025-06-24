@@ -49,6 +49,7 @@ export function WaitlistForm({
   const [formMessage, setFormMessage] = useState("")
   const [formError, setFormError] = useState("")
   const formRef = useRef<HTMLFormElement>(null)
+  const [carePlanInterest, setCarePlanInterest] = useState("")
 
   // Basic email validation function for client-side
   const isValidEmail = (email: string): boolean => {
@@ -170,6 +171,9 @@ export function WaitlistForm({
         if (carePlan) {
           formData.append("carePlan", carePlan)
         }
+        if (carePlanInterest) {
+          formData.append("carePlanInterest", carePlanInterest)
+        }
       }
 
       if (referredBy) {
@@ -203,6 +207,7 @@ export function WaitlistForm({
         setParentLocation("")
         setCareNeeds("")
         setCarePlan("")
+        setCarePlanInterest("")
         setStep(1)
 
         // Show waitlist number if available
@@ -373,6 +378,22 @@ export function WaitlistForm({
                         </SelectItem>
                       </SelectContent>
                     </Select>
+                    {carePlan && (
+                      <div className="space-y-2">
+                        <label htmlFor="carePlanInterest" className="block text-sm font-medium text-gray-700">
+                          What interests you about the {carePlan.split(":")[0]} plan?
+                        </label>
+                        <textarea
+                          id="carePlanInterest"
+                          name="carePlanInterest"
+                          placeholder="Tell us what drew you to this plan or any specific needs you have..."
+                          value={carePlanInterest}
+                          onChange={(e) => setCarePlanInterest(e.target.value)}
+                          className="w-full border border-gray-300 focus:border-accent focus:ring-accent rounded-md p-3 min-h-[80px] resize-none"
+                          rows={3}
+                        />
+                      </div>
+                    )}
                   </div>
                   {formError && <p className="text-sm text-red-500">{formError}</p>}
                   <div className="flex space-x-2">
@@ -419,6 +440,11 @@ export function WaitlistForm({
                     {carePlan && (
                       <p>
                         <span className="font-medium">Interested in:</span> {carePlan}
+                      </p>
+                    )}
+                    {carePlanInterest && (
+                      <p>
+                        <span className="font-medium">Interest in plan:</span> {carePlanInterest}
                       </p>
                     )}
                   </div>
@@ -651,6 +677,22 @@ export function WaitlistForm({
                             </SelectItem>
                           </SelectContent>
                         </Select>
+                        {carePlan && (
+                          <div className="space-y-2">
+                            <label htmlFor="carePlanInterest" className="block text-sm font-medium text-gray-700">
+                              What interests you about the {carePlan.split(":")[0]} plan?
+                            </label>
+                            <textarea
+                              id="carePlanInterest"
+                              name="carePlanInterest"
+                              placeholder="Tell us what drew you to this plan or any specific needs you have..."
+                              value={carePlanInterest}
+                              onChange={(e) => setCarePlanInterest(e.target.value)}
+                              className="w-full border border-gray-300 focus:border-accent focus:ring-accent rounded-md p-3 min-h-[80px] resize-none"
+                              rows={3}
+                            />
+                          </div>
+                        )}
                       </div>
                       {formError && <p className="text-sm text-red-500">{formError}</p>}
                       <div className="flex space-x-2">
@@ -697,6 +739,11 @@ export function WaitlistForm({
                         {carePlan && (
                           <p>
                             <span className="font-medium">Interested in:</span> {carePlan}
+                          </p>
+                        )}
+                        {carePlanInterest && (
+                          <p>
+                            <span className="font-medium">Interest in plan:</span> {carePlanInterest}
                           </p>
                         )}
                       </div>
