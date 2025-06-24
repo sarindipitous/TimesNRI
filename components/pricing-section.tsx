@@ -349,7 +349,12 @@ export function PricingSection() {
                   <Crown className="h-6 w-6 text-purple-600" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-900">Honour</h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-xl font-bold text-gray-900">Honour</h3>
+                    <span className="bg-purple-100 text-purple-700 text-xs font-semibold px-2 py-1 rounded-full border border-purple-200">
+                      By Invitation Only
+                    </span>
+                  </div>
                   <p className="text-sm text-gray-600 mt-1">
                     For when you believe that only the very best will do for them
                   </p>
@@ -404,7 +409,7 @@ export function PricingSection() {
 
               <Link href="/waitlist?plan=honour">
                 <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 rounded-xl font-semibold text-lg">
-                  Choose Honour
+                  Request Invitation
                 </Button>
               </Link>
             </div>
@@ -563,7 +568,7 @@ export function PricingSection() {
                   <Button
                     className={`w-full ${planDetails[selectedPlan].buttonColor} text-white py-3 sm:py-4 rounded-xl sm:rounded-2xl font-semibold text-base sm:text-lg`}
                   >
-                    Choose {planDetails[selectedPlan].name}
+                    {selectedPlan === "honour" ? "Request Invitation" : `Choose ${planDetails[selectedPlan].name}`}
                   </Button>
                 </Link>
                 <button
