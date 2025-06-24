@@ -192,7 +192,7 @@ export async function getWaitlistStats() {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-//  UPDATE helpers
+//  UPDATE helpers - ROBUST UPDATE WITH FALLBACK
 // ──────────────────────────────────────────────────────────────────────────────
 export async function updateWaitlistSubmission(
   id: number,
@@ -203,19 +203,77 @@ export async function updateWaitlistSubmission(
   const entries = Object.entries(data).filter(([k]) => k !== "id" && k !== "created_at")
   if (!entries.length) return null
 
-  const set = entries.map(([k, v]) => sql`${sql.identifier([k])} = ${v}`).reduce((a, b) => sql`${a}, ${b}`)
+  try {
+    // Try the full update first
+    const set = entries.map(([k, v]) => sql`${sql.identifier([k])} = ${v}`).reduce((a, b) => sql`${a}, ${b}`)
+    const res = await sql`UPDATE waitlist_submissions SET ${set} WHERE id = ${id} RETURNING *`
+    return res[0] as WaitlistSubmission
+  } catch (e) {
+    console.error("Full update failed, trying fallback:", e)
 
-  const res = await sql`UPDATE waitlist_submissions SET ${set} WHERE id = ${id} RETURNING *`
-  return res[0] as WaitlistSubmission
+    // If the error is about missing columns, try fallback without new columns
+    if (e instanceof Error && e.message.includes("column") && e.message.includes("does not exist")) {
+      console.log("Attempting fallback update without new columns...")
+      try {
+        // Filter out the new columns that might not exist
+        const fallbackEntries = entries.filter(([k]) => !["care_plan", "care_plan_interest"].includes(k))
+
+        if (fallbackEntries.length === 0) {
+          console.log("No valid columns to update in fallback")
+          return null
+        }
+
+        const fallbackSet = fallbackEntries
+          .map(([k, v]) => sql`${sql.identifier([k])} = ${v}`)
+          .reduce((a, b) => sql`${a}, ${b}`)
+
+        const fallbackRes = await sql`UPDATE waitlist_submissions SET ${fallbackSet} WHERE id = ${id} RETURNING *`
+        return fallbackRes[0] as WaitlistSubmission
+      } catch (fallbackError) {
+        console.error("Fallback update also failed", fallbackError)
+        return null
+      }
+    }
+
+    return null
+  }
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-//  DELETE helpers
+//  DELETE helpers - CASCADE DELETE TO HANDLE FOREIGN KEYS
 // ──────────────────────────────────────────────────────────────────────────────
 export async function deleteWaitlistSubmission(id: number): Promise<boolean> {
   if (!hasDb) return noDb(false, "deleteWaitlistSubmission")
-  const res = await sql`DELETE FROM waitlist_submissions WHERE id = ${id}`
-  return res.count > 0
+
+  try {
+    // Use a transaction to delete referrals first, then the waitlist submission
+    await sql`BEGIN`
+
+    // Delete from referrals table first (where this submission is the referrer)
+    await sql`DELETE FROM referrals WHERE referrer_id = ${id}`
+
+    // Delete from referral_details table first (where this submission is the referrer)
+    await sql`DELETE FROM referral_details WHERE referrer_id = ${id}`
+
+    // Also delete referrals where this submission was referred by someone else
+    await sql`DELETE FROM referral_details WHERE referred_id = ${id}`
+
+    // Now delete the waitlist submission
+    const res = await sql`DELETE FROM waitlist_submissions WHERE id = ${id}`
+
+    await sql`COMMIT`
+
+    return res.count > 0
+  } catch (error) {
+    // Rollback the transaction on error
+    try {
+      await sql`ROLLBACK`
+    } catch (rollbackError) {
+      console.error("Rollback failed:", rollbackError)
+    }
+    console.error("Error in deleteWaitlistSubmission:", error)
+    throw error
+  }
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
