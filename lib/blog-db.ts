@@ -181,7 +181,7 @@ export async function updateBlogPost(id: number, data: Partial<BlogPost>): Promi
 
     if (Object.keys(data).length === 0) return null
 
-    // Get the current post to compare
+    // Get the current post first
     const currentPost = await getBlogPostById(id)
     if (!currentPost) {
       throw new Error("Post not found")
@@ -192,79 +192,26 @@ export async function updateBlogPost(id: number, data: Partial<BlogPost>): Promi
       data.published_at = new Date()
     }
 
-    // Build the update query dynamically but safely
-    const updateFields: string[] = []
-    const updateValues: any[] = []
-    let paramIndex = 1
-
-    if (data.title !== undefined) {
-      updateFields.push(`title = $${paramIndex}`)
-      updateValues.push(data.title)
-      paramIndex++
-    }
-    if (data.slug !== undefined) {
-      updateFields.push(`slug = $${paramIndex}`)
-      updateValues.push(data.slug)
-      paramIndex++
-    }
-    if (data.excerpt !== undefined) {
-      updateFields.push(`excerpt = $${paramIndex}`)
-      updateValues.push(data.excerpt)
-      paramIndex++
-    }
-    if (data.content !== undefined) {
-      updateFields.push(`content = $${paramIndex}`)
-      updateValues.push(data.content)
-      paramIndex++
-    }
-    if (data.author !== undefined) {
-      updateFields.push(`author = $${paramIndex}`)
-      updateValues.push(data.author)
-      paramIndex++
-    }
-    if (data.featured_image !== undefined) {
-      updateFields.push(`featured_image = $${paramIndex}`)
-      updateValues.push(data.featured_image)
-      paramIndex++
-    }
-    if (data.tags !== undefined) {
-      updateFields.push(`tags = $${paramIndex}`)
-      updateValues.push(data.tags)
-      paramIndex++
-    }
-    if (data.status !== undefined) {
-      updateFields.push(`status = $${paramIndex}`)
-      updateValues.push(data.status)
-      paramIndex++
-    }
-    if (data.published_at !== undefined) {
-      updateFields.push(`published_at = $${paramIndex}`)
-      updateValues.push(data.published_at)
-      paramIndex++
-    }
-
-    // Always update the updated_at field
-    updateFields.push(`updated_at = NOW()`)
-
-    if (updateFields.length === 1) {
-      // Only updated_at
-      return currentPost
-    }
-
-    const query = `
-      UPDATE blog_posts 
-      SET ${updateFields.join(", ")} 
-      WHERE id = $${paramIndex} 
+    // Use a simple UPDATE with individual field checks
+    const [row] = await sql<BlogPost[]>`
+      UPDATE blog_posts SET 
+        title = ${data.title ?? currentPost.title},
+        slug = ${data.slug ?? currentPost.slug},
+        excerpt = ${data.excerpt ?? currentPost.excerpt},
+        content = ${data.content ?? currentPost.content},
+        author = ${data.author ?? currentPost.author},
+        featured_image = ${data.featured_image ?? currentPost.featured_image},
+        tags = ${data.tags ?? currentPost.tags},
+        status = ${data.status ?? currentPost.status},
+        published_at = ${data.published_at ?? currentPost.published_at},
+        updated_at = NOW()
+      WHERE id = ${id}
       RETURNING *
     `
-    updateValues.push(id)
-
-    console.log("Update query:", query)
-    console.log("Update values:", updateValues)
-
-    const [row] = await sql<BlogPost[]>(query, ...updateValues)
 
     if (row) {
+      console.log("Blog post updated successfully:", row.title)
+
       // Revalidate blog pages
       revalidatePath("/blog")
       revalidatePath("/admin/blog")
