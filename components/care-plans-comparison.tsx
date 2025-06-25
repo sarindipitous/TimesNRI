@@ -92,8 +92,8 @@ const comparisonData: ComparisonFeature[] = [
       {
         name: "Annual Health Test",
         peace: "Value-Added",
-        presence: "72 markers",
-        honour: "Comprehensive + Microbiome",
+        presence: "84 markers",
+        honour: "100 markers + Microbiome Gut Test",
       },
       {
         name: "Quarterly Diabetes Panel",

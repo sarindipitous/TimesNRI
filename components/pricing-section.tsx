@@ -46,7 +46,7 @@ const plans = [
     features: [
       "Everything in Peace",
       "Care Companion Visits (2/month)",
-      "Annual Health Test (72 markers)",
+      "Annual Health Test (84 markers)",
       "Home Medical Kit included",
     ],
   },
@@ -66,7 +66,7 @@ const plans = [
       "Everything in Presence",
       "Care Companion Visits (4/month)",
       "At-home Doctor Visits (2/month)",
-      "Comprehensive + Microbiome Health Test",
+      "Annual Health comprehensive Test (100 markers) + Microbiome Gut Test",
     ],
   },
 ]
