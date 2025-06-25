@@ -1,83 +1,79 @@
 import Link from "next/link"
+import { Calendar, User, ArrowRight } from "lucide-react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, User, ArrowRight } from "lucide-react"
-import type { BlogPost } from "@/lib/blog-db"
+
+interface BlogPost {
+  id: number
+  title: string
+  slug: string
+  excerpt: string
+  content: string
+  author: string
+  featured_image?: string | null
+  tags?: string | null
+  status: "draft" | "published"
+  published_at?: Date | null
+  created_at: Date
+  updated_at: Date
+}
 
 interface BlogPostCardProps {
   post: BlogPost
+  featured?: boolean
 }
 
-export function BlogPostCard({ post }: BlogPostCardProps) {
+export function BlogPostCard({ post, featured = false }: BlogPostCardProps) {
   const publishDate = post.published_at || post.created_at
-  const tags =
-    post.tags
-      ?.split(",")
-      .map((tag) => tag.trim())
-      .filter(Boolean) || []
 
-  const formatDate = (date: Date | string) => {
-    return new Date(date).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    })
-  }
+  // DEBUG: Log the slug being used
+  console.log("BlogPostCard - Post:", post.title, "Slug:", post.slug, "Link will be:", `/blog/${post.slug}`)
 
   return (
-    <Card className="h-full flex flex-col hover:shadow-xl transition-all duration-300 border-0 shadow-md hover:scale-[1.02] group">
-      {post.featured_image && (
-        <div className="aspect-video w-full overflow-hidden rounded-t-lg">
-          <img
-            src={post.featured_image || "/placeholder.svg"}
-            alt={post.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        </div>
-      )}
-
-      <CardHeader className="flex-1 pb-4">
-        <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
-          <span className="flex items-center gap-1.5">
+    <Card className={`group hover:shadow-lg transition-all duration-300 ${featured ? "md:col-span-2" : ""}`}>
+      <CardHeader className="pb-4">
+        <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
+          <span className="flex items-center gap-1">
             <Calendar className="w-4 h-4" />
-            {formatDate(publishDate)}
+            {new Date(publishDate).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
           </span>
-          <span className="flex items-center gap-1.5">
+          <span className="flex items-center gap-1">
             <User className="w-4 h-4" />
             {post.author}
           </span>
         </div>
 
-        <h2 className="text-xl font-bold leading-tight mb-4 text-gray-900 group-hover:text-primary transition-colors">
-          <Link href={`/blog/${post.slug}`} className="hover:underline">
-            {post.title}
-          </Link>
-        </h2>
+        <h3
+          className={`font-bold text-gray-900 group-hover:text-primary transition-colors ${
+            featured ? "text-2xl" : "text-xl"
+          }`}
+        >
+          {post.title}
+        </h3>
 
-        {post.excerpt && <p className="text-gray-600 line-clamp-3 text-sm leading-relaxed mb-4">{post.excerpt}</p>}
-      </CardHeader>
-
-      <CardContent className="pt-0 mt-auto">
-        {tags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-4">
-            {tags.slice(0, 3).map((tag) => (
-              <Badge key={tag} variant="secondary" className="text-xs px-2 py-1">
-                {tag}
+        {post.tags && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {post.tags.split(",").map((tag, index) => (
+              <Badge key={index} variant="secondary" className="text-xs">
+                {tag.trim()}
               </Badge>
             ))}
-            {tags.length > 3 && (
-              <Badge variant="outline" className="text-xs px-2 py-1">
-                +{tags.length - 3} more
-              </Badge>
-            )}
           </div>
         )}
+      </CardHeader>
+
+      <CardContent>
+        <p className="text-gray-600 mb-4 line-clamp-3">{post.excerpt}</p>
 
         <Link
           href={`/blog/${post.slug}`}
-          className="inline-flex items-center gap-2 text-primary hover:text-primary/80 font-semibold text-sm group-hover:gap-3 transition-all duration-200"
+          className="inline-flex items-center gap-2 text-primary hover:text-primary/80 font-medium group-hover:gap-3 transition-all"
         >
-          Read full article
+          Read more
           <ArrowRight className="w-4 h-4" />
         </Link>
       </CardContent>

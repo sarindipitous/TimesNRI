@@ -98,7 +98,7 @@ export async function getBlogPostById(id: number): Promise<BlogPost | null> {
 
 export async function createBlogPost(data: {
   title: string
-  slug: string
+  slug?: string
   excerpt: string
   content: string
   author: string
@@ -109,6 +109,28 @@ export async function createBlogPost(data: {
   if (!hasDb) return noDb({} as BlogPost, "createBlogPost")
 
   try {
+    // Generate slug if not provided
+    let slug = data.slug
+    if (!slug || slug.trim() === "") {
+      slug = data.title
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .substring(0, 100)
+
+      // Ensure slug is unique
+      let uniqueSlug = slug
+      let counter = 1
+      while (true) {
+        const existing = await sql`SELECT id FROM blog_posts WHERE slug = ${uniqueSlug} LIMIT 1`
+        if (existing.length === 0) break
+        uniqueSlug = `${slug}-${counter}`
+        counter++
+      }
+      slug = uniqueSlug
+    }
+
     const publishedAt = data.status === "published" ? new Date() : null
 
     const [row] = await sql<BlogPost[]>`
@@ -125,7 +147,7 @@ export async function createBlogPost(data: {
       )
       VALUES (
         ${data.title},
-        ${data.slug},
+        ${slug},
         ${data.excerpt},
         ${data.content},
         ${data.author},

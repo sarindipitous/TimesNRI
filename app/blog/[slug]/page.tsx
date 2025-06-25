@@ -8,14 +8,16 @@ interface Props {
 }
 
 export default async function BlogPostPage({ params }: Props) {
-  console.log("Looking for blog post with slug:", params.slug)
+  // DEBUG: Log what slug we're looking for
+  console.log("BlogPostPage - Looking for slug:", params.slug)
 
   const post = await getBlogPostBySlug(params.slug)
 
-  console.log("Found post:", post ? `${post.title} (status: ${post.status})` : "null")
+  // DEBUG: Log what we found
+  console.log("BlogPostPage - Found post:", post ? `${post.title} (status: ${post.status})` : "null")
 
   if (!post) {
-    console.log("Post not found, returning 404")
+    console.log("BlogPostPage - Post not found, returning 404")
     notFound()
   }
 
