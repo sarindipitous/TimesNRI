@@ -417,9 +417,8 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
                   <h4 className="font-bold text-gray-900">{currentPlan.name}</h4>
                 </div>
                 <div className={`text-2xl font-bold ${currentPlan.textColor} mb-1 text-center`}>
-                  {currentPlan.price}
+                  {currentPlan.price}/month
                 </div>
-                <div className="text-xs text-gray-600 mb-3 text-center">per month</div>
                 <div className={`text-xs ${currentPlan.textColor} font-medium italic mb-3 leading-relaxed text-center`}>
                   {currentPlan.description}
                 </div>
@@ -469,8 +468,7 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
                       <IconComponent className={`h-4 w-4 ${plan.textColor}`} />
                       <h4 className="font-bold text-gray-900 text-sm">{plan.name}</h4>
                     </div>
-                    <div className={`text-xl font-bold ${plan.textColor} mb-1`}>{plan.price}</div>
-                    <div className="text-xs text-gray-600 mb-2">per month</div>
+                    <div className={`text-xl font-bold ${plan.textColor} mb-1`}>{plan.price}/month</div>
                     <div className={`text-xs ${plan.textColor} font-medium italic mb-2 leading-tight`}>
                       {plan.description}
                     </div>
@@ -498,8 +496,7 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
                       <IconComponent className={`h-4 w-4 ${plan.textColor}`} />
                       <h4 className="font-bold text-gray-900 text-sm">{plan.name}</h4>
                     </div>
-                    <div className={`text-lg font-bold ${plan.textColor} text-center`}>{plan.price}</div>
-                    <div className="text-xs text-gray-600 text-center">per month</div>
+                    <div className={`text-lg font-bold ${plan.textColor} text-center`}>{plan.price}/month</div>
                     <Link href={`/waitlist?plan=${plan.id}`} className="block mt-2">
                       <Button size="sm" className={`w-full ${plan.buttonColor} text-white text-xs py-1`}>
                         Choose
