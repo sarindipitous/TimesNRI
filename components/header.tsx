@@ -68,11 +68,26 @@ export function Header() {
     // If we're on the main page, scroll to the section
     const element = document.getElementById(sectionId)
     if (element) {
-      const headerHeight = 80
-      const elementPosition = element.offsetTop - headerHeight
-      window.scrollTo({
-        top: elementPosition,
-        behavior: "smooth",
+      const headerHeight = 100
+
+      // Use requestAnimationFrame to ensure DOM is ready
+      requestAnimationFrame(() => {
+        const elementPosition = element.offsetTop - headerHeight
+        window.scrollTo({
+          top: elementPosition,
+          behavior: "smooth",
+        })
+
+        // Add a small delay to handle any lazy loading content shifts
+        setTimeout(() => {
+          const newElementPosition = element.offsetTop - headerHeight
+          if (Math.abs(window.scrollY - newElementPosition) > 50) {
+            window.scrollTo({
+              top: newElementPosition,
+              behavior: "smooth",
+            })
+          }
+        }, 500)
       })
     }
     setIsMobileMenuOpen(false)
