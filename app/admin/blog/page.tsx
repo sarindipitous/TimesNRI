@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -7,7 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, Edit, Trash2, Eye, Search, RefreshCw, Wrench } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Plus, Edit, Trash2, Eye, Search, RefreshCw, Wrench, GripVertical, Star } from "lucide-react"
 import Link from "next/link"
 
 interface BlogPost {
@@ -20,6 +23,8 @@ interface BlogPost {
   featured_image?: string | null
   tags?: string | null
   status: "draft" | "published"
+  featured: boolean
+  display_order: number
   published_at?: Date | null
   created_at: Date
   updated_at: Date
@@ -30,15 +35,17 @@ interface BlogStats {
   published: number
   drafts: number
   recent: number
+  featured: number
 }
 
 export default function AdminBlogPage() {
   const [posts, setPosts] = useState<BlogPost[]>([])
-  const [stats, setStats] = useState<BlogStats>({ total: 0, published: 0, drafts: 0, recent: 0 })
+  const [stats, setStats] = useState<BlogStats>({ total: 0, published: 0, drafts: 0, recent: 0, featured: 0 })
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [setupLoading, setSetupLoading] = useState(false)
   const [fixingSlug, setFixingSlug] = useState(false)
+  const [draggedItem, setDraggedItem] = useState<number | null>(null)
 
   useEffect(() => {
     fetchPosts()
@@ -108,6 +115,28 @@ export default function AdminBlogPage() {
     }
   }
 
+  const toggleFeatured = async (id: number, featured: boolean) => {
+    try {
+      const response = await fetch(`/api/blog/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ featured }),
+      })
+
+      if (response.ok) {
+        await fetchPosts()
+        await fetchStats()
+      } else {
+        alert("Failed to update featured status")
+      }
+    } catch (error) {
+      console.error("Error updating featured status:", error)
+      alert("Error updating featured status")
+    }
+  }
+
   const setupDatabase = async () => {
     try {
       setSetupLoading(true)
@@ -150,6 +179,62 @@ export default function AdminBlogPage() {
     }
   }
 
+  const handleDragStart = (e: React.DragEvent, id: number) => {
+    setDraggedItem(id)
+    e.dataTransfer.effectAllowed = "move"
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = "move"
+  }
+
+  const handleDrop = async (e: React.DragEvent, targetId: number) => {
+    e.preventDefault()
+
+    if (!draggedItem || draggedItem === targetId) {
+      setDraggedItem(null)
+      return
+    }
+
+    const newPosts = [...posts]
+    const draggedIndex = newPosts.findIndex((p) => p.id === draggedItem)
+    const targetIndex = newPosts.findIndex((p) => p.id === targetId)
+
+    if (draggedIndex === -1 || targetIndex === -1) return
+
+    // Remove dragged item and insert at target position
+    const [draggedPost] = newPosts.splice(draggedIndex, 1)
+    newPosts.splice(targetIndex, 0, draggedPost)
+
+    // Update local state immediately for better UX
+    setPosts(newPosts)
+
+    // Send update to server
+    try {
+      const postIds = newPosts.map((p) => p.id)
+      const response = await fetch("/api/blog/reorder", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ postIds }),
+      })
+
+      if (!response.ok) {
+        // Revert on error
+        await fetchPosts()
+        alert("Failed to update blog order")
+      }
+    } catch (error) {
+      console.error("Error updating blog order:", error)
+      await fetchPosts()
+      alert("Error updating blog order")
+    }
+
+    setDraggedItem(null)
+  }
+
   const filteredPosts = posts.filter(
     (post) =>
       post.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -189,7 +274,7 @@ export default function AdminBlogPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">Total Posts</CardTitle>
@@ -219,10 +304,19 @@ export default function AdminBlogPage() {
 
         <Card>
           <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Featured</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-blue-600">{stats.featured}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
             <CardTitle className="text-lg">Recent (7 days)</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-blue-600">{stats.recent}</p>
+            <p className="text-3xl font-bold text-purple-600">{stats.recent}</p>
           </CardContent>
         </Card>
       </div>
@@ -248,10 +342,21 @@ export default function AdminBlogPage() {
             Published ({filteredPosts.filter((p) => p.status === "published").length})
           </TabsTrigger>
           <TabsTrigger value="drafts">Drafts ({filteredPosts.filter((p) => p.status === "draft").length})</TabsTrigger>
+          <TabsTrigger value="featured">Featured ({filteredPosts.filter((p) => p.featured).length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all">
-          <PostsTable posts={filteredPosts} loading={loading} onDelete={deletePost} formatDate={formatDate} />
+          <PostsTable
+            posts={filteredPosts}
+            loading={loading}
+            onDelete={deletePost}
+            onToggleFeatured={toggleFeatured}
+            formatDate={formatDate}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            draggedItem={draggedItem}
+          />
         </TabsContent>
 
         <TabsContent value="published">
@@ -259,7 +364,12 @@ export default function AdminBlogPage() {
             posts={filteredPosts.filter((p) => p.status === "published")}
             loading={loading}
             onDelete={deletePost}
+            onToggleFeatured={toggleFeatured}
             formatDate={formatDate}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            draggedItem={draggedItem}
           />
         </TabsContent>
 
@@ -268,7 +378,26 @@ export default function AdminBlogPage() {
             posts={filteredPosts.filter((p) => p.status === "draft")}
             loading={loading}
             onDelete={deletePost}
+            onToggleFeatured={toggleFeatured}
             formatDate={formatDate}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            draggedItem={draggedItem}
+          />
+        </TabsContent>
+
+        <TabsContent value="featured">
+          <PostsTable
+            posts={filteredPosts.filter((p) => p.featured)}
+            loading={loading}
+            onDelete={deletePost}
+            onToggleFeatured={toggleFeatured}
+            formatDate={formatDate}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            draggedItem={draggedItem}
           />
         </TabsContent>
       </Tabs>
@@ -280,12 +409,22 @@ function PostsTable({
   posts,
   loading,
   onDelete,
+  onToggleFeatured,
   formatDate,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  draggedItem,
 }: {
   posts: BlogPost[]
   loading: boolean
   onDelete: (id: number) => void
+  onToggleFeatured: (id: number, featured: boolean) => void
   formatDate: (date: string | Date | null | undefined) => string
+  onDragStart: (e: React.DragEvent, id: number) => void
+  onDragOver: (e: React.DragEvent) => void
+  onDrop: (e: React.DragEvent, id: number) => void
+  draggedItem: number | null
 }) {
   if (loading) {
     return (
@@ -314,17 +453,29 @@ function PostsTable({
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-12">Order</TableHead>
             <TableHead>Title</TableHead>
             <TableHead>Slug</TableHead>
             <TableHead>Author</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Featured</TableHead>
             <TableHead>Date</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {posts.map((post) => (
-            <TableRow key={post.id}>
+            <TableRow
+              key={post.id}
+              draggable
+              onDragStart={(e) => onDragStart(e, post.id)}
+              onDragOver={onDragOver}
+              onDrop={(e) => onDrop(e, post.id)}
+              className={`cursor-move ${draggedItem === post.id ? "opacity-50" : ""}`}
+            >
+              <TableCell>
+                <GripVertical className="h-4 w-4 text-gray-400" />
+              </TableCell>
               <TableCell>
                 <div>
                   <div className="font-medium line-clamp-1">{post.title}</div>
@@ -337,6 +488,15 @@ function PostsTable({
               <TableCell>{post.author}</TableCell>
               <TableCell>
                 <Badge variant={post.status === "published" ? "default" : "secondary"}>{post.status}</Badge>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    checked={post.featured}
+                    onCheckedChange={(checked) => onToggleFeatured(post.id, !!checked)}
+                  />
+                  {post.featured && <Star className="h-4 w-4 text-yellow-500 fill-current" />}
+                </div>
               </TableCell>
               <TableCell>{formatDate(post.status === "published" ? post.published_at : post.created_at)}</TableCell>
               <TableCell>

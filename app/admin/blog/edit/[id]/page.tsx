@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft, Save, Eye, RefreshCw } from "lucide-react"
 import Link from "next/link"
@@ -32,6 +33,7 @@ export default function EditPostPage({ params }: EditPostPageProps) {
     featured_image: "",
     tags: "",
     status: "draft" as "draft" | "published",
+    featured: false,
   })
 
   useEffect(() => {
@@ -56,6 +58,7 @@ export default function EditPostPage({ params }: EditPostPageProps) {
           featured_image: post.featured_image || "",
           tags: post.tags || "",
           status: post.status || "draft",
+          featured: post.featured || false,
         })
       } else {
         alert("Post not found")
@@ -209,7 +212,7 @@ export default function EditPostPage({ params }: EditPostPageProps) {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="author">Author</Label>
                 <Input
@@ -234,6 +237,15 @@ export default function EditPostPage({ params }: EditPostPageProps) {
                     <SelectItem value="published">Published</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="flex items-center space-x-2 pt-6">
+                <Checkbox
+                  id="featured"
+                  checked={formData.featured}
+                  onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, featured: !!checked }))}
+                />
+                <Label htmlFor="featured">Featured Post</Label>
               </div>
             </div>
 

@@ -20,6 +20,8 @@ export interface BlogPost {
   featured_image?: string | null
   tags?: string | null
   status: "draft" | "published"
+  featured: boolean
+  display_order: number
   published_at?: Date | null
   created_at: Date
   updated_at: Date
@@ -34,8 +36,7 @@ export async function getPublishedBlogPosts(limit = 10, offset = 0): Promise<Blo
       SELECT *
       FROM blog_posts
       WHERE status = 'published'
-      ORDER BY 
-        CASE WHEN published_at IS NOT NULL THEN published_at ELSE created_at END DESC
+      ORDER BY display_order ASC, created_at DESC
       LIMIT ${limit} OFFSET ${offset}
     `
     console.log(`Found ${rows.length} published posts`)
@@ -46,6 +47,24 @@ export async function getPublishedBlogPosts(limit = 10, offset = 0): Promise<Blo
   }
 }
 
+export async function getFeaturedBlogPost(): Promise<BlogPost | null> {
+  if (!hasDb) return noDb(null, "getFeaturedBlogPost")
+
+  try {
+    const rows = await sql<BlogPost[]>`
+      SELECT *
+      FROM blog_posts
+      WHERE status = 'published' AND featured = true
+      ORDER BY display_order ASC, created_at DESC
+      LIMIT 1
+    `
+    return rows[0] ?? null
+  } catch (e) {
+    console.error("getFeaturedBlogPost error", e)
+    return null
+  }
+}
+
 export async function getAllBlogPosts(limit = 50, offset = 0): Promise<BlogPost[]> {
   if (!hasDb) return noDb([], "getAllBlogPosts")
 
@@ -53,7 +72,7 @@ export async function getAllBlogPosts(limit = 50, offset = 0): Promise<BlogPost[
     const rows = await sql<BlogPost[]>`
       SELECT *
       FROM blog_posts
-      ORDER BY created_at DESC
+      ORDER BY display_order ASC, created_at DESC
       LIMIT ${limit} OFFSET ${offset}
     `
     return rows
@@ -106,6 +125,7 @@ export async function createBlogPost(data: {
   featured_image?: string | null
   tags?: string | null
   status?: "draft" | "published"
+  featured?: boolean
 }): Promise<BlogPost> {
   if (!hasDb) return noDb({} as BlogPost, "createBlogPost")
 
@@ -132,6 +152,9 @@ export async function createBlogPost(data: {
       slug = uniqueSlug
     }
 
+    // Get next display order
+    const [{ max_order }] = await sql`SELECT COALESCE(MAX(display_order), 0) + 1 as max_order FROM blog_posts`
+
     const publishedAt = data.status === "published" ? new Date() : null
 
     const [row] = await sql<BlogPost[]>`
@@ -144,6 +167,8 @@ export async function createBlogPost(data: {
         featured_image,
         tags,
         status,
+        featured,
+        display_order,
         published_at
       )
       VALUES (
@@ -155,6 +180,8 @@ export async function createBlogPost(data: {
         ${data.featured_image},
         ${data.tags},
         ${data.status || "draft"},
+        ${data.featured || false},
+        ${max_order},
         ${publishedAt}
       )
       RETURNING *
@@ -203,6 +230,8 @@ export async function updateBlogPost(id: number, data: Partial<BlogPost>): Promi
         featured_image = ${data.featured_image ?? currentPost.featured_image},
         tags = ${data.tags ?? currentPost.tags},
         status = ${data.status ?? currentPost.status},
+        featured = ${data.featured ?? currentPost.featured},
+        display_order = ${data.display_order ?? currentPost.display_order},
         published_at = ${data.published_at ?? currentPost.published_at},
         updated_at = NOW()
       WHERE id = ${id}
@@ -228,6 +257,30 @@ export async function updateBlogPost(id: number, data: Partial<BlogPost>): Promi
   } catch (e) {
     console.error("updateBlogPost error", e)
     throw new Error(`Failed to update blog post: ${e instanceof Error ? e.message : "Unknown error"}`)
+  }
+}
+
+export async function updateBlogPostOrder(postIds: number[]): Promise<boolean> {
+  if (!hasDb) return noDb(false, "updateBlogPostOrder")
+
+  try {
+    // Update display_order for each post
+    for (let i = 0; i < postIds.length; i++) {
+      await sql`
+        UPDATE blog_posts 
+        SET display_order = ${i + 1}
+        WHERE id = ${postIds[i]}
+      `
+    }
+
+    // Revalidate blog pages
+    revalidatePath("/blog")
+    revalidatePath("/admin/blog")
+
+    return true
+  } catch (e) {
+    console.error("updateBlogPostOrder error", e)
+    return false
   }
 }
 
@@ -273,7 +326,7 @@ export async function searchBlogPosts(query: string, limit = 10): Promise<BlogPo
           content ILIKE ${searchTerm} OR
           tags ILIKE ${searchTerm}
         )
-      ORDER BY published_at DESC NULLS LAST, created_at DESC
+      ORDER BY display_order ASC, created_at DESC
       LIMIT ${limit}
     `
     return rows
@@ -317,8 +370,9 @@ export async function getBlogStats(): Promise<{
   published: number
   drafts: number
   recent: number
+  featured: number
 }> {
-  if (!hasDb) return noDb({ total: 0, published: 0, drafts: 0, recent: 0 }, "getBlogStats")
+  if (!hasDb) return noDb({ total: 0, published: 0, drafts: 0, recent: 0, featured: 0 }, "getBlogStats")
 
   try {
     const [stats] = await sql`
@@ -326,7 +380,8 @@ export async function getBlogStats(): Promise<{
         COUNT(*)::int as total,
         COUNT(CASE WHEN status = 'published' THEN 1 END)::int as published,
         COUNT(CASE WHEN status = 'draft' THEN 1 END)::int as drafts,
-        COUNT(CASE WHEN created_at >= NOW() - INTERVAL '7 days' THEN 1 END)::int as recent
+        COUNT(CASE WHEN created_at >= NOW() - INTERVAL '7 days' THEN 1 END)::int as recent,
+        COUNT(CASE WHEN featured = true THEN 1 END)::int as featured
       FROM blog_posts
     `
     return {
@@ -334,9 +389,10 @@ export async function getBlogStats(): Promise<{
       published: Number(stats.published) || 0,
       drafts: Number(stats.drafts) || 0,
       recent: Number(stats.recent) || 0,
+      featured: Number(stats.featured) || 0,
     }
   } catch (e) {
     console.error("getBlogStats error", e)
-    return { total: 0, published: 0, drafts: 0, recent: 0 }
+    return { total: 0, published: 0, drafts: 0, recent: 0, featured: 0 }
   }
 }
