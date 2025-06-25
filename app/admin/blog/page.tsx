@@ -24,6 +24,7 @@ export default function AdminBlogPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [setupLoading, setSetupLoading] = useState(false)
+  const [healthStatus, setHealthStatus] = useState<any>(null)
 
   useEffect(() => {
     fetchPosts()
@@ -102,6 +103,23 @@ export default function AdminBlogPage() {
     }
   }
 
+  const checkHealth = async () => {
+    try {
+      const response = await fetch("/api/blog-health")
+      const data = await response.json()
+      setHealthStatus(data)
+
+      if (!data.success) {
+        alert(`Health Check Failed: ${data.message}`)
+      } else {
+        alert("Database is healthy!")
+      }
+    } catch (error) {
+      console.error("Error checking health:", error)
+      alert("Error checking database health")
+    }
+  }
+
   const filteredPosts = posts.filter(
     (post) =>
       post.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -122,6 +140,9 @@ export default function AdminBlogPage() {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Blog Management</h1>
         <div className="flex gap-4">
+          <Button onClick={checkHealth} variant="outline">
+            Check Database Health
+          </Button>
           <Button onClick={setupDatabase} variant="outline" disabled={setupLoading}>
             {setupLoading ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : null}
             Setup Blog Database

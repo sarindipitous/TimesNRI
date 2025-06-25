@@ -151,19 +151,20 @@ export async function updateBlogPost(id: number, data: Partial<BlogPost>): Promi
       data.published_at = new Date()
     }
 
-    const setClause = Object.entries(data)
-      .filter(([key]) => key !== "id" && key !== "created_at")
-      .map(([key, value]) => `${key} = $${key}`)
-      .join(", ")
+    // Filter out fields that shouldn't be updated
+    const updateData = Object.fromEntries(Object.entries(data).filter(([key]) => key !== "id" && key !== "created_at"))
 
-    if (!setClause) return null
+    if (Object.keys(updateData).length === 0) return null
 
-    const [row] = await sql<BlogPost[]>`
-      UPDATE blog_posts
-      SET ${sql.unsafe(setClause)}, updated_at = NOW()
-      WHERE id = ${id}
-      RETURNING *
-    `
+    // Build the update query dynamically but safely
+    const updateFields = Object.keys(updateData)
+    const updateValues = Object.values(updateData)
+
+    let query = `UPDATE blog_posts SET `
+    const setParts = updateFields.map((field, index) => `${field} = $${index + 1}`)
+    query += setParts.join(", ") + `, updated_at = NOW() WHERE id = $${updateFields.length + 1} RETURNING *`
+
+    const [row] = await sql<BlogPost[]>(query, ...updateValues, id)
     return row ?? null
   } catch (e) {
     console.error("updateBlogPost error", e)
