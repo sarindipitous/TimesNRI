@@ -1,6 +1,7 @@
 "use client"
 import { Check, X, Crown, Heart, Shield, Plus, ChevronLeft, ChevronRight, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { HealthTestTooltip } from "./health-test-tooltip"
 import Link from "next/link"
 import { useState } from "react"
 
@@ -11,6 +12,7 @@ interface ComparisonFeature {
     peace: boolean | string
     presence: boolean | string
     honour: boolean | string
+    hasTooltip?: boolean
   }[]
 }
 
@@ -94,6 +96,7 @@ const comparisonData: ComparisonFeature[] = [
         peace: "Value-Added",
         presence: "84 markers",
         honour: "100 markers + Microbiome Gut Test",
+        hasTooltip: true,
       },
       {
         name: "Quarterly Diabetes Panel",
@@ -307,7 +310,12 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
   const [mobileView, setMobileView] = useState<"compare" | "single">("compare")
   const [selectedPlanIndex, setSelectedPlanIndex] = useState(1) // Default to Presence plan
 
-  const renderFeatureValue = (value: boolean | string, planType: "peace" | "presence" | "honour", compact = false) => {
+  const renderFeatureValue = (
+    value: boolean | string,
+    planType: "peace" | "presence" | "honour",
+    compact = false,
+    hasTooltip = false,
+  ) => {
     if (value === true) {
       return (
         <div className="flex items-center gap-2">
@@ -343,6 +351,7 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
           >
             {value}
           </span>
+          {hasTooltip && <HealthTestTooltip plan={planType === "presence" ? "presence" : "honour"} className="ml-1" />}
         </div>
       )
     }
@@ -538,13 +547,28 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
                           {feature.name}
                         </div>
                         <div className="flex justify-center items-center min-h-[40px]">
-                          {renderFeatureValue(feature.peace, "peace", true)}
+                          {renderFeatureValue(
+                            feature.peace,
+                            "peace",
+                            true,
+                            feature.hasTooltip && feature.peace !== "Value-Added",
+                          )}
                         </div>
                         <div className="flex justify-center items-center min-h-[40px]">
-                          {renderFeatureValue(feature.presence, "presence", true)}
+                          {renderFeatureValue(
+                            feature.presence,
+                            "presence",
+                            true,
+                            feature.hasTooltip && feature.presence !== "Value-Added",
+                          )}
                         </div>
                         <div className="flex justify-center items-center min-h-[40px]">
-                          {renderFeatureValue(feature.honour, "honour", true)}
+                          {renderFeatureValue(
+                            feature.honour,
+                            "honour",
+                            true,
+                            feature.hasTooltip && feature.honour !== "Value-Added",
+                          )}
                         </div>
                       </div>
 
@@ -555,15 +579,30 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
                           <div className="grid grid-cols-3 gap-3">
                             <div className="text-center">
                               <div className="text-xs text-gray-600 mb-2 font-medium">Peace</div>
-                              {renderFeatureValue(feature.peace, "peace")}
+                              {renderFeatureValue(
+                                feature.peace,
+                                "peace",
+                                false,
+                                feature.hasTooltip && feature.peace !== "Value-Added",
+                              )}
                             </div>
                             <div className="text-center">
                               <div className="text-xs text-gray-600 mb-2 font-medium">Presence</div>
-                              {renderFeatureValue(feature.presence, "presence")}
+                              {renderFeatureValue(
+                                feature.presence,
+                                "presence",
+                                false,
+                                feature.hasTooltip && feature.presence !== "Value-Added",
+                              )}
                             </div>
                             <div className="text-center">
                               <div className="text-xs text-gray-600 mb-2 font-medium">Honour</div>
-                              {renderFeatureValue(feature.honour, "honour")}
+                              {renderFeatureValue(
+                                feature.honour,
+                                "honour",
+                                false,
+                                feature.hasTooltip && feature.honour !== "Value-Added",
+                              )}
                             </div>
                           </div>
                         </div>
@@ -577,6 +616,8 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
                             {renderFeatureValue(
                               feature[currentPlan.id as keyof typeof feature] as boolean | string,
                               currentPlan.id as "peace" | "presence" | "honour",
+                              false,
+                              feature.hasTooltip && feature[currentPlan.id as keyof typeof feature] !== "Value-Added",
                             )}
                           </div>
                         </div>

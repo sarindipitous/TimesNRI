@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { cn } from "@/lib/utils"
 import { WaitlistForm } from "./waitlist-form"
 import { CarePlansComparison } from "./care-plans-comparison"
+import { HealthTestTooltip } from "./health-test-tooltip"
 import { Heart, Shield, Crown } from "lucide-react"
 import Link from "next/link"
 
@@ -46,7 +47,11 @@ const plans = [
     features: [
       "Everything in Peace",
       "Care Companion Visits (2/month)",
-      "Annual Health Test (84 markers)",
+      {
+        text: "Annual Health Test (84 markers)",
+        hasTooltip: true,
+        tooltipPlan: "presence" as const,
+      },
       "Home Medical Kit included",
     ],
   },
@@ -66,7 +71,11 @@ const plans = [
       "Everything in Presence",
       "Care Companion Visits (4/month)",
       "At-home Doctor Visits (2/month)",
-      "Annual Health comprehensive Test (100 markers) + Microbiome Gut Test",
+      {
+        text: "Annual Health comprehensive Test (100 markers) + Microbiome Gut Test",
+        hasTooltip: true,
+        tooltipPlan: "honour" as const,
+      },
     ],
   },
 ]
@@ -121,7 +130,12 @@ export function PricingSection({ className }: PricingProps) {
                   {plan.features.map((feature, index) => (
                     <li key={index} className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 rounded-full bg-green-500 mt-2 flex-shrink-0" />
-                      <span className="text-gray-700">{feature}</span>
+                      <div className="flex items-center gap-2 flex-1">
+                        <span className="text-gray-700">{typeof feature === "string" ? feature : feature.text}</span>
+                        {typeof feature === "object" && feature.hasTooltip && (
+                          <HealthTestTooltip plan={feature.tooltipPlan} />
+                        )}
+                      </div>
                     </li>
                   ))}
                 </ul>
