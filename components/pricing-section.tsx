@@ -138,14 +138,11 @@ export function PricingSection({ className }: PricingProps) {
                 </ul>
 
                 <div className="mt-4 pt-4 border-t border-gray-100">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsComparisonOpen(true)}
-                    className="text-xs text-gray-500 hover:text-gray-700"
-                  >
-                    See all features →
-                  </Button>
+                  <Link href="/compare">
+                    <Button variant="ghost" size="sm" className="text-xs text-gray-500 hover:text-gray-700">
+                      See all features →
+                    </Button>
+                  </Link>
                 </div>
               </CardContent>
 
