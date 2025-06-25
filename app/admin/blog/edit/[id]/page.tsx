@@ -98,6 +98,16 @@ export default function EditPostPage({ params }: EditPostPageProps) {
       return
     }
 
+    if (!formData.author.trim()) {
+      alert("Author is required")
+      return
+    }
+
+    if (!formData.slug.trim()) {
+      alert("Slug is required")
+      return
+    }
+
     try {
       setSaving(true)
       const response = await fetch(`/api/blog/${params.id}`, {
@@ -105,7 +115,16 @@ export default function EditPostPage({ params }: EditPostPageProps) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          title: formData.title.trim(),
+          slug: formData.slug.trim(),
+          excerpt: formData.excerpt.trim(),
+          content: formData.content.trim(),
+          author: formData.author.trim(),
+          featured_image: formData.featured_image.trim() || null,
+          tags: formData.tags.trim() || null,
+        }),
       })
 
       const data = await response.json()
@@ -114,11 +133,12 @@ export default function EditPostPage({ params }: EditPostPageProps) {
         alert("Post updated successfully!")
         router.push("/admin/blog")
       } else {
-        alert(`Failed to update post: ${data.message}`)
+        console.error("Update failed:", data)
+        alert(`Failed to update post: ${data.message || "Unknown error"}`)
       }
     } catch (error) {
       console.error("Error updating post:", error)
-      alert("Error updating post")
+      alert("Error updating post. Please check the console for details.")
     } finally {
       setSaving(false)
     }

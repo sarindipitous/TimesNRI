@@ -31,6 +31,19 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const data = await request.json()
     console.log("Updating post with data:", data)
 
+    // Validate required fields
+    if (data.title && !data.title.trim()) {
+      return NextResponse.json({ success: false, message: "Title cannot be empty" }, { status: 400 })
+    }
+
+    if (data.content && !data.content.trim()) {
+      return NextResponse.json({ success: false, message: "Content cannot be empty" }, { status: 400 })
+    }
+
+    if (data.slug && !data.slug.trim()) {
+      return NextResponse.json({ success: false, message: "Slug cannot be empty" }, { status: 400 })
+    }
+
     const post = await updateBlogPost(id, data)
 
     if (!post) {

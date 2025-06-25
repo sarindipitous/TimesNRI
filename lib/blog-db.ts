@@ -152,23 +152,30 @@ export async function updateBlogPost(id: number, data: Partial<BlogPost>): Promi
     }
 
     // Filter out fields that shouldn't be updated
-    const updateData = Object.fromEntries(Object.entries(data).filter(([key]) => key !== "id" && key !== "created_at"))
+    const { id: _, created_at: __, ...updateData } = data
 
     if (Object.keys(updateData).length === 0) return null
 
-    // Build the update query dynamically but safely
-    const updateFields = Object.keys(updateData)
-    const updateValues = Object.values(updateData)
-
-    let query = `UPDATE blog_posts SET `
-    const setParts = updateFields.map((field, index) => `${field} = $${index + 1}`)
-    query += setParts.join(", ") + `, updated_at = NOW() WHERE id = $${updateFields.length + 1} RETURNING *`
-
-    const [row] = await sql<BlogPost[]>(query, ...updateValues, id)
+    // Build update query with proper SQL template syntax
+    const [row] = await sql<BlogPost[]>`
+      UPDATE blog_posts SET 
+        title = COALESCE(${updateData.title}, title),
+        slug = COALESCE(${updateData.slug}, slug),
+        excerpt = COALESCE(${updateData.excerpt}, excerpt),
+        content = COALESCE(${updateData.content}, content),
+        author = COALESCE(${updateData.author}, author),
+        featured_image = COALESCE(${updateData.featured_image}, featured_image),
+        tags = COALESCE(${updateData.tags}, tags),
+        status = COALESCE(${updateData.status}, status),
+        published_at = COALESCE(${updateData.published_at}, published_at),
+        updated_at = NOW()
+      WHERE id = ${id}
+      RETURNING *
+    `
     return row ?? null
   } catch (e) {
     console.error("updateBlogPost error", e)
-    return null
+    throw new Error(`Failed to update blog post: ${e instanceof Error ? e.message : "Unknown error"}`)
   }
 }
 
