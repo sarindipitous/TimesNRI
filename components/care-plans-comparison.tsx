@@ -298,6 +298,7 @@ const plans = [
     borderColor: "border-purple-200",
     textColor: "text-purple-600",
     buttonColor: "bg-purple-600 hover:bg-purple-700",
+    badge: "By Invitation Only",
   },
 ]
 
@@ -411,16 +412,20 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
             </button>
 
             <div className="flex-1 mx-4">
-              <div className={`${currentPlan.bgColor} rounded-xl p-4 border-2 ${currentPlan.borderColor} shadow-sm`}>
+              <div
+                className={`${currentPlan.bgColor} rounded-xl p-4 border-2 ${currentPlan.borderColor} shadow-sm relative`}
+              >
+                {currentPlan.id === "honour" && (
+                  <span className="absolute -top-2 right-2 bg-purple-600 text-[10px] font-semibold text-white px-2 py-0.5 rounded-full shadow">
+                    By Invitation Only
+                  </span>
+                )}
                 <div className="flex items-center justify-center gap-2 mb-3">
                   <IconComponent className={`h-5 w-5 ${currentPlan.textColor}`} />
                   <h4 className="font-bold text-gray-900">{currentPlan.name}</h4>
                 </div>
                 <div className={`text-2xl font-bold ${currentPlan.textColor} mb-1 text-center`}>
                   {currentPlan.price}/month
-                </div>
-                <div className={`text-xs ${currentPlan.textColor} font-medium italic mb-3 leading-relaxed text-center`}>
-                  {currentPlan.description}
                 </div>
                 <Link href={`/waitlist?plan=${currentPlan.id}`}>
                   <Button size="sm" className={`w-full ${currentPlan.buttonColor} text-white font-semibold py-2`}>
@@ -463,15 +468,17 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
               const IconComponent = plan.icon
               return (
                 <div key={plan.id} className="text-center">
-                  <div className={`${plan.bgColor} rounded-lg p-3 border ${plan.borderColor} shadow-sm`}>
+                  <div className={`${plan.bgColor} rounded-lg p-3 border ${plan.borderColor} shadow-sm relative`}>
+                    {plan.id === "honour" && (
+                      <span className="absolute -top-2 right-2 bg-purple-600 text-[10px] font-semibold text-white px-2 py-0.5 rounded-full shadow">
+                        By Invitation Only
+                      </span>
+                    )}
                     <div className="flex items-center justify-center gap-1 mb-2">
                       <IconComponent className={`h-4 w-4 ${plan.textColor}`} />
                       <h4 className="font-bold text-gray-900 text-sm">{plan.name}</h4>
                     </div>
                     <div className={`text-xl font-bold ${plan.textColor} mb-1`}>{plan.price}/month</div>
-                    <div className={`text-xs ${plan.textColor} font-medium italic mb-2 leading-tight`}>
-                      {plan.description}
-                    </div>
                     <Link href={`/waitlist?plan=${plan.id}`}>
                       <Button size="sm" className={`w-full ${plan.buttonColor} text-white font-semibold py-1 text-xs`}>
                         Choose {plan.name}
@@ -491,7 +498,12 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
               {plans.map((plan) => {
                 const IconComponent = plan.icon
                 return (
-                  <div key={plan.id} className={`${plan.bgColor} rounded-lg p-3 border ${plan.borderColor}`}>
+                  <div key={plan.id} className={`${plan.bgColor} rounded-lg p-3 border ${plan.borderColor} relative`}>
+                    {plan.id === "honour" && (
+                      <span className="absolute -top-2 right-2 bg-purple-600 text-[10px] font-semibold text-white px-2 py-0.5 rounded-full shadow">
+                        By Invitation Only
+                      </span>
+                    )}
                     <div className="flex items-center justify-center gap-1 mb-2">
                       <IconComponent className={`h-4 w-4 ${plan.textColor}`} />
                       <h4 className="font-bold text-gray-900 text-sm">{plan.name}</h4>
