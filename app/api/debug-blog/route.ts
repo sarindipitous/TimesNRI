@@ -10,8 +10,22 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       data: {
-        allPosts,
-        publishedPosts,
+        allPosts: allPosts.map((post) => ({
+          id: post.id,
+          title: post.title,
+          slug: post.slug,
+          status: post.status,
+          published_at: post.published_at,
+          created_at: post.created_at,
+        })),
+        publishedPosts: publishedPosts.map((post) => ({
+          id: post.id,
+          title: post.title,
+          slug: post.slug,
+          status: post.status,
+          published_at: post.published_at,
+          created_at: post.created_at,
+        })),
         stats,
         debug: {
           allPostsCount: allPosts.length,
