@@ -3,7 +3,7 @@ import { Check, X, Crown, Heart, Shield, Plus, ChevronLeft, ChevronRight, Info }
 import { Button } from "@/components/ui/button"
 import { HealthTestTooltip } from "./health-test-tooltip"
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 interface ComparisonFeature {
   category: string
@@ -310,6 +310,16 @@ interface CarePlansComparisonProps {
 export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparisonProps) {
   const [mobileView, setMobileView] = useState<"compare" | "single">("compare")
   const [selectedPlanIndex, setSelectedPlanIndex] = useState(1) // Default to Presence plan
+
+  // Ensure component starts at the top when mounted
+  useEffect(() => {
+    // Use a small delay to ensure DOM is ready
+    const timer = setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    }, 100)
+
+    return () => clearTimeout(timer)
+  }, [])
 
   const renderFeatureValue = (
     value: boolean | string,
