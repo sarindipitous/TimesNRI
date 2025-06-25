@@ -28,13 +28,16 @@ export async function getPublishedBlogPosts(limit = 10, offset = 0): Promise<Blo
   if (!hasDb) return noDb([], "getPublishedBlogPosts")
 
   try {
+    console.log("Fetching published blog posts...")
     const rows = await sql<BlogPost[]>`
       SELECT *
       FROM blog_posts
       WHERE status = 'published'
-      ORDER BY published_at DESC NULLS LAST, created_at DESC
+      ORDER BY 
+        CASE WHEN published_at IS NOT NULL THEN published_at ELSE created_at END DESC
       LIMIT ${limit} OFFSET ${offset}
     `
+    console.log(`Found ${rows.length} published posts`)
     return rows
   } catch (e) {
     console.error("getPublishedBlogPosts error", e)
@@ -258,10 +261,10 @@ export async function getBlogStats(): Promise<{
   try {
     const [stats] = await sql`
       SELECT 
-        COUNT(*) as total,
-        COUNT(*) FILTER (WHERE status = 'published') as published,
-        COUNT(*) FILTER (WHERE status = 'draft') as drafts,
-        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days') as recent
+        COUNT(*)::int as total,
+        COUNT(CASE WHEN status = 'published' THEN 1 END)::int as published,
+        COUNT(CASE WHEN status = 'draft' THEN 1 END)::int as drafts,
+        COUNT(CASE WHEN created_at >= NOW() - INTERVAL '7 days' THEN 1 END)::int as recent
       FROM blog_posts
     `
     return {
