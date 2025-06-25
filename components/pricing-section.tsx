@@ -40,7 +40,6 @@ const plans = [
     description:
       "Every two weeks, a trained and verified Care Companion visits your parent in person. They don't just check vitals — they build trust, listen, observe, and connect. Hospital support included.",
     features: [
-      "Everything in Peace",
       "2 In-Person Care Companion Visits per month",
       "Annual Health Screening (84 biomarkers)",
       "At-Home Medical Kit & Vitals Monitoring",
@@ -59,7 +58,6 @@ const plans = [
     description:
       "This is not just an upgrade. It's a promise: to uphold your parent's dignity with proactive, concierge-level care. More visits. At-home doctors. Deep health insights. Full hospital advocacy.",
     features: [
-      "Everything in Presence",
       "4 Care Companion Visits per month",
       "2 At-Home Doctor Visits per month",
       "Advanced Diagnostics (100+ biomarkers + Gut Microbiome Panel)",
@@ -115,7 +113,11 @@ export function PricingSection({ className }: PricingProps) {
             <CardContent className="flex-1">
               <div className="mb-4">
                 <h4 className="font-semibold text-gray-900 mb-3 text-sm">
-                  {plan.id === "peace" ? "What's included:" : "Includes everything in Peace, plus:"}
+                  {plan.id === "peace"
+                    ? "What's included:"
+                    : plan.id === "presence"
+                      ? "Includes everything in Peace, plus:"
+                      : "Includes everything in Presence, plus:"}
                 </h4>
                 <ul className="space-y-2 text-sm">
                   {plan.features.map((feature, index) => (
