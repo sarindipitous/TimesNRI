@@ -3,9 +3,19 @@ import { notFound } from "next/navigation"
 import { Calendar, User, ArrowLeft, Clock, Share2 } from "lucide-react"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
+import { ShareButton } from "@/components/share-button"
 
 interface Props {
   params: { slug: string }
+}
+
+function ShareButtonPlaceholder({ title }: { title: string }) {
+  return (
+    <button className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors">
+      <Share2 className="w-5 h-5" />
+      <span>Share</span>
+    </button>
+  )
 }
 
 export default async function BlogPostPage({ params }: Props) {
@@ -76,10 +86,8 @@ export default async function BlogPostPage({ params }: Props) {
               <Clock className="w-5 h-5" />
               <span>{readingTime} min read</span>
             </div>
-            <button className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors">
-              <Share2 className="w-5 h-5" />
-              <span>Share</span>
-            </button>
+            {/* Share Button Component */}
+            <ShareButton title={post.title} />
           </div>
 
           {/* Featured Image */}
