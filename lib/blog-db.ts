@@ -1,6 +1,7 @@
 "use server"
 
 import { sql } from "./db"
+import { revalidatePath } from "next/cache"
 
 const hasDb = Boolean(process.env.DATABASE_URL?.trim())
 
@@ -158,6 +159,13 @@ export async function createBlogPost(data: {
       )
       RETURNING *
     `
+
+    // Revalidate blog pages
+    revalidatePath("/blog")
+    if (data.status === "published") {
+      revalidatePath(`/blog/${slug}`)
+    }
+
     return row
   } catch (e) {
     console.error("createBlogPost error", e)
@@ -169,34 +177,106 @@ export async function updateBlogPost(id: number, data: Partial<BlogPost>): Promi
   if (!hasDb) return noDb(null, "updateBlogPost")
 
   try {
+    console.log("Updating blog post:", id, data)
+
     if (Object.keys(data).length === 0) return null
 
+    // Get the current post to compare
+    const currentPost = await getBlogPostById(id)
+    if (!currentPost) {
+      throw new Error("Post not found")
+    }
+
     // Handle published_at when status changes to published
-    if (data.status === "published" && !data.published_at) {
+    if (data.status === "published" && currentPost.status !== "published") {
       data.published_at = new Date()
     }
 
-    // Filter out fields that shouldn't be updated
-    const { id: _, created_at: __, ...updateData } = data
+    // Build the update query dynamically but safely
+    const updateFields: string[] = []
+    const updateValues: any[] = []
+    let paramIndex = 1
 
-    if (Object.keys(updateData).length === 0) return null
+    if (data.title !== undefined) {
+      updateFields.push(`title = $${paramIndex}`)
+      updateValues.push(data.title)
+      paramIndex++
+    }
+    if (data.slug !== undefined) {
+      updateFields.push(`slug = $${paramIndex}`)
+      updateValues.push(data.slug)
+      paramIndex++
+    }
+    if (data.excerpt !== undefined) {
+      updateFields.push(`excerpt = $${paramIndex}`)
+      updateValues.push(data.excerpt)
+      paramIndex++
+    }
+    if (data.content !== undefined) {
+      updateFields.push(`content = $${paramIndex}`)
+      updateValues.push(data.content)
+      paramIndex++
+    }
+    if (data.author !== undefined) {
+      updateFields.push(`author = $${paramIndex}`)
+      updateValues.push(data.author)
+      paramIndex++
+    }
+    if (data.featured_image !== undefined) {
+      updateFields.push(`featured_image = $${paramIndex}`)
+      updateValues.push(data.featured_image)
+      paramIndex++
+    }
+    if (data.tags !== undefined) {
+      updateFields.push(`tags = $${paramIndex}`)
+      updateValues.push(data.tags)
+      paramIndex++
+    }
+    if (data.status !== undefined) {
+      updateFields.push(`status = $${paramIndex}`)
+      updateValues.push(data.status)
+      paramIndex++
+    }
+    if (data.published_at !== undefined) {
+      updateFields.push(`published_at = $${paramIndex}`)
+      updateValues.push(data.published_at)
+      paramIndex++
+    }
 
-    // Build update query with proper SQL template syntax
-    const [row] = await sql<BlogPost[]>`
-      UPDATE blog_posts SET 
-        title = COALESCE(${updateData.title}, title),
-        slug = COALESCE(${updateData.slug}, slug),
-        excerpt = COALESCE(${updateData.excerpt}, excerpt),
-        content = COALESCE(${updateData.content}, content),
-        author = COALESCE(${updateData.author}, author),
-        featured_image = COALESCE(${updateData.featured_image}, featured_image),
-        tags = COALESCE(${updateData.tags}, tags),
-        status = COALESCE(${updateData.status}, status),
-        published_at = COALESCE(${updateData.published_at}, published_at),
-        updated_at = NOW()
-      WHERE id = ${id}
+    // Always update the updated_at field
+    updateFields.push(`updated_at = NOW()`)
+
+    if (updateFields.length === 1) {
+      // Only updated_at
+      return currentPost
+    }
+
+    const query = `
+      UPDATE blog_posts 
+      SET ${updateFields.join(", ")} 
+      WHERE id = $${paramIndex} 
       RETURNING *
     `
+    updateValues.push(id)
+
+    console.log("Update query:", query)
+    console.log("Update values:", updateValues)
+
+    const [row] = await sql<BlogPost[]>(query, ...updateValues)
+
+    if (row) {
+      // Revalidate blog pages
+      revalidatePath("/blog")
+      revalidatePath("/admin/blog")
+      if (row.status === "published") {
+        revalidatePath(`/blog/${row.slug}`)
+      }
+      // Also revalidate the old slug if it changed
+      if (data.slug && currentPost.slug !== data.slug && currentPost.status === "published") {
+        revalidatePath(`/blog/${currentPost.slug}`)
+      }
+    }
+
     return row ?? null
   } catch (e) {
     console.error("updateBlogPost error", e)
@@ -208,10 +288,23 @@ export async function deleteBlogPost(id: number): Promise<boolean> {
   if (!hasDb) return noDb(false, "deleteBlogPost")
 
   try {
+    // Get the post before deleting to revalidate its page
+    const post = await getBlogPostById(id)
+
     const result = await sql`
       DELETE FROM blog_posts
       WHERE id = ${id}
     `
+
+    if (result.count > 0) {
+      // Revalidate blog pages
+      revalidatePath("/blog")
+      revalidatePath("/admin/blog")
+      if (post && post.status === "published") {
+        revalidatePath(`/blog/${post.slug}`)
+      }
+    }
+
     return result.count > 0
   } catch (e) {
     console.error("deleteBlogPost error", e)

@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { updateBlogPost, deleteBlogPost, getBlogPostById } from "@/lib/blog-db"
+import { revalidatePath } from "next/cache"
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -29,7 +30,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     const data = await request.json()
-    console.log("Updating post with data:", data)
+    console.log("API: Updating post with data:", data)
 
     // Validate required fields
     if (data.title && !data.title.trim()) {
@@ -50,6 +51,14 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ success: false, message: "Post not found or update failed" }, { status: 404 })
     }
 
+    // Additional revalidation at API level
+    revalidatePath("/blog")
+    revalidatePath("/admin/blog")
+    if (post.status === "published") {
+      revalidatePath(`/blog/${post.slug}`)
+    }
+
+    console.log("API: Post updated successfully:", post.title)
     return NextResponse.json({ success: true, post })
   } catch (error) {
     console.error("Blog update error:", error)
@@ -77,6 +86,10 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     if (!success) {
       return NextResponse.json({ success: false, message: "Post not found or delete failed" }, { status: 404 })
     }
+
+    // Revalidate after deletion
+    revalidatePath("/blog")
+    revalidatePath("/admin/blog")
 
     return NextResponse.json({ success: true })
   } catch (error) {
