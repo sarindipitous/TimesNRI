@@ -493,25 +493,28 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
 
         {/* Mobile Plan Headers - Only show in compare view */}
         {mobileView === "compare" && (
-          <div className="lg:hidden bg-white border border-gray-200 rounded-lg p-4 mb-6">
-            <div className="grid grid-cols-3 gap-3">
+          <div className="lg:hidden bg-white border border-gray-200 rounded-lg p-6 mb-6">
+            <div className="space-y-4">
               {plans.map((plan) => {
                 const IconComponent = plan.icon
                 return (
-                  <div key={plan.id} className={`${plan.bgColor} rounded-lg p-3 border ${plan.borderColor} relative`}>
+                  <div key={plan.id} className={`${plan.bgColor} rounded-xl p-4 border-2 ${plan.borderColor} relative`}>
                     {plan.id === "honour" && (
-                      <span className="absolute -top-2 right-2 bg-purple-600 text-[10px] font-semibold text-white px-2 py-0.5 rounded-full shadow">
+                      <span className="absolute -top-3 right-3 bg-purple-600 text-xs font-semibold text-white px-3 py-1 rounded-full shadow-lg">
                         By Invitation Only
                       </span>
                     )}
-                    <div className="flex items-center justify-center gap-1 mb-2">
-                      <IconComponent className={`h-4 w-4 ${plan.textColor}`} />
-                      <h4 className="font-bold text-gray-900 text-sm">{plan.name}</h4>
+                    <div className="flex items-center gap-3 mb-3">
+                      <IconComponent className={`h-6 w-6 ${plan.textColor}`} />
+                      <div>
+                        <h4 className="font-bold text-gray-900 text-lg">{plan.name}</h4>
+                        <div className={`text-2xl font-bold ${plan.textColor}`}>{plan.price}/month</div>
+                      </div>
                     </div>
-                    <div className={`text-lg font-bold ${plan.textColor} text-center`}>{plan.price}/month</div>
-                    <Link href={`/waitlist?plan=${plan.id}`} className="block mt-2">
-                      <Button size="sm" className={`w-full ${plan.buttonColor} text-white text-xs py-1`}>
-                        Choose
+                    <p className="text-sm text-gray-600 mb-4">{plan.description}</p>
+                    <Link href={`/waitlist?plan=${plan.id}`} className="block">
+                      <Button size="lg" className={`w-full ${plan.buttonColor} text-white font-semibold py-3`}>
+                        Choose {plan.name}
                       </Button>
                     </Link>
                   </div>
@@ -578,8 +581,8 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
 
                     {/* Mobile Compare Layout */}
                     {mobileView === "compare" && (
-                      <div className="lg:hidden p-4">
-                        <div className="text-sm text-gray-800 font-medium leading-relaxed mb-4">{feature.name}</div>
+                      <div className="lg:hidden p-6">
+                        <div className="text-lg text-gray-800 font-medium leading-relaxed mb-4">{feature.name}</div>
                         <div className="grid grid-cols-3 gap-3">
                           <div className="text-center">
                             <div className="text-xs text-gray-600 mb-2 font-medium">Peace</div>
