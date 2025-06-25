@@ -41,6 +41,7 @@ const plans = [
       "Every two weeks, a trained and verified Care Companion visits your parent in person. They don't just check vitals — they build trust, listen, observe, and connect. Hospital support included.",
     features: [
       "2 In-Person Care Companion Visits per month",
+      "6 At-Home Physiotherapy Visits a year",
       "Annual Health Screening (84 biomarkers)",
       "At-Home Medical Kit & Vitals Monitoring",
       "Hospital Support: Nurse placed at hospital for up to 3 days",
@@ -60,6 +61,7 @@ const plans = [
     features: [
       "4 Care Companion Visits per month",
       "2 At-Home Doctor Visits per month",
+      "12 At-Home Physiotherapy Visits a year",
       "Advanced Diagnostics (100+ biomarkers + Gut Microbiome Panel)",
       "Dedicated Family Care Manager",
       "Full Hospital Advocacy: Nurse + doctor available throughout hospital stay",
