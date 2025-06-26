@@ -1,0 +1,16 @@
+import { type NextRequest, NextResponse } from "next/server"
+import { getAllEmailConfig } from "@/lib/email-config"
+
+export async function GET(request: NextRequest) {
+  try {
+    const config = await getAllEmailConfig()
+
+    return NextResponse.json({
+      success: true,
+      config,
+    })
+  } catch (error) {
+    console.error("Error fetching email config:", error)
+    return NextResponse.json({ success: false, message: "Failed to fetch email configuration" }, { status: 500 })
+  }
+}

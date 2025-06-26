@@ -8,6 +8,7 @@ import {
   updateWaitlistSubmission,
   deleteWaitlistSubmission,
 } from "@/lib/db"
+import { sendWelcomeEmail } from "@/lib/email-service"
 
 /* ------------------------------------------------------------------ */
 /* Shared helpers                                                     */
@@ -45,6 +46,10 @@ export async function submitToWaitlist(formData: FormData) {
       carePlanInterest,
     )
 
+    if (!submission) {
+      return { success: false, message: "Failed to add to waitlist. Please try again." }
+    }
+
     /* link referral */
     if (referredBy) {
       const referrer = await getWaitlistSubmissionByEmail(referredBy)
@@ -57,11 +62,27 @@ export async function submitToWaitlist(formData: FormData) {
     /* build referral link */
     let siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://times-nri.vercel.app"
     if (!siteUrl.startsWith("http")) siteUrl = `https://${siteUrl}`
+    const referralLink = `${siteUrl}?ref=${encodeURIComponent(email)}`
+
+    /* send welcome email */
+    try {
+      await sendWelcomeEmail({
+        name,
+        email,
+        parent_location: parentLocation,
+        care_plan: carePlan,
+        waitlist_number: submission.waitlist_number,
+        referral_link: referralLink,
+      })
+    } catch (emailError) {
+      console.error("Failed to send welcome email:", emailError)
+      // Don't fail the entire submission if email fails
+    }
 
     return {
       success: true,
       message: "You've been added to our waitlist!",
-      referralLink: `${siteUrl}?ref=${encodeURIComponent(email)}`,
+      referralLink,
       submissionId: submission.id,
       waitlistNumber: submission.waitlist_number,
     }
@@ -129,5 +150,60 @@ export async function deleteWaitlistEntry(formData: FormData) {
   } catch (error) {
     console.error("deleteWaitlistEntry:", error)
     return { success: false, message: "Unexpected error during delete." }
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* 5. Email configuration actions                                      */
+export async function updateEmailConfiguration(formData: FormData) {
+  try {
+    const { updateEmailConfig } = await import("@/lib/email-config")
+
+    const configs = [
+      "welcome_email_enabled",
+      "welcome_email_subject",
+      "welcome_email_from_name",
+      "welcome_email_from_email",
+      "welcome_email_template",
+    ]
+
+    for (const key of configs) {
+      const value = formData.get(key) as string
+      if (value !== null) {
+        const enabled = key === "welcome_email_enabled" ? value === "true" : true
+        await updateEmailConfig(key, value, enabled)
+      }
+    }
+
+    return { success: true, message: "Email configuration updated successfully!" }
+  } catch (error) {
+    console.error("Error updating email configuration:", error)
+    return { success: false, message: "Failed to update email configuration." }
+  }
+}
+
+export async function sendTestWelcomeEmail(formData: FormData) {
+  try {
+    const testEmail = formData.get("testEmail") as string
+
+    if (!testEmail || !isValidEmail(testEmail)) {
+      return { success: false, message: "Please provide a valid test email address." }
+    }
+
+    const success = await sendWelcomeEmail({
+      name: "Test User",
+      email: testEmail,
+      parent_location: "Mumbai",
+      care_plan: "Peace: $50/month",
+      waitlist_number: 999,
+      referral_link: `${process.env.NEXT_PUBLIC_SITE_URL || "https://times-nri.vercel.app"}?ref=test`,
+    })
+
+    return success
+      ? { success: true, message: `Test email sent successfully to ${testEmail}!` }
+      : { success: false, message: "Failed to send test email. Check your configuration." }
+  } catch (error) {
+    console.error("Error sending test email:", error)
+    return { success: false, message: "Error sending test email." }
   }
 }
