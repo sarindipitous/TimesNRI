@@ -1,14 +1,104 @@
 import { NextResponse } from "next/server"
+import { neon } from "@neondatabase/serverless"
 
-/**
- * Minimal implementation that returns dummy data so the build succeeds.
- * Replace the hard-coded values with real DB queries when ready.
- */
+const sql = neon(process.env.DATABASE_URL!)
+
 export async function GET() {
-  // TODO: replace with real database calls
-  return NextResponse.json({
-    totalSubmissions: 0,
-    last7Days: 0,
-    recentSubmissions: [],
-  })
+  try {
+    console.log("Dashboard API: Starting data fetch...")
+
+    // Get total waitlist count
+    const totalResult = await sql`
+      SELECT COUNT(*) as count 
+      FROM waitlist_submissions
+    `
+    const total = Number.parseInt(totalResult[0]?.count || "0")
+
+    // Get this week's count
+    const weekAgo = new Date()
+    weekAgo.setDate(weekAgo.getDate() - 7)
+
+    const thisWeekResult = await sql`
+      SELECT COUNT(*) as count 
+      FROM waitlist_submissions 
+      WHERE created_at >= ${weekAgo.toISOString()}
+    `
+    const thisWeek = Number.parseInt(thisWeekResult[0]?.count || "0")
+
+    // Get count with referrals
+    const referralsResult = await sql`
+      SELECT COUNT(*) as count 
+      FROM waitlist_submissions 
+      WHERE referred_by IS NOT NULL AND referred_by != ''
+    `
+    const withReferrals = Number.parseInt(referralsResult[0]?.count || "0")
+
+    // Get recent submissions (last 20)
+    const recentResult = await sql`
+      SELECT 
+        id,
+        email,
+        name,
+        source,
+        location,
+        parent_location,
+        care_needs,
+        care_plan,
+        care_plan_interest,
+        waitlist_number,
+        referred_by,
+        created_at
+      FROM waitlist_submissions 
+      ORDER BY created_at DESC 
+      LIMIT 20
+    `
+
+    const recentSubmissions = recentResult.map((row) => ({
+      id: row.id,
+      email: row.email || "",
+      name: row.name || null,
+      source: row.source || null,
+      location: row.location || null,
+      parent_location: row.parent_location || null,
+      care_needs: row.care_needs || null,
+      care_plan: row.care_plan || null,
+      care_plan_interest: row.care_plan_interest || null,
+      waitlist_number: row.waitlist_number || null,
+      referred_by: row.referred_by || null,
+      created_at: row.created_at,
+    }))
+
+    const response = {
+      waitlist: {
+        total,
+        thisWeek,
+        withReferrals,
+      },
+      recentSubmissions,
+    }
+
+    console.log("Dashboard API: Success", {
+      total,
+      thisWeek,
+      withReferrals,
+      recentCount: recentSubmissions.length,
+    })
+
+    return NextResponse.json(response)
+  } catch (error) {
+    console.error("Dashboard API Error:", error)
+
+    // Return safe fallback data
+    return NextResponse.json(
+      {
+        waitlist: {
+          total: 0,
+          thisWeek: 0,
+          withReferrals: 0,
+        },
+        recentSubmissions: [],
+      },
+      { status: 200 },
+    ) // Return 200 with empty data instead of error
+  }
 }

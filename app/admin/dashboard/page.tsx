@@ -4,21 +4,22 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Users, Calendar, Share2, MapPin, Mail, User, ArrowRight } from "lucide-react"
+import { Users, Calendar, Share2, MapPin, Mail, User, ArrowRight, AlertCircle } from "lucide-react"
 import Link from "next/link"
+import { ErrorBoundary } from "@/components/error-boundary"
 
 interface WaitlistSubmission {
   id: number
   email: string
-  name?: string
-  source?: string
-  location?: string
-  parent_location?: string
-  care_needs?: string
-  care_plan?: string
-  care_plan_interest?: string
-  waitlist_number?: number
-  referred_by?: string
+  name?: string | null
+  source?: string | null
+  location?: string | null
+  parent_location?: string | null
+  care_needs?: string | null
+  care_plan?: string | null
+  care_plan_interest?: string | null
+  waitlist_number?: number | null
+  referred_by?: string | null
   created_at: string
 }
 
@@ -31,32 +32,70 @@ interface DashboardStats {
   recentSubmissions: WaitlistSubmission[]
 }
 
-export default function AdminDashboard() {
+function DashboardContent() {
   const [stats, setStats] = useState<DashboardStats>({
     waitlist: { total: 0, thisWeek: 0, withReferrals: 0 },
     recentSubmissions: [],
   })
   const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    fetchDashboardData()
-  }, [])
+  const [error, setError] = useState<string | null>(null)
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true)
-      const response = await fetch("/api/dashboard-data")
+      setError(null)
+
+      console.log("Fetching dashboard data...")
+
+      const response = await fetch("/api/dashboard-data", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
+      })
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
       const data = await response.json()
-      setStats(data)
+      console.log("Dashboard data received:", data)
+
+      // Validate data structure
+      const validatedData: DashboardStats = {
+        waitlist: {
+          total: Number(data?.waitlist?.total || 0),
+          thisWeek: Number(data?.waitlist?.thisWeek || 0),
+          withReferrals: Number(data?.waitlist?.withReferrals || 0),
+        },
+        recentSubmissions: Array.isArray(data?.recentSubmissions) ? data.recentSubmissions : [],
+      }
+
+      setStats(validatedData)
     } catch (error) {
       console.error("Error fetching dashboard data:", error)
+      setError(error instanceof Error ? error.message : "Failed to load dashboard data")
+
+      // Set fallback data
+      setStats({
+        waitlist: { total: 0, thisWeek: 0, withReferrals: 0 },
+        recentSubmissions: [],
+      })
     } finally {
       setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchDashboardData()
+  }, [])
+
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString()
+    } catch {
+      return "Invalid date"
     }
   }
 
@@ -83,10 +122,21 @@ export default function AdminDashboard() {
           <h1 className="text-2xl font-bold">Admin Dashboard</h1>
           <p className="text-gray-600">Overview of your Times NRI platform</p>
         </div>
-        <Button onClick={fetchDashboardData} variant="outline">
-          Refresh Data
+        <Button onClick={fetchDashboardData} variant="outline" disabled={loading}>
+          {loading ? "Loading..." : "Refresh Data"}
         </Button>
       </div>
+
+      {error && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2 text-red-700">
+              <AlertCircle className="h-4 w-4" />
+              <span className="text-sm">Error loading data: {error}</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -138,7 +188,7 @@ export default function AdminDashboard() {
           </Link>
         </CardHeader>
         <CardContent>
-          {stats.recentSubmissions.length === 0 ? (
+          {!stats.recentSubmissions || stats.recentSubmissions.length === 0 ? (
             <div className="text-center py-8">
               <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No submissions yet</h3>
@@ -146,32 +196,43 @@ export default function AdminDashboard() {
             </div>
           ) : (
             <div className="space-y-4">
-              {stats.recentSubmissions.slice(0, 10).map((submission) => (
-                <div key={submission.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-2">
-                      <User className="h-4 w-4 text-gray-400" />
-                      <div>
-                        <p className="font-medium">{submission.name || "Anonymous"}</p>
-                        <div className="flex items-center space-x-1 text-sm text-gray-600">
-                          <Mail className="h-3 w-3" />
-                          <span>{submission.email}</span>
+              {stats.recentSubmissions.slice(0, 10).map((submission) => {
+                try {
+                  return (
+                    <div key={submission.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-2">
+                          <User className="h-4 w-4 text-gray-400" />
+                          <div>
+                            <p className="font-medium">{submission.name || "Anonymous"}</p>
+                            <div className="flex items-center space-x-1 text-sm text-gray-600">
+                              <Mail className="h-3 w-3" />
+                              <span>{submission.email || "No email"}</span>
+                            </div>
+                          </div>
                         </div>
+                        <Badge variant="outline">#{submission.waitlist_number || submission.id}</Badge>
+                      </div>
+                      <div className="flex items-center space-x-4 text-sm text-gray-600">
+                        {submission.parent_location && (
+                          <div className="flex items-center space-x-1">
+                            <MapPin className="h-3 w-3" />
+                            <span>{submission.parent_location}</span>
+                          </div>
+                        )}
+                        <span>{formatDate(submission.created_at)}</span>
                       </div>
                     </div>
-                    <Badge variant="outline">#{submission.waitlist_number || submission.id}</Badge>
-                  </div>
-                  <div className="flex items-center space-x-4 text-sm text-gray-600">
-                    {submission.parent_location && (
-                      <div className="flex items-center space-x-1">
-                        <MapPin className="h-3 w-3" />
-                        <span>{submission.parent_location}</span>
-                      </div>
-                    )}
-                    <span>{new Date(submission.created_at).toLocaleDateString()}</span>
-                  </div>
-                </div>
-              ))}
+                  )
+                } catch (itemError) {
+                  console.error("Error rendering submission:", itemError, submission)
+                  return (
+                    <div key={submission.id || Math.random()} className="p-4 border rounded-lg bg-red-50">
+                      <p className="text-red-600 text-sm">Error displaying submission #{submission.id}</p>
+                    </div>
+                  )
+                }
+              })}
             </div>
           )}
         </CardContent>
@@ -228,5 +289,13 @@ export default function AdminDashboard() {
         </Link>
       </div>
     </div>
+  )
+}
+
+export default function AdminDashboard() {
+  return (
+    <ErrorBoundary>
+      <DashboardContent />
+    </ErrorBoundary>
   )
 }
