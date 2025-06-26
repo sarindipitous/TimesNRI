@@ -57,6 +57,32 @@ function noDb<T>(fallback: T, fnName: string): T {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
+//  READ helpers - FIXED TO ACTUALLY RETURN ALL DATA
+// ──────────────────────────────────────────────────────────────────────────────
+export async function getAllWaitlistSubmissions(limit = 1000, offset = 0) {
+  if (!hasDb) return noDb([], "getAllWaitlistSubmissions")
+
+  try {
+    console.log(`Fetching waitlist submissions with limit: ${limit}, offset: ${offset}`)
+
+    // Simple query first - get ALL the data without joins
+    const result = await sql`
+      SELECT * FROM waitlist_submissions 
+      ORDER BY created_at DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `
+
+    console.log(`Found ${result.length} submissions`)
+    console.log("Sample submission:", result[0])
+
+    return result as WaitlistSubmission[]
+  } catch (error) {
+    console.error("Error in getAllWaitlistSubmissions:", error)
+    throw error
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 //  CREATE helpers - ATOMIC OPERATION
 // ──────────────────────────────────────────────────────────────────────────────
 export async function addToWaitlist(
@@ -72,6 +98,17 @@ export async function addToWaitlist(
   if (!hasDb) return noDb(null, "addToWaitlist")
 
   try {
+    console.log("Adding to waitlist:", {
+      email,
+      source,
+      name,
+      location,
+      parent_location,
+      care_needs,
+      care_plan,
+      care_plan_interest,
+    })
+
     // Use a single INSERT with all data to avoid partial entries
     const result = await sql`
       INSERT INTO waitlist_submissions (
@@ -105,6 +142,7 @@ export async function addToWaitlist(
       RETURNING *
     `
 
+    console.log("Insert result:", result[0])
     return result[0] as WaitlistSubmission
   } catch (e) {
     console.error("addToWaitlist error", e)
@@ -165,54 +203,10 @@ export async function addDetailedReferral(
   }
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-//  READ helpers
-// ──────────────────────────────────────────────────────────────────────────────
 export async function getWaitlistSubmissionByEmail(email: string) {
   if (!hasDb) return noDb(null, "getWaitlistSubmissionByEmail")
   const res = await sql`SELECT * FROM waitlist_submissions WHERE email = ${email} LIMIT 1`
   return (res[0] as WaitlistSubmission) || null
-}
-
-export async function getAllWaitlistSubmissions(limit = 100, offset = 0) {
-  if (!hasDb) return noDb([], "getAllWaitlistSubmissions")
-
-  try {
-    // First, try to get submissions with referral information
-    const result = await sql`
-      SELECT 
-        ws.*,
-        ref_ws.email as referred_by
-      FROM waitlist_submissions ws
-      LEFT JOIN referral_details rd ON ws.id = rd.referred_id
-      LEFT JOIN waitlist_submissions ref_ws ON rd.referrer_id = ref_ws.id
-      ORDER BY ws.created_at DESC
-      LIMIT ${limit} OFFSET ${offset}
-    `
-
-    return result as WaitlistSubmission[]
-  } catch (error) {
-    console.error("Error fetching submissions with referrals:", error)
-
-    // Fallback: get submissions without referral information
-    try {
-      console.log("Falling back to basic query without referrals...")
-      const fallbackResult = await sql`
-        SELECT * FROM waitlist_submissions
-        ORDER BY created_at DESC
-        LIMIT ${limit} OFFSET ${offset}
-      `
-
-      // Add referred_by as null for all entries
-      return fallbackResult.map((submission) => ({
-        ...submission,
-        referred_by: null,
-      })) as WaitlistSubmission[]
-    } catch (fallbackError) {
-      console.error("Fallback query also failed:", fallbackError)
-      throw fallbackError
-    }
-  }
 }
 
 export async function getWaitlistStats() {

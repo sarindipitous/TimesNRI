@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Users, Search, Download, Filter, MapPin, Mail, User, Calendar, Heart, Share2 } from "lucide-react"
+import { Users, Search, Download, Filter, MapPin, Mail, User, Calendar, Heart, Share2, Trash2 } from "lucide-react"
 
 interface WaitlistSubmission {
   id: number
@@ -34,6 +34,7 @@ export default function WaitlistAdminPage() {
     withReferrals: 0,
     locations: {} as Record<string, number>,
   })
+  const [deletingId, setDeletingId] = useState<number | null>(null)
 
   useEffect(() => {
     fetchWaitlistData()
@@ -137,6 +138,39 @@ export default function WaitlistAdminPage() {
     a.download = `waitlist-${new Date().toISOString().split("T")[0]}.csv`
     a.click()
     window.URL.revokeObjectURL(url)
+  }
+
+  const deleteSubmission = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this waitlist entry? This action cannot be undone.")) {
+      return
+    }
+
+    try {
+      setDeletingId(id)
+      const response = await fetch(`/api/waitlist/${id}`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to delete submission")
+      }
+
+      // Remove from local state
+      setSubmissions((prev) => prev.filter((sub) => sub.id !== id))
+
+      // Update stats
+      setStats((prev) => ({
+        ...prev,
+        total: prev.total - 1,
+      }))
+
+      console.log("Successfully deleted submission")
+    } catch (error) {
+      console.error("Error deleting submission:", error)
+      alert("Failed to delete submission. Please try again.")
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   if (loading) {
@@ -282,6 +316,7 @@ export default function WaitlistAdminPage() {
                     <TableHead>Care Interest</TableHead>
                     <TableHead>Referred By</TableHead>
                     <TableHead>Date</TableHead>
+                    <TableHead className="w-20">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -358,6 +393,21 @@ export default function WaitlistAdminPage() {
                         <span className="text-sm text-gray-600">
                           {new Date(submission.created_at).toLocaleDateString()}
                         </span>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteSubmission(submission.id)}
+                          disabled={deletingId === submission.id}
+                          className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                        >
+                          {deletingId === submission.id ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
