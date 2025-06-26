@@ -6,7 +6,15 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Users, Search, Download, Filter, Trash2 } from "lucide-react"
+import { Users, Search, Download, Filter, Trash2, Eye, Mail, MapPin, Heart, User, Calendar } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
 interface WaitlistSubmission {
   id: number
@@ -30,6 +38,7 @@ export default function WaitlistAdminPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterLocation, setFilterLocation] = useState("")
   const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [selectedSubmission, setSelectedSubmission] = useState<WaitlistSubmission | null>(null)
 
   useEffect(() => {
     fetchWaitlistData()
@@ -40,15 +49,20 @@ export default function WaitlistAdminPage() {
       setLoading(true)
       setError(null)
 
+      console.log("Fetching waitlist data...")
       const response = await fetch("/api/waitlist")
       const data = await response.json()
+
+      console.log("API Response:", data)
 
       if (!data.success) {
         throw new Error(data.error || "Failed to fetch data")
       }
 
       setSubmissions(data.submissions || [])
+      console.log(`Loaded ${data.submissions?.length || 0} submissions`)
     } catch (err) {
+      console.error("Error fetching waitlist:", err)
       setError(err instanceof Error ? err.message : "Failed to fetch data")
     } finally {
       setLoading(false)
@@ -56,7 +70,7 @@ export default function WaitlistAdminPage() {
   }
 
   const deleteSubmission = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this entry?")) return
+    if (!confirm("Are you sure you want to delete this entry? This action cannot be undone.")) return
 
     try {
       setDeletingId(id)
@@ -68,6 +82,7 @@ export default function WaitlistAdminPage() {
       }
 
       setSubmissions((prev) => prev.filter((sub) => sub.id !== id))
+      alert("Entry deleted successfully!")
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to delete")
     } finally {
@@ -79,7 +94,8 @@ export default function WaitlistAdminPage() {
     const matchesSearch =
       !searchTerm ||
       submission.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      submission.name?.toLowerCase().includes(searchTerm.toLowerCase())
+      submission.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      submission.care_needs?.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchesLocation =
       !filterLocation ||
@@ -100,6 +116,7 @@ export default function WaitlistAdminPage() {
       "Care Needs",
       "Care Plan",
       "Care Plan Interest",
+      "Referred By",
       "Created At",
     ]
 
@@ -116,6 +133,7 @@ export default function WaitlistAdminPage() {
           `"${sub.care_needs || ""}"`,
           `"${sub.care_plan || ""}"`,
           `"${sub.care_plan_interest || ""}"`,
+          `"${sub.referred_by || ""}"`,
           `"${new Date(sub.created_at).toLocaleDateString()}"`,
         ].join(","),
       ),
@@ -125,7 +143,7 @@ export default function WaitlistAdminPage() {
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = `waitlist-${new Date().toISOString().split("T")[0]}.csv`
+    a.download = `waitlist-complete-${new Date().toISOString().split("T")[0]}.csv`
     a.click()
     window.URL.revokeObjectURL(url)
   }
@@ -149,6 +167,9 @@ export default function WaitlistAdminPage() {
           <CardContent className="pt-6">
             <div className="text-red-600">
               <h3 className="font-medium">Error: {error}</h3>
+              <p className="text-sm mt-2">
+                Try visiting <code>/api/waitlist</code> directly to see the raw API response.
+              </p>
               <Button onClick={fetchWaitlistData} className="mt-4" variant="outline">
                 Try Again
               </Button>
@@ -163,16 +184,19 @@ export default function WaitlistAdminPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Waitlist Management</h1>
-          <p className="text-gray-600">Total entries: {submissions.length}</p>
+          <h1 className="text-2xl font-bold">Complete Waitlist Management</h1>
+          <p className="text-gray-600">
+            Total entries: <strong>{submissions.length}</strong> | Showing:{" "}
+            <strong>{filteredSubmissions.length}</strong>
+          </p>
         </div>
         <div className="flex gap-2">
           <Button onClick={fetchWaitlistData} variant="outline">
-            Refresh
+            Refresh Data
           </Button>
           <Button onClick={exportToCSV} variant="outline">
             <Download className="h-4 w-4 mr-2" />
-            Export CSV
+            Export All Data
           </Button>
         </div>
       </div>
@@ -185,7 +209,7 @@ export default function WaitlistAdminPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Search by name or email..."
+                  placeholder="Search by name, email, or care needs..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -210,7 +234,7 @@ export default function WaitlistAdminPage() {
       {/* Waitlist Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Waitlist Entries ({filteredSubmissions.length})</CardTitle>
+          <CardTitle>All Waitlist Entries ({filteredSubmissions.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {filteredSubmissions.length === 0 ? (
@@ -218,7 +242,16 @@ export default function WaitlistAdminPage() {
               <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium mb-2">No entries found</h3>
               <p className="text-gray-600">
-                {submissions.length === 0 ? "No waitlist submissions yet." : "Try adjusting your search criteria."}
+                {submissions.length === 0 ? (
+                  <>
+                    No waitlist submissions yet.{" "}
+                    <a href="/api/waitlist" className="text-blue-600 underline">
+                      Check API directly
+                    </a>
+                  </>
+                ) : (
+                  "Try adjusting your search criteria."
+                )}
               </p>
             </div>
           ) : (
@@ -226,7 +259,7 @@ export default function WaitlistAdminPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>ID</TableHead>
+                    <TableHead className="w-16">ID</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Source</TableHead>
@@ -234,8 +267,9 @@ export default function WaitlistAdminPage() {
                     <TableHead>Parent Location</TableHead>
                     <TableHead>Care Needs</TableHead>
                     <TableHead>Care Plan</TableHead>
+                    <TableHead>Interest</TableHead>
                     <TableHead>Date</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead className="w-32">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -244,32 +278,170 @@ export default function WaitlistAdminPage() {
                       <TableCell>
                         <Badge variant="outline">#{submission.id}</Badge>
                       </TableCell>
-                      <TableCell>{submission.name || "Anonymous"}</TableCell>
-                      <TableCell>{submission.email}</TableCell>
-                      <TableCell>{submission.source && <Badge variant="outline">{submission.source}</Badge>}</TableCell>
-                      <TableCell>{submission.location}</TableCell>
-                      <TableCell>{submission.parent_location}</TableCell>
                       <TableCell>
-                        <div className="max-w-32 truncate">{submission.care_needs}</div>
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-gray-400" />
+                          <span className="font-medium">{submission.name || "Anonymous"}</span>
+                        </div>
                       </TableCell>
                       <TableCell>
-                        {submission.care_plan && <Badge variant="secondary">{submission.care_plan}</Badge>}
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-4 w-4 text-gray-400" />
+                          <span className="text-sm">{submission.email}</span>
+                        </div>
                       </TableCell>
-                      <TableCell>{new Date(submission.created_at).toLocaleDateString()}</TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => deleteSubmission(submission.id)}
-                          disabled={deletingId === submission.id}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          {deletingId === submission.id ? (
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
+                        {submission.source ? (
+                          <Badge variant="outline" className="text-xs">
+                            {submission.source}
+                          </Badge>
+                        ) : (
+                          <span className="text-gray-400 text-xs">No source</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {submission.location ? (
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3 text-gray-400" />
+                            <span className="text-sm">{submission.location}</span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs">Not specified</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {submission.parent_location ? (
+                          <div className="flex items-center gap-1">
+                            <Heart className="h-3 w-3 text-gray-400" />
+                            <span className="text-sm">{submission.parent_location}</span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs">Not specified</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {submission.care_needs ? (
+                          <div className="max-w-32">
+                            <span className="text-xs text-gray-600 line-clamp-2">{submission.care_needs}</span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs">Not specified</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {submission.care_plan ? (
+                          <Badge variant="secondary" className="text-xs">
+                            {submission.care_plan.length > 20
+                              ? submission.care_plan.substring(0, 20) + "..."
+                              : submission.care_plan}
+                          </Badge>
+                        ) : (
+                          <span className="text-gray-400 text-xs">Not selected</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {submission.care_plan_interest ? (
+                          <Badge variant="outline" className="text-xs">
+                            {submission.care_plan_interest}
+                          </Badge>
+                        ) : (
+                          <span className="text-gray-400 text-xs">Not specified</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3 text-gray-400" />
+                          <span className="text-sm text-gray-600">
+                            {new Date(submission.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setSelectedSubmission(submission)}
+                                className="text-blue-600 hover:text-blue-800"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-2xl">
+                              <DialogHeader>
+                                <DialogTitle>Complete Details - #{submission.id}</DialogTitle>
+                                <DialogDescription>All information provided by this user</DialogDescription>
+                              </DialogHeader>
+                              <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <label className="text-sm font-medium text-gray-500">Name</label>
+                                    <p className="text-sm">{submission.name || "Not provided"}</p>
+                                  </div>
+                                  <div>
+                                    <label className="text-sm font-medium text-gray-500">Email</label>
+                                    <p className="text-sm">{submission.email}</p>
+                                  </div>
+                                  <div>
+                                    <label className="text-sm font-medium text-gray-500">Source</label>
+                                    <p className="text-sm">{submission.source || "Not specified"}</p>
+                                  </div>
+                                  <div>
+                                    <label className="text-sm font-medium text-gray-500">Registration Date</label>
+                                    <p className="text-sm">{new Date(submission.created_at).toLocaleString()}</p>
+                                  </div>
+                                  <div>
+                                    <label className="text-sm font-medium text-gray-500">Location</label>
+                                    <p className="text-sm">{submission.location || "Not specified"}</p>
+                                  </div>
+                                  <div>
+                                    <label className="text-sm font-medium text-gray-500">Parent Location</label>
+                                    <p className="text-sm">{submission.parent_location || "Not specified"}</p>
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium text-gray-500">Care Needs</label>
+                                  <p className="text-sm mt-1 p-3 bg-gray-50 rounded">
+                                    {submission.care_needs || "Not specified"}
+                                  </p>
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium text-gray-500">Care Plan Selected</label>
+                                  <p className="text-sm mt-1 p-3 bg-gray-50 rounded">
+                                    {submission.care_plan || "Not selected"}
+                                  </p>
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium text-gray-500">Care Plan Interest</label>
+                                  <p className="text-sm mt-1 p-3 bg-gray-50 rounded">
+                                    {submission.care_plan_interest || "Not specified"}
+                                  </p>
+                                </div>
+                                {submission.referred_by && (
+                                  <div>
+                                    <label className="text-sm font-medium text-gray-500">Referred By</label>
+                                    <p className="text-sm mt-1 p-3 bg-blue-50 rounded">{submission.referred_by}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteSubmission(submission.id)}
+                            disabled={deletingId === submission.id}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            {deletingId === submission.id ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

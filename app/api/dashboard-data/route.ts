@@ -7,22 +7,29 @@ export async function GET() {
   try {
     console.log("Dashboard API: Starting data fetch...")
 
+    // Test database connection first
+    const testResult = await sql`SELECT 1 as test`
+    console.log("Database connection test:", testResult)
+
     // Get total waitlist count
     const totalResult = await sql`
       SELECT COUNT(*) as count 
       FROM waitlist_submissions
     `
+    console.log("Total count query result:", totalResult)
     const total = Number.parseInt(totalResult[0]?.count || "0")
 
     // Get this week's count
     const weekAgo = new Date()
     weekAgo.setDate(weekAgo.getDate() - 7)
+    console.log("Week ago date:", weekAgo.toISOString())
 
     const thisWeekResult = await sql`
       SELECT COUNT(*) as count 
       FROM waitlist_submissions 
       WHERE created_at >= ${weekAgo.toISOString()}
     `
+    console.log("This week query result:", thisWeekResult)
     const thisWeek = Number.parseInt(thisWeekResult[0]?.count || "0")
 
     // Get count with referrals
@@ -31,9 +38,10 @@ export async function GET() {
       FROM waitlist_submissions 
       WHERE referred_by IS NOT NULL AND referred_by != ''
     `
+    console.log("Referrals query result:", referralsResult)
     const withReferrals = Number.parseInt(referralsResult[0]?.count || "0")
 
-    // Get recent submissions (last 20)
+    // Get recent submissions (last 10)
     const recentResult = await sql`
       SELECT 
         id,
@@ -50,8 +58,9 @@ export async function GET() {
         created_at
       FROM waitlist_submissions 
       ORDER BY created_at DESC 
-      LIMIT 20
+      LIMIT 10
     `
+    console.log("Recent submissions count:", recentResult.length)
 
     const recentSubmissions = recentResult.map((row) => ({
       id: row.id,
@@ -77,7 +86,7 @@ export async function GET() {
       recentSubmissions,
     }
 
-    console.log("Dashboard API: Success", {
+    console.log("Dashboard API: Final response", {
       total,
       thisWeek,
       withReferrals,
@@ -88,9 +97,10 @@ export async function GET() {
   } catch (error) {
     console.error("Dashboard API Error:", error)
 
-    // Return safe fallback data
+    // Return error response so we can debug
     return NextResponse.json(
       {
+        error: error instanceof Error ? error.message : "Unknown error",
         waitlist: {
           total: 0,
           thisWeek: 0,
@@ -98,7 +108,7 @@ export async function GET() {
         },
         recentSubmissions: [],
       },
-      { status: 200 },
-    ) // Return 200 with empty data instead of error
+      { status: 500 },
+    )
   }
 }
