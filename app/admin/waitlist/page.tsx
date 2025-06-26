@@ -6,7 +6,21 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Users, Search, Download, Filter, MapPin, Mail, User, Calendar, Heart, Share2, Trash2 } from "lucide-react"
+import {
+  Users,
+  Search,
+  Download,
+  Filter,
+  MapPin,
+  Mail,
+  User,
+  Calendar,
+  Heart,
+  Share2,
+  Trash2,
+  AlertCircle,
+} from "lucide-react"
+import { ErrorBoundary } from "@/components/error-boundary"
 
 interface WaitlistSubmission {
   id: number
@@ -23,9 +37,10 @@ interface WaitlistSubmission {
   created_at: string
 }
 
-export default function WaitlistAdminPage() {
+function WaitlistAdminContent() {
   const [submissions, setSubmissions] = useState<WaitlistSubmission[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [filterLocation, setFilterLocation] = useState("")
   const [stats, setStats] = useState({
@@ -43,8 +58,16 @@ export default function WaitlistAdminPage() {
   const fetchWaitlistData = async () => {
     try {
       setLoading(true)
-      // Fetch more entries - increase limit to 1000
-      const response = await fetch("/api/waitlist?limit=1000&offset=0")
+      setError(null)
+
+      console.log("Fetching waitlist data...")
+
+      const response = await fetch("/api/waitlist?limit=1000&offset=0", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -53,21 +76,33 @@ export default function WaitlistAdminPage() {
       const data = await response.json()
       console.log("Waitlist data received:", data)
 
-      const waitlistData = data.submissions || []
+      if (!data.success) {
+        throw new Error(data.error || "Failed to fetch waitlist data")
+      }
+
+      const waitlistData = Array.isArray(data.submissions) ? data.submissions : []
       setSubmissions(waitlistData)
 
-      // Calculate stats
+      // Calculate stats safely
       const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-      const thisWeekCount = waitlistData.filter(
-        (sub: WaitlistSubmission) => new Date(sub.created_at) > oneWeekAgo,
-      ).length
+      const thisWeekCount = waitlistData.filter((sub: WaitlistSubmission) => {
+        try {
+          return new Date(sub.created_at) > oneWeekAgo
+        } catch {
+          return false
+        }
+      }).length
 
       const withReferrals = waitlistData.filter((sub: WaitlistSubmission) => sub.referred_by).length
 
       const locations = waitlistData.reduce((acc: Record<string, number>, sub: WaitlistSubmission) => {
-        const location = sub.parent_location || sub.location || "Unknown"
-        acc[location] = (acc[location] || 0) + 1
-        return acc
+        try {
+          const location = sub.parent_location || sub.location || "Unknown"
+          acc[location] = (acc[location] || 0) + 1
+          return acc
+        } catch {
+          return acc
+        }
       }, {})
 
       setStats({
@@ -78,66 +113,76 @@ export default function WaitlistAdminPage() {
       })
     } catch (error) {
       console.error("Error fetching waitlist data:", error)
+      setError(error instanceof Error ? error.message : "Failed to fetch waitlist data")
     } finally {
       setLoading(false)
     }
   }
 
   const filteredSubmissions = submissions.filter((submission) => {
-    const matchesSearch =
-      !searchTerm ||
-      submission.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      submission.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    try {
+      const matchesSearch =
+        !searchTerm ||
+        submission.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        submission.name?.toLowerCase().includes(searchTerm.toLowerCase())
 
-    const matchesLocation =
-      !filterLocation ||
-      submission.parent_location?.toLowerCase().includes(filterLocation.toLowerCase()) ||
-      submission.location?.toLowerCase().includes(filterLocation.toLowerCase())
+      const matchesLocation =
+        !filterLocation ||
+        submission.parent_location?.toLowerCase().includes(filterLocation.toLowerCase()) ||
+        submission.location?.toLowerCase().includes(filterLocation.toLowerCase())
 
-    return matchesSearch && matchesLocation
+      return matchesSearch && matchesLocation
+    } catch {
+      return false
+    }
   })
 
   const exportToCSV = () => {
-    const headers = [
-      "ID",
-      "Name",
-      "Email",
-      "Source",
-      "Location",
-      "Parent Location",
-      "Care Needs",
-      "Care Plan",
-      "Care Plan Interest",
-      "Referred By",
-      "Created At",
-    ]
+    try {
+      const headers = [
+        "ID",
+        "Name",
+        "Email",
+        "Source",
+        "Location",
+        "Parent Location",
+        "Care Needs",
+        "Care Plan",
+        "Care Plan Interest",
+        "Referred By",
+        "Created At",
+      ]
 
-    const csvContent = [
-      headers.join(","),
-      ...filteredSubmissions.map((sub) =>
-        [
-          sub.id,
-          `"${sub.name || ""}"`,
-          `"${sub.email}"`,
-          `"${sub.source || ""}"`,
-          `"${sub.location || ""}"`,
-          `"${sub.parent_location || ""}"`,
-          `"${sub.care_needs || ""}"`,
-          `"${sub.care_plan || ""}"`,
-          `"${sub.care_plan_interest || ""}"`,
-          `"${sub.referred_by || ""}"`,
-          `"${new Date(sub.created_at).toLocaleDateString()}"`,
-        ].join(","),
-      ),
-    ].join("\n")
+      const csvContent = [
+        headers.join(","),
+        ...filteredSubmissions.map((sub) =>
+          [
+            sub.id || "",
+            `"${sub.name || ""}"`,
+            `"${sub.email || ""}"`,
+            `"${sub.source || ""}"`,
+            `"${sub.location || ""}"`,
+            `"${sub.parent_location || ""}"`,
+            `"${sub.care_needs || ""}"`,
+            `"${sub.care_plan || ""}"`,
+            `"${sub.care_plan_interest || ""}"`,
+            `"${sub.referred_by || ""}"`,
+            `"${sub.created_at ? new Date(sub.created_at).toLocaleDateString() : ""}"`,
+          ].join(","),
+        ),
+      ].join("\n")
 
-    const blob = new Blob([csvContent], { type: "text/csv" })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `waitlist-${new Date().toISOString().split("T")[0]}.csv`
-    a.click()
-    window.URL.revokeObjectURL(url)
+      const blob = new Blob([csvContent], { type: "text/csv" })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `waitlist-${new Date().toISOString().split("T")[0]}.csv`
+      a.click()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error("Error exporting CSV:", error)
+      alert("Failed to export CSV. Please try again.")
+    }
   }
 
   const deleteSubmission = async (id: number) => {
@@ -151,8 +196,10 @@ export default function WaitlistAdminPage() {
         method: "DELETE",
       })
 
-      if (!response.ok) {
-        throw new Error("Failed to delete submission")
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to delete submission")
       }
 
       // Remove from local state
@@ -161,13 +208,13 @@ export default function WaitlistAdminPage() {
       // Update stats
       setStats((prev) => ({
         ...prev,
-        total: prev.total - 1,
+        total: Math.max(0, prev.total - 1),
       }))
 
       console.log("Successfully deleted submission")
     } catch (error) {
       console.error("Error deleting submission:", error)
-      alert("Failed to delete submission. Please try again.")
+      alert(`Failed to delete submission: ${error instanceof Error ? error.message : "Unknown error"}`)
     } finally {
       setDeletingId(null)
     }
@@ -185,6 +232,30 @@ export default function WaitlistAdminPage() {
             <p className="text-gray-600">Loading waitlist data...</p>
           </div>
         </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Waitlist Management</h1>
+        </div>
+        <Card className="border-red-200">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3 text-red-600">
+              <AlertCircle className="h-5 w-5" />
+              <div>
+                <h3 className="font-medium">Error loading waitlist data</h3>
+                <p className="text-sm text-red-500 mt-1">{error}</p>
+              </div>
+            </div>
+            <Button onClick={fetchWaitlistData} className="mt-4" variant="outline">
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -391,7 +462,7 @@ export default function WaitlistAdminPage() {
                       </TableCell>
                       <TableCell>
                         <span className="text-sm text-gray-600">
-                          {new Date(submission.created_at).toLocaleDateString()}
+                          {submission.created_at ? new Date(submission.created_at).toLocaleDateString() : "N/A"}
                         </span>
                       </TableCell>
                       <TableCell>
@@ -440,5 +511,13 @@ export default function WaitlistAdminPage() {
         </Card>
       )}
     </div>
+  )
+}
+
+export default function WaitlistAdminPage() {
+  return (
+    <ErrorBoundary>
+      <WaitlistAdminContent />
+    </ErrorBoundary>
   )
 }
