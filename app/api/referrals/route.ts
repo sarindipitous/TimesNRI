@@ -1,3 +1,5 @@
+// mark as dynamic so using searchParams at runtime is allowed
+export const dynamic = "force-dynamic"
 import { type NextRequest, NextResponse } from "next/server"
 import { getReferralsByReferrerId, getDetailedReferralsByReferrerId, getWaitlistSubmissionByEmail } from "@/lib/db"
 
