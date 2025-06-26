@@ -42,7 +42,8 @@ export default function WaitlistAdminPage() {
   const fetchWaitlistData = async () => {
     try {
       setLoading(true)
-      const response = await fetch("/api/waitlist")
+      // Fetch more entries - increase limit to 1000
+      const response = await fetch("/api/waitlist?limit=1000&offset=0")
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -100,10 +101,12 @@ export default function WaitlistAdminPage() {
       "ID",
       "Name",
       "Email",
+      "Source",
       "Location",
       "Parent Location",
       "Care Needs",
       "Care Plan",
+      "Care Plan Interest",
       "Referred By",
       "Created At",
     ]
@@ -115,10 +118,12 @@ export default function WaitlistAdminPage() {
           sub.id,
           `"${sub.name || ""}"`,
           `"${sub.email}"`,
+          `"${sub.source || ""}"`,
           `"${sub.location || ""}"`,
           `"${sub.parent_location || ""}"`,
           `"${sub.care_needs || ""}"`,
           `"${sub.care_plan || ""}"`,
+          `"${sub.care_plan_interest || ""}"`,
           `"${sub.referred_by || ""}"`,
           `"${new Date(sub.created_at).toLocaleDateString()}"`,
         ].join(","),
@@ -269,9 +274,12 @@ export default function WaitlistAdminPage() {
                     <TableHead className="w-12">#</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
+                    <TableHead>Source</TableHead>
                     <TableHead>Location</TableHead>
                     <TableHead>Parent Location</TableHead>
+                    <TableHead>Care Needs</TableHead>
                     <TableHead>Care Plan</TableHead>
+                    <TableHead>Care Interest</TableHead>
                     <TableHead>Referred By</TableHead>
                     <TableHead>Date</TableHead>
                   </TableRow>
@@ -295,6 +303,13 @@ export default function WaitlistAdminPage() {
                         </div>
                       </TableCell>
                       <TableCell>
+                        {submission.source && (
+                          <Badge variant="outline" className="text-xs">
+                            {submission.source}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         {submission.location && (
                           <div className="flex items-center gap-1">
                             <MapPin className="h-3 w-3 text-gray-400" />
@@ -311,9 +326,23 @@ export default function WaitlistAdminPage() {
                         )}
                       </TableCell>
                       <TableCell>
+                        {submission.care_needs && (
+                          <div className="max-w-32">
+                            <span className="text-xs text-gray-600 line-clamp-2">{submission.care_needs}</span>
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         {submission.care_plan && (
                           <Badge variant="secondary" className="text-xs">
                             {submission.care_plan.split(":")[0]}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {submission.care_plan_interest && (
+                          <Badge variant="outline" className="text-xs">
+                            {submission.care_plan_interest}
                           </Badge>
                         )}
                       </TableCell>
