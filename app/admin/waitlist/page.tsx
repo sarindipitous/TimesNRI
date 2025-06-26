@@ -1,26 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import {
-  Users,
-  Search,
-  Download,
-  Filter,
-  MapPin,
-  Mail,
-  User,
-  Calendar,
-  Heart,
-  Share2,
-  Trash2,
-  AlertCircle,
-} from "lucide-react"
-import { ErrorBoundary } from "@/components/error-boundary"
+import { Users, Search, Download, Filter, Trash2 } from "lucide-react"
 
 interface WaitlistSubmission {
   id: number
@@ -37,18 +23,12 @@ interface WaitlistSubmission {
   created_at: string
 }
 
-function WaitlistAdminContent() {
+export default function WaitlistAdminPage() {
   const [submissions, setSubmissions] = useState<WaitlistSubmission[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [filterLocation, setFilterLocation] = useState("")
-  const [stats, setStats] = useState({
-    total: 0,
-    thisWeek: 0,
-    withReferrals: 0,
-    locations: {} as Record<string, number>,
-  })
   const [deletingId, setDeletingId] = useState<number | null>(null)
 
   useEffect(() => {
@@ -60,177 +40,102 @@ function WaitlistAdminContent() {
       setLoading(true)
       setError(null)
 
-      console.log("Fetching waitlist data...")
-
-      const response = await fetch("/api/waitlist?limit=1000&offset=0", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
+      const response = await fetch("/api/waitlist")
       const data = await response.json()
-      console.log("Waitlist data received:", data)
 
       if (!data.success) {
-        throw new Error(data.error || "Failed to fetch waitlist data")
+        throw new Error(data.error || "Failed to fetch data")
       }
 
-      const waitlistData = Array.isArray(data.submissions) ? data.submissions : []
-      setSubmissions(waitlistData)
-
-      // Calculate stats safely
-      const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-      const thisWeekCount = waitlistData.filter((sub: WaitlistSubmission) => {
-        try {
-          return new Date(sub.created_at) > oneWeekAgo
-        } catch {
-          return false
-        }
-      }).length
-
-      const withReferrals = waitlistData.filter((sub: WaitlistSubmission) => sub.referred_by).length
-
-      const locations = waitlistData.reduce((acc: Record<string, number>, sub: WaitlistSubmission) => {
-        try {
-          const location = sub.parent_location || sub.location || "Unknown"
-          acc[location] = (acc[location] || 0) + 1
-          return acc
-        } catch {
-          return acc
-        }
-      }, {})
-
-      setStats({
-        total: waitlistData.length,
-        thisWeek: thisWeekCount,
-        withReferrals,
-        locations,
-      })
-    } catch (error) {
-      console.error("Error fetching waitlist data:", error)
-      setError(error instanceof Error ? error.message : "Failed to fetch waitlist data")
+      setSubmissions(data.submissions || [])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch data")
     } finally {
       setLoading(false)
     }
   }
 
-  const filteredSubmissions = submissions.filter((submission) => {
-    try {
-      const matchesSearch =
-        !searchTerm ||
-        submission.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        submission.name?.toLowerCase().includes(searchTerm.toLowerCase())
-
-      const matchesLocation =
-        !filterLocation ||
-        submission.parent_location?.toLowerCase().includes(filterLocation.toLowerCase()) ||
-        submission.location?.toLowerCase().includes(filterLocation.toLowerCase())
-
-      return matchesSearch && matchesLocation
-    } catch {
-      return false
-    }
-  })
-
-  const exportToCSV = () => {
-    try {
-      const headers = [
-        "ID",
-        "Name",
-        "Email",
-        "Source",
-        "Location",
-        "Parent Location",
-        "Care Needs",
-        "Care Plan",
-        "Care Plan Interest",
-        "Referred By",
-        "Created At",
-      ]
-
-      const csvContent = [
-        headers.join(","),
-        ...filteredSubmissions.map((sub) =>
-          [
-            sub.id || "",
-            `"${sub.name || ""}"`,
-            `"${sub.email || ""}"`,
-            `"${sub.source || ""}"`,
-            `"${sub.location || ""}"`,
-            `"${sub.parent_location || ""}"`,
-            `"${sub.care_needs || ""}"`,
-            `"${sub.care_plan || ""}"`,
-            `"${sub.care_plan_interest || ""}"`,
-            `"${sub.referred_by || ""}"`,
-            `"${sub.created_at ? new Date(sub.created_at).toLocaleDateString() : ""}"`,
-          ].join(","),
-        ),
-      ].join("\n")
-
-      const blob = new Blob([csvContent], { type: "text/csv" })
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `waitlist-${new Date().toISOString().split("T")[0]}.csv`
-      a.click()
-      window.URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error("Error exporting CSV:", error)
-      alert("Failed to export CSV. Please try again.")
-    }
-  }
-
   const deleteSubmission = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this waitlist entry? This action cannot be undone.")) {
-      return
-    }
+    if (!confirm("Are you sure you want to delete this entry?")) return
 
     try {
       setDeletingId(id)
-      const response = await fetch(`/api/waitlist/${id}`, {
-        method: "DELETE",
-      })
-
+      const response = await fetch(`/api/waitlist/${id}`, { method: "DELETE" })
       const data = await response.json()
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || "Failed to delete submission")
+      if (!data.success) {
+        throw new Error(data.error || "Failed to delete")
       }
 
-      // Remove from local state
       setSubmissions((prev) => prev.filter((sub) => sub.id !== id))
-
-      // Update stats
-      setStats((prev) => ({
-        ...prev,
-        total: Math.max(0, prev.total - 1),
-      }))
-
-      console.log("Successfully deleted submission")
-    } catch (error) {
-      console.error("Error deleting submission:", error)
-      alert(`Failed to delete submission: ${error instanceof Error ? error.message : "Unknown error"}`)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete")
     } finally {
       setDeletingId(null)
     }
   }
 
+  const filteredSubmissions = submissions.filter((submission) => {
+    const matchesSearch =
+      !searchTerm ||
+      submission.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      submission.name?.toLowerCase().includes(searchTerm.toLowerCase())
+
+    const matchesLocation =
+      !filterLocation ||
+      submission.parent_location?.toLowerCase().includes(filterLocation.toLowerCase()) ||
+      submission.location?.toLowerCase().includes(filterLocation.toLowerCase())
+
+    return matchesSearch && matchesLocation
+  })
+
+  const exportToCSV = () => {
+    const headers = [
+      "ID",
+      "Name",
+      "Email",
+      "Source",
+      "Location",
+      "Parent Location",
+      "Care Needs",
+      "Care Plan",
+      "Care Plan Interest",
+      "Created At",
+    ]
+
+    const csvContent = [
+      headers.join(","),
+      ...filteredSubmissions.map((sub) =>
+        [
+          sub.id,
+          `"${sub.name || ""}"`,
+          `"${sub.email}"`,
+          `"${sub.source || ""}"`,
+          `"${sub.location || ""}"`,
+          `"${sub.parent_location || ""}"`,
+          `"${sub.care_needs || ""}"`,
+          `"${sub.care_plan || ""}"`,
+          `"${sub.care_plan_interest || ""}"`,
+          `"${new Date(sub.created_at).toLocaleDateString()}"`,
+        ].join(","),
+      ),
+    ].join("\n")
+
+    const blob = new Blob([csvContent], { type: "text/csv" })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `waitlist-${new Date().toISOString().split("T")[0]}.csv`
+    a.click()
+    window.URL.revokeObjectURL(url)
+  }
+
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Waitlist Management</h1>
-        </div>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading waitlist data...</p>
-          </div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent mx-auto mb-4"></div>
+          <p>Loading waitlist data...</p>
         </div>
       </div>
     )
@@ -239,21 +144,15 @@ function WaitlistAdminContent() {
   if (error) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Waitlist Management</h1>
-        </div>
+        <h1 className="text-2xl font-bold">Waitlist Management</h1>
         <Card className="border-red-200">
           <CardContent className="pt-6">
-            <div className="flex items-center gap-3 text-red-600">
-              <AlertCircle className="h-5 w-5" />
-              <div>
-                <h3 className="font-medium">Error loading waitlist data</h3>
-                <p className="text-sm text-red-500 mt-1">{error}</p>
-              </div>
+            <div className="text-red-600">
+              <h3 className="font-medium">Error: {error}</h3>
+              <Button onClick={fetchWaitlistData} className="mt-4" variant="outline">
+                Try Again
+              </Button>
             </div>
-            <Button onClick={fetchWaitlistData} className="mt-4" variant="outline">
-              Try Again
-            </Button>
           </CardContent>
         </Card>
       </div>
@@ -265,7 +164,7 @@ function WaitlistAdminContent() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Waitlist Management</h1>
-          <p className="text-gray-600">Manage and view all waitlist submissions</p>
+          <p className="text-gray-600">Total entries: {submissions.length}</p>
         </div>
         <div className="flex gap-2">
           <Button onClick={fetchWaitlistData} variant="outline">
@@ -278,50 +177,7 @@ function WaitlistAdminContent() {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Submissions</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">This Week</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.thisWeek}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">With Referrals</CardTitle>
-            <Share2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.withReferrals}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Locations</CardTitle>
-            <MapPin className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{Object.keys(stats.locations).length}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters */}
+      {/* Search and Filter */}
       <Card>
         <CardContent className="pt-6">
           <div className="flex gap-4">
@@ -355,20 +211,14 @@ function WaitlistAdminContent() {
       <Card>
         <CardHeader>
           <CardTitle>Waitlist Entries ({filteredSubmissions.length})</CardTitle>
-          <CardDescription>
-            {filteredSubmissions.length !== submissions.length &&
-              `Showing ${filteredSubmissions.length} of ${submissions.length} entries`}
-          </CardDescription>
         </CardHeader>
         <CardContent>
           {filteredSubmissions.length === 0 ? (
             <div className="text-center py-8">
               <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No entries found</h3>
+              <h3 className="text-lg font-medium mb-2">No entries found</h3>
               <p className="text-gray-600">
-                {submissions.length === 0
-                  ? "No waitlist submissions yet."
-                  : "Try adjusting your search or filter criteria."}
+                {submissions.length === 0 ? "No waitlist submissions yet." : "Try adjusting your search criteria."}
               </p>
             </div>
           ) : (
@@ -376,7 +226,7 @@ function WaitlistAdminContent() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-12">#</TableHead>
+                    <TableHead>ID</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Source</TableHead>
@@ -384,94 +234,35 @@ function WaitlistAdminContent() {
                     <TableHead>Parent Location</TableHead>
                     <TableHead>Care Needs</TableHead>
                     <TableHead>Care Plan</TableHead>
-                    <TableHead>Care Interest</TableHead>
-                    <TableHead>Referred By</TableHead>
                     <TableHead>Date</TableHead>
-                    <TableHead className="w-20">Actions</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredSubmissions.map((submission) => (
                     <TableRow key={submission.id}>
-                      <TableCell className="font-medium">
-                        <Badge variant="outline">#{submission.waitlist_number || submission.id}</Badge>
+                      <TableCell>
+                        <Badge variant="outline">#{submission.id}</Badge>
+                      </TableCell>
+                      <TableCell>{submission.name || "Anonymous"}</TableCell>
+                      <TableCell>{submission.email}</TableCell>
+                      <TableCell>{submission.source && <Badge variant="outline">{submission.source}</Badge>}</TableCell>
+                      <TableCell>{submission.location}</TableCell>
+                      <TableCell>{submission.parent_location}</TableCell>
+                      <TableCell>
+                        <div className="max-w-32 truncate">{submission.care_needs}</div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-gray-400" />
-                          <span className="font-medium">{submission.name || "Anonymous"}</span>
-                        </div>
+                        {submission.care_plan && <Badge variant="secondary">{submission.care_plan}</Badge>}
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Mail className="h-4 w-4 text-gray-400" />
-                          <span className="text-sm">{submission.email}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {submission.source && (
-                          <Badge variant="outline" className="text-xs">
-                            {submission.source}
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {submission.location && (
-                          <div className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3 text-gray-400" />
-                            <span className="text-sm">{submission.location}</span>
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {submission.parent_location && (
-                          <div className="flex items-center gap-1">
-                            <Heart className="h-3 w-3 text-gray-400" />
-                            <span className="text-sm">{submission.parent_location}</span>
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {submission.care_needs && (
-                          <div className="max-w-32">
-                            <span className="text-xs text-gray-600 line-clamp-2">{submission.care_needs}</span>
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {submission.care_plan && (
-                          <Badge variant="secondary" className="text-xs">
-                            {submission.care_plan.split(":")[0]}
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {submission.care_plan_interest && (
-                          <Badge variant="outline" className="text-xs">
-                            {submission.care_plan_interest}
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {submission.referred_by && (
-                          <div className="flex items-center gap-1">
-                            <Share2 className="h-3 w-3 text-gray-400" />
-                            <span className="text-xs text-gray-600">{submission.referred_by}</span>
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm text-gray-600">
-                          {submission.created_at ? new Date(submission.created_at).toLocaleDateString() : "N/A"}
-                        </span>
-                      </TableCell>
+                      <TableCell>{new Date(submission.created_at).toLocaleDateString()}</TableCell>
                       <TableCell>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => deleteSubmission(submission.id)}
                           disabled={deletingId === submission.id}
-                          className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                          className="text-red-600 hover:text-red-800"
                         >
                           {deletingId === submission.id ? (
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
@@ -488,36 +279,6 @@ function WaitlistAdminContent() {
           )}
         </CardContent>
       </Card>
-
-      {/* Location Breakdown */}
-      {Object.keys(stats.locations).length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Location Breakdown</CardTitle>
-            <CardDescription>Where your waitlist members are located</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {Object.entries(stats.locations)
-                .sort(([, a], [, b]) => b - a)
-                .map(([location, count]) => (
-                  <div key={location} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <span className="text-sm font-medium">{location}</span>
-                    <Badge variant="secondary">{count}</Badge>
-                  </div>
-                ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
-  )
-}
-
-export default function WaitlistAdminPage() {
-  return (
-    <ErrorBoundary>
-      <WaitlistAdminContent />
-    </ErrorBoundary>
   )
 }
