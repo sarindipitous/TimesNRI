@@ -258,6 +258,7 @@ export default function AdminPage() {
                   <TableHead>Care Needs</TableHead>
                   <TableHead>Plan Interest</TableHead>
                   <TableHead>Care Plan</TableHead>
+                  <TableHead>Referred By</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -309,6 +310,9 @@ export default function AdminPage() {
                           <TableCell>
                             <Input name="carePlan" value={editForm.carePlan} onChange={handleEditFormChange} />
                           </TableCell>
+                          <TableCell>
+                            <span className="text-sm text-gray-500">{submission.referred_by || "-"}</span>
+                          </TableCell>
                           <TableCell>{new Date(submission.created_at).toLocaleDateString()}</TableCell>
                           <TableCell>
                             <div className="flex gap-2">
@@ -347,6 +351,18 @@ export default function AdminPage() {
                             )}
                           </TableCell>
                           <TableCell>
+                            {submission.referred_by ? (
+                              <div className="text-sm">
+                                <span className="text-gray-600">{submission.referred_by}</span>
+                                <Badge variant="outline" className="ml-1 text-xs">
+                                  Referral
+                                </Badge>
+                              </div>
+                            ) : (
+                              <span className="text-gray-400 italic">Direct</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
                             {new Date(submission.created_at).toLocaleDateString()}
                             {isRecent(submission.created_at) && <Badge className="ml-2 bg-green-500">New</Badge>}
                           </TableCell>
@@ -382,6 +398,7 @@ export default function AdminPage() {
                   <TableHead>Care Needs</TableHead>
                   <TableHead>Plan Interest</TableHead>
                   <TableHead>Care Plan</TableHead>
+                  <TableHead>Referred By</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -419,6 +436,18 @@ export default function AdminPage() {
                             </div>
                           ) : (
                             <span className="text-gray-400 italic">Not provided</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {submission.referred_by ? (
+                            <div className="text-sm">
+                              <span className="text-gray-600">{submission.referred_by}</span>
+                              <Badge variant="outline" className="ml-1 text-xs">
+                                Referral
+                              </Badge>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 italic">Direct</span>
                           )}
                         </TableCell>
                         <TableCell>{new Date(submission.created_at).toLocaleDateString()}</TableCell>

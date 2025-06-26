@@ -34,6 +34,7 @@ export interface WaitlistSubmission {
   care_plan?: string
   care_plan_interest?: string
   waitlist_number?: number
+  referred_by?: string // Add this line
   created_at: Date
 }
 
@@ -176,8 +177,13 @@ export async function getWaitlistSubmissionByEmail(email: string) {
 export async function getAllWaitlistSubmissions(limit = 100, offset = 0) {
   if (!hasDb) return noDb([], "getAllWaitlistSubmissions")
   return (await sql`
-    SELECT * FROM waitlist_submissions
-    ORDER BY created_at DESC
+    SELECT 
+      ws.*,
+      ref_ws.email as referred_by
+    FROM waitlist_submissions ws
+    LEFT JOIN referrals r ON ws.id = r.referred_id
+    LEFT JOIN waitlist_submissions ref_ws ON r.referrer_id = ref_ws.id
+    ORDER BY ws.created_at DESC
     LIMIT ${limit} OFFSET ${offset}`) as WaitlistSubmission[]
 }
 
