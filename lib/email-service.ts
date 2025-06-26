@@ -40,6 +40,12 @@ export async function sendWelcomeEmail(data: EmailData): Promise<boolean> {
     emailHtml = emailHtml.replace(/\{\{waitlist_number\}\}/g, data.waitlist_number?.toString() || "TBD")
     emailHtml = emailHtml.replace(/\{\{referral_link\}\}/g, data.referral_link || "#")
 
+    // Check if RESEND_API_KEY exists
+    if (!process.env.RESEND_API_KEY) {
+      console.error("RESEND_API_KEY not configured")
+      return false
+    }
+
     // Send email using Resend
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",

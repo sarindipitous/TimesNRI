@@ -1,8 +1,6 @@
 "use client"
 
 import type React from "react"
-import { email } from "some-module" // Declare or import the email variable here
-
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,7 +10,15 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { updateEmailConfiguration, sendTestWelcomeEmail } from "@/app/actions/waitlist"
-import type { EmailConfig } from "@/lib/email-config"
+
+interface EmailConfig {
+  id: number
+  config_key: string
+  config_value: string
+  is_enabled: boolean
+  created_at: Date
+  updated_at: Date
+}
 
 const DEFAULT_EMAIL_TEMPLATE = `<!DOCTYPE html>
 <html lang="en">
@@ -186,23 +192,6 @@ export default function EmailConfigPage() {
     setConfig((prev) => ({ ...prev, [key]: value }))
   }
 
-  const insertVariable = (variable: string) => {
-    const template = config.welcome_email_template || ""
-    const textarea = document.getElementById("email-template") as HTMLTextAreaElement
-    if (textarea) {
-      const start = textarea.selectionStart
-      const end = textarea.selectionEnd
-      const newTemplate = template.substring(0, start) + `{{${variable}}}` + template.substring(end)
-      updateConfig("welcome_email_template", newTemplate)
-
-      // Restore cursor position
-      setTimeout(() => {
-        textarea.focus()
-        textarea.setSelectionRange(start + variable.length + 4, start + variable.length + 4)
-      }, 0)
-    }
-  }
-
   const getPreviewHtml = () => {
     let html = config.welcome_email_template || ""
     // Replace variables with sample data for preview
@@ -213,6 +202,17 @@ export default function EmailConfigPage() {
     html = html.replace(/\{\{waitlist_number\}\}/g, "42")
     html = html.replace(/\{\{referral_link\}\}/g, "https://timesnri.com?ref=john.doe@example.com")
     return html
+  }
+
+  const copyToClipboard = async (text: string, successMessage: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setMessage({ type: "success", text: successMessage })
+      setTimeout(() => setMessage(null), 3000)
+    } catch (error) {
+      setMessage({ type: "error", text: "Failed to copy to clipboard" })
+      setTimeout(() => setMessage(null), 3000)
+    }
   }
 
   if (loading) {
@@ -341,11 +341,7 @@ export default function EmailConfigPage() {
                   <div
                     key={item.variable}
                     className="border rounded-lg p-3 hover:bg-gray-50 cursor-pointer transition-colors"
-                    onClick={() => {
-                      navigator.clipboard.writeText(`{{${item.variable}}}`)
-                      setMessage({ type: "success", text: `Copied {{${item.variable}}} to clipboard!` })
-                      setTimeout(() => setMessage(null), 2000)
-                    }}
+                    onClick={() => copyToClipboard(`{{${item.variable}}}`, `Copied {{${item.variable}}} to clipboard!`)}
                   >
                     <div className="font-mono text-sm font-bold text-blue-600 mb-1">{`{{${item.variable}}}`}</div>
                     <div className="text-xs text-gray-600 mb-2">{item.description}</div>
@@ -366,6 +362,7 @@ export default function EmailConfigPage() {
               </div>
             </CardContent>
           </Card>
+
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
             <div className="xl:col-span-2">
               <Card>
@@ -391,9 +388,6 @@ export default function EmailConfigPage() {
                       </Button>
                     </div>
                   </CardTitle>
-                  <div className="text-sm text-gray-600">
-                    <p>Create your HTML email template using the variables reference above</p>
-                  </div>
                 </CardHeader>
                 <CardContent>
                   {previewMode === "code" ? (
@@ -473,23 +467,16 @@ export default function EmailConfigPage() {
                 <div className="space-y-4">
                   <div className="flex gap-2 mb-4">
                     <Button
-                      onClick={() => {
-                        navigator.clipboard.writeText(config.welcome_email_template || "")
-                        setMessage({ type: "success", text: "HTML code copied to clipboard!" })
-                        setTimeout(() => setMessage(null), 3000)
-                      }}
+                      onClick={() =>
+                        copyToClipboard(config.welcome_email_template || "", "HTML code copied to clipboard!")
+                      }
                       disabled={!config.welcome_email_template}
                     >
                       📋 Copy HTML Code
                     </Button>
                     <Button
                       variant="outline"
-                      onClick={() => {
-                        const htmlWithSampleData = getPreviewHtml()
-                        navigator.clipboard.writeText(htmlWithSampleData)
-                        setMessage({ type: "success", text: "HTML with sample data copied to clipboard!" })
-                        setTimeout(() => setMessage(null), 3000)
-                      }}
+                      onClick={() => copyToClipboard(getPreviewHtml(), "HTML with sample data copied to clipboard!")}
                       disabled={!config.welcome_email_template}
                     >
                       📋 Copy with Sample Data
@@ -511,19 +498,16 @@ export default function EmailConfigPage() {
                     <h4 className="font-semibold text-blue-900 mb-2">💡 Sharing Options:</h4>
                     <ul className="text-sm text-blue-800 space-y-1">
                       <li>
-                        • <strong>Copy HTML Code:</strong> Raw template with variables ({{ name }}, {{ email }}, etc.)
+                        • <strong>Copy HTML Code:</strong> Raw template with variables
                       </li>
                       <li>
-                        • <strong>Copy with Sample Data:</strong> HTML with variables replaced by sample data
+                        • <strong>Copy with Sample Data:</strong> HTML with variables replaced
                       </li>
                       <li>
                         • <strong>Use in other systems:</strong> Import into MailChimp, Constant Contact, etc.
                       </li>
                       <li>
-                        • <strong>Share with team:</strong> Send to developers or designers for review
-                      </li>
-                      <li>
-                        • <strong>Backup template:</strong> Save a copy for version control
+                        • <strong>Share with team:</strong> Send to developers or designers
                       </li>
                     </ul>
                   </div>
@@ -533,32 +517,11 @@ export default function EmailConfigPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>🔗 Shareable Links</CardTitle>
-                <p className="text-sm text-gray-600">Generate links to share your email template</p>
+                <CardTitle>🔗 Download & Preview</CardTitle>
+                <p className="text-sm text-gray-600">Download or preview your email template</p>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Preview URL (with sample data)</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        value={`${window.location.origin}/api/email-preview`}
-                        readOnly
-                        className="font-mono text-xs"
-                      />
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          navigator.clipboard.writeText(`${window.location.origin}/api/email-preview`)
-                          setMessage({ type: "success", text: "Preview URL copied to clipboard!" })
-                          setTimeout(() => setMessage(null), 3000)
-                        }}
-                      >
-                        Copy
-                      </Button>
-                    </div>
-                  </div>
-
                   <div className="space-y-2">
                     <Label>Download HTML File</Label>
                     <Button
@@ -585,20 +548,8 @@ export default function EmailConfigPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Email Client Testing</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const subject = encodeURIComponent(config.welcome_email_subject || "Welcome Email Template")
-                          const body = encodeURIComponent(getPreviewHtml())
-                          window.open(`mailto:?subject=${subject}&body=${body}`)
-                        }}
-                        disabled={!config.welcome_email_template}
-                      >
-                        📧 Open in Email
-                      </Button>
+                    <Label>Preview Options</Label>
+                    <div className="grid grid-cols-1 gap-2">
                       <Button
                         variant="outline"
                         size="sm"
@@ -624,7 +575,6 @@ export default function EmailConfigPage() {
                       <li>• Check mobile responsiveness</li>
                       <li>• Verify all links work correctly</li>
                       <li>• Test with different screen sizes</li>
-                      <li>• Validate HTML markup</li>
                     </ul>
                   </div>
                 </div>
