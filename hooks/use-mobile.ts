@@ -23,3 +23,6 @@ export function useMobile(): boolean {
 
   return isMobile
 }
+
+// Alias for backward-compatibility with older imports
+export const useIsMobile = useMobile
