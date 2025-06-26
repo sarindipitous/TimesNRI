@@ -34,7 +34,7 @@ export interface WaitlistSubmission {
   care_plan?: string
   care_plan_interest?: string
   waitlist_number?: number
-  referred_by?: string // Add this line
+  referred_by?: string
   created_at: Date
 }
 
@@ -176,25 +176,58 @@ export async function getWaitlistSubmissionByEmail(email: string) {
 
 export async function getAllWaitlistSubmissions(limit = 100, offset = 0) {
   if (!hasDb) return noDb([], "getAllWaitlistSubmissions")
-  return (await sql`
-    SELECT 
-      ws.*,
-      ref_ws.email as referred_by
-    FROM waitlist_submissions ws
-    LEFT JOIN referrals r ON ws.id = r.referred_id
-    LEFT JOIN waitlist_submissions ref_ws ON r.referrer_id = ref_ws.id
-    ORDER BY ws.created_at DESC
-    LIMIT ${limit} OFFSET ${offset}`) as WaitlistSubmission[]
+
+  try {
+    // First, try to get submissions with referral information
+    const result = await sql`
+      SELECT 
+        ws.*,
+        ref_ws.email as referred_by
+      FROM waitlist_submissions ws
+      LEFT JOIN referral_details rd ON ws.id = rd.referred_id
+      LEFT JOIN waitlist_submissions ref_ws ON rd.referrer_id = ref_ws.id
+      ORDER BY ws.created_at DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `
+
+    return result as WaitlistSubmission[]
+  } catch (error) {
+    console.error("Error fetching submissions with referrals:", error)
+
+    // Fallback: get submissions without referral information
+    try {
+      console.log("Falling back to basic query without referrals...")
+      const fallbackResult = await sql`
+        SELECT * FROM waitlist_submissions
+        ORDER BY created_at DESC
+        LIMIT ${limit} OFFSET ${offset}
+      `
+
+      // Add referred_by as null for all entries
+      return fallbackResult.map((submission) => ({
+        ...submission,
+        referred_by: null,
+      })) as WaitlistSubmission[]
+    } catch (fallbackError) {
+      console.error("Fallback query also failed:", fallbackError)
+      throw fallbackError
+    }
+  }
 }
 
 export async function getWaitlistStats() {
   if (!hasDb) return noDb({ total: 0, lastWeek: 0 }, "getWaitlistStats")
-  const res = await sql`
-    SELECT
-      COUNT(*)                        AS total,
-      COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '7 days') AS last_week
-    FROM waitlist_submissions`
-  return { total: Number(res[0].total), lastWeek: Number(res[0].last_week) }
+  try {
+    const res = await sql`
+      SELECT
+        COUNT(*)                        AS total,
+        COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '7 days') AS last_week
+      FROM waitlist_submissions`
+    return { total: Number(res[0].total), lastWeek: Number(res[0].last_week) }
+  } catch (error) {
+    console.error("Error fetching waitlist stats:", error)
+    return { total: 0, lastWeek: 0 }
+  }
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -206,7 +239,7 @@ export async function updateWaitlistSubmission(
 ): Promise<WaitlistSubmission | null> {
   if (!hasDb) return noDb(null, "updateWaitlistSubmission")
 
-  const entries = Object.entries(data).filter(([k]) => k !== "id" && k !== "created_at")
+  const entries = Object.entries(data).filter(([k]) => k !== "id" && k !== "created_at" && k !== "referred_by")
   if (!entries.length) return null
 
   try {
@@ -255,14 +288,26 @@ export async function deleteWaitlistSubmission(id: number): Promise<boolean> {
     // Use a transaction to delete referrals first, then the waitlist submission
     await sql`BEGIN`
 
-    // Delete from referrals table first (where this submission is the referrer)
-    await sql`DELETE FROM referrals WHERE referrer_id = ${id}`
+    // Try to delete from referrals table first (where this submission is the referrer)
+    try {
+      await sql`DELETE FROM referrals WHERE referrer_id = ${id}`
+    } catch (e) {
+      console.log("referrals table might not exist, continuing...")
+    }
 
-    // Delete from referral_details table first (where this submission is the referrer)
-    await sql`DELETE FROM referral_details WHERE referrer_id = ${id}`
+    // Try to delete from referral_details table first (where this submission is the referrer)
+    try {
+      await sql`DELETE FROM referral_details WHERE referrer_id = ${id}`
+    } catch (e) {
+      console.log("referral_details table might not exist, continuing...")
+    }
 
-    // Also delete referrals where this submission was referred by someone else
-    await sql`DELETE FROM referral_details WHERE referred_id = ${id}`
+    // Also try to delete referrals where this submission was referred by someone else
+    try {
+      await sql`DELETE FROM referral_details WHERE referred_id = ${id}`
+    } catch (e) {
+      console.log("referral_details table might not exist, continuing...")
+    }
 
     // Now delete the waitlist submission
     const res = await sql`DELETE FROM waitlist_submissions WHERE id = ${id}`
@@ -317,16 +362,26 @@ export async function filterWaitlistByParentLocation(parentLocation: string, lim
 // ──────────────────────────────────────────────────────────────────────────────
 export async function getReferralsByReferrerId(referrerId: number) {
   if (!hasDb) return noDb([], "getReferralsByReferrerId")
-  return (await sql`
-    SELECT * FROM referrals 
-    WHERE referrer_id = ${referrerId}
-    ORDER BY created_at DESC`) as Referral[]
+  try {
+    return (await sql`
+      SELECT * FROM referrals 
+      WHERE referrer_id = ${referrerId}
+      ORDER BY created_at DESC`) as Referral[]
+  } catch (error) {
+    console.error("Error fetching referrals:", error)
+    return []
+  }
 }
 
 export async function getDetailedReferralsByReferrerId(referrerId: number) {
   if (!hasDb) return noDb([], "getDetailedReferralsByReferrerId")
-  return (await sql`
-    SELECT * FROM referral_details 
-    WHERE referrer_id = ${referrerId}
-    ORDER BY created_at DESC`) as ReferralDetail[]
+  try {
+    return (await sql`
+      SELECT * FROM referral_details 
+      WHERE referrer_id = ${referrerId}
+      ORDER BY created_at DESC`) as ReferralDetail[]
+  } catch (error) {
+    console.error("Error fetching detailed referrals:", error)
+    return []
+  }
 }
