@@ -3,8 +3,13 @@
 // ──────────────────────────────────────────────────────────────────────────────
 import { neon } from "@neondatabase/serverless"
 
-const databaseUrl = process.env.DATABASE_URL?.trim()
-export const hasDb = Boolean(databaseUrl)
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL environment variable is not set")
+}
+
+export const sql = neon(process.env.DATABASE_URL)
+
+export const hasDb = !!process.env.DATABASE_URL
 
 function createNoOpClient() {
   return async () => {
@@ -15,10 +20,6 @@ Add it in Vercel → Project Settings → Environment Variables (or .env locally
     )
   }
 }
-
-export const sql: ReturnType<typeof neon> = hasDb
-  ? neon(databaseUrl!)
-  : (createNoOpClient() as unknown as ReturnType<typeof neon>)
 
 // ──────────────────────────────────────────────────────────────────────────────
 //  Types
@@ -36,6 +37,7 @@ export interface WaitlistSubmission {
   waitlist_number?: number
   referred_by?: string
   created_at: Date
+  updated_at?: Date
 }
 
 export interface Referral {
@@ -90,85 +92,48 @@ export async function addToWaitlist(
   source?: string,
   name?: string,
   location?: string,
-  parent_location?: string,
-  care_needs?: string,
-  care_plan?: string,
-  care_plan_interest?: string,
-): Promise<WaitlistSubmission | null> {
-  if (!hasDb) return noDb(null, "addToWaitlist")
-
+  parentLocation?: string,
+  careNeeds?: string,
+  carePlan?: string,
+  carePlanInterest?: string,
+) {
   try {
     console.log("Adding to waitlist:", {
       email,
       source,
       name,
       location,
-      parent_location,
-      care_needs,
-      care_plan,
-      care_plan_interest,
+      parentLocation,
+      careNeeds,
+      carePlan,
+      carePlanInterest,
     })
 
     // Use a single INSERT with all data to avoid partial entries
     const result = await sql`
       INSERT INTO waitlist_submissions (
-        email, 
-        source, 
-        name, 
-        location, 
-        parent_location, 
-        care_needs, 
-        care_plan, 
-        care_plan_interest
+        email, name, source, location, parent_location, care_needs, care_plan, care_plan_interest
       ) 
       VALUES (
-        ${email}, 
-        ${source || null}, 
-        ${name || null}, 
-        ${location || null}, 
-        ${parent_location || null}, 
-        ${care_needs || null}, 
-        ${care_plan || null}, 
-        ${care_plan_interest || null}
+        ${email}, ${name || null}, ${source || null}, ${location || null}, 
+        ${parentLocation || null}, ${careNeeds || null}, ${carePlan || null}, ${carePlanInterest || null}
       )
       ON CONFLICT (email) DO UPDATE SET
-        source = COALESCE(EXCLUDED.source, waitlist_submissions.source),
         name = COALESCE(EXCLUDED.name, waitlist_submissions.name),
+        source = COALESCE(EXCLUDED.source, waitlist_submissions.source),
         location = COALESCE(EXCLUDED.location, waitlist_submissions.location),
         parent_location = COALESCE(EXCLUDED.parent_location, waitlist_submissions.parent_location),
         care_needs = COALESCE(EXCLUDED.care_needs, waitlist_submissions.care_needs),
         care_plan = COALESCE(EXCLUDED.care_plan, waitlist_submissions.care_plan),
-        care_plan_interest = COALESCE(EXCLUDED.care_plan_interest, waitlist_submissions.care_plan_interest)
+        care_plan_interest = COALESCE(EXCLUDED.care_plan_interest, waitlist_submissions.care_plan_interest),
+        updated_at = CURRENT_TIMESTAMP
       RETURNING *
     `
 
     console.log("Insert result:", result[0])
     return result[0] as WaitlistSubmission
-  } catch (e) {
-    console.error("addToWaitlist error", e)
-
-    // If the error is about missing columns, try the fallback approach
-    if (e instanceof Error && e.message.includes("column") && e.message.includes("does not exist")) {
-      console.log("Attempting fallback approach without new columns...")
-      try {
-        const fallbackResult = await sql`
-          INSERT INTO waitlist_submissions (email, source, name, location, parent_location, care_needs) 
-          VALUES (${email}, ${source || null}, ${name || null}, ${location || null}, ${parent_location || null}, ${care_needs || null})
-          ON CONFLICT (email) DO UPDATE SET
-            source = COALESCE(EXCLUDED.source, waitlist_submissions.source),
-            name = COALESCE(EXCLUDED.name, waitlist_submissions.name),
-            location = COALESCE(EXCLUDED.location, waitlist_submissions.location),
-            parent_location = COALESCE(EXCLUDED.parent_location, waitlist_submissions.parent_location),
-            care_needs = COALESCE(EXCLUDED.care_needs, waitlist_submissions.care_needs)
-          RETURNING *
-        `
-        return fallbackResult[0] as WaitlistSubmission
-      } catch (fallbackError) {
-        console.error("Fallback approach also failed", fallbackError)
-        return null
-      }
-    }
-
+  } catch (error) {
+    console.error("Error adding to waitlist:", error)
     return null
   }
 }
@@ -239,7 +204,8 @@ export async function updateWaitlistSubmission(
   try {
     // Try the full update first
     const set = entries.map(([k, v]) => sql`${sql.identifier([k])} = ${v}`).reduce((a, b) => sql`${a}, ${b}`)
-    const res = await sql`UPDATE waitlist_submissions SET ${set} WHERE id = ${id} RETURNING *`
+    const res =
+      await sql`UPDATE waitlist_submissions SET ${set}, updated_at = CURRENT_TIMESTAMP WHERE id = ${id} RETURNING *`
     return res[0] as WaitlistSubmission
   } catch (e) {
     console.error("Full update failed, trying fallback:", e)
@@ -260,7 +226,8 @@ export async function updateWaitlistSubmission(
           .map(([k, v]) => sql`${sql.identifier([k])} = ${v}`)
           .reduce((a, b) => sql`${a}, ${b}`)
 
-        const fallbackRes = await sql`UPDATE waitlist_submissions SET ${fallbackSet} WHERE id = ${id} RETURNING *`
+        const fallbackRes =
+          await sql`UPDATE waitlist_submissions SET ${fallbackSet}, updated_at = CURRENT_TIMESTAMP WHERE id = ${id} RETURNING *`
         return fallbackRes[0] as WaitlistSubmission
       } catch (fallbackError) {
         console.error("Fallback update also failed", fallbackError)

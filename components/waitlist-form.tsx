@@ -1,15 +1,12 @@
 "use client"
 
-import { DialogTitle } from "@/components/ui/dialog"
-
-import { DialogHeader } from "@/components/ui/dialog"
-
-import { DialogContent } from "@/components/ui/dialog"
-
-import { Dialog } from "@/components/ui/dialog"
-
+import {
+  Dialog,
+  DialogContent as DialogContentComponent,
+  DialogHeader as DialogHeaderComponent,
+  DialogTitle as DialogTitleComponent,
+} from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
-
 import { useRef, useState } from "react"
 import { useActionState } from "react"
 import { createWaitlistSubmission, type WaitlistState } from "@/app/actions/waitlist"
@@ -17,7 +14,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Check, Copy, Share2, ArrowRight, CheckCircle, Loader2 } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Loader2, CheckCircle } from "lucide-react"
 
 interface WaitlistFormProps {
   buttonText?: string
@@ -44,14 +42,18 @@ export function WaitlistForm({
   standalone = false,
   preSelectedPlan,
 }: WaitlistFormProps) {
-  const initialState: WaitlistState = { success: false, message: "" }
+  const initialState: WaitlistState = {
+    message: null,
+    errors: {},
+  }
   const [state, dispatch, isPending] = useActionState(createWaitlistSubmission, initialState)
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    parent_location: "",
-    care_needs: "",
-    care_plan: "",
+    city: "",
+    parentLocation: "",
+    carePlan: "",
+    careNeeds: "",
   })
   const [step, setStep] = useState(1)
   const [isSuccessOpen, setIsSuccessOpen] = useState(false)
@@ -109,6 +111,30 @@ export function WaitlistForm({
 
   // Standalone version (for dedicated waitlist page)
   if (standalone) {
+    if (state.message && !state.errors) {
+      return (
+        <Card className="w-full max-w-md mx-auto">
+          <CardContent className="pt-6">
+            <div className="text-center space-y-4">
+              <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
+              <div>
+                <h3 className="text-lg font-semibold text-green-700">Success!</h3>
+                <p className="text-sm text-gray-600 mt-2">{state.message}</p>
+                {state.data?.name && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    Welcome, {state.data.name}! Check your email for confirmation.
+                  </p>
+                )}
+              </div>
+              <Button onClick={() => window.location.reload()} variant="outline" size="sm">
+                Join Another Person
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )
+    }
+
     return (
       <div className="w-full">
         <form
@@ -185,7 +211,7 @@ export function WaitlistForm({
                     className="w-full bg-accent hover:bg-accent/90 text-white mt-2 flex items-center justify-center h-12"
                     disabled={isPending}
                   >
-                    Continue <ArrowRight className="ml-2 h-4 w-4" />
+                    Continue <Loader2 className="ml-2 h-4 w-4 animate-spin" />
                   </Button>
                 </div>
               )}
@@ -194,10 +220,7 @@ export function WaitlistForm({
                 <div className="space-y-4 animate-fadeIn">
                   <h3 className="text-lg font-medium text-gray-800">About Your Parents</h3>
                   <div className="space-y-3">
-                    <Select
-                      name="parent_location"
-                      onValueChange={(value) => handleInputChange("parent_location", value)}
-                    >
+                    <Select name="parentLocation" onValueChange={(value) => handleInputChange("parentLocation", value)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select parent location" />
                       </SelectTrigger>
@@ -235,7 +258,7 @@ export function WaitlistForm({
                       className="flex-1 bg-accent hover:bg-accent/90 text-white flex items-center justify-center h-12"
                       disabled={isPending}
                     >
-                      Continue <ArrowRight className="ml-2 h-4 w-4" />
+                      Continue <Loader2 className="ml-2 h-4 w-4 animate-spin" />
                     </Button>
                   </div>
                 </div>
@@ -255,10 +278,10 @@ export function WaitlistForm({
                       <span className="font-medium">Your location:</span> {formData.city}
                     </p>
                     <p>
-                      <span className="font-medium">Parents' location:</span> {formData.parent_location}
+                      <span className="font-medium">Parents' location:</span> {formData.parentLocation}
                     </p>
                     <p>
-                      <span className="font-medium">Care needs:</span> {formData.care_needs}
+                      <span className="font-medium">Care needs:</span> {formData.careNeeds}
                     </p>
                   </div>
                   <p className="text-xs text-gray-500">
@@ -278,7 +301,14 @@ export function WaitlistForm({
                       disabled={isPending}
                       className="flex-1 bg-accent hover:bg-accent/90 text-white h-12"
                     >
-                      {isPending ? "Submitting..." : "Join Waitlist"}
+                      {isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Joining Waitlist...
+                        </>
+                      ) : (
+                        "Join Waitlist"
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -295,14 +325,14 @@ export function WaitlistForm({
                 <CheckCircle className="h-8 w-8 text-green-600" />
               </div>
               <p className="text-center text-lg text-green-800">{state.message}</p>
-              {formData.parent_location && (
+              {formData.parentLocation && (
                 <p className="text-center text-sm text-gray-600">
-                  We'll be in touch soon with personalized information about our services in {formData.parent_location}.
+                  We'll be in touch soon with personalized information about our services in {formData.parentLocation}.
                 </p>
               )}
 
               {referralLink && (
-                <div className="w-full space-y-3 mt-4 pt-4 border-t border-green-200">
+                <div className="w-full space-y-3 mt-4 pt-4 border-t border-green-100">
                   <p className="text-center font-medium">Want priority access?</p>
                   <p className="text-center text-sm text-gray-600">Share with other NRIs who might need our help.</p>
                   <div className="flex items-center space-x-2 rounded-md border border-green-300 p-2 bg-white">
@@ -313,14 +343,14 @@ export function WaitlistForm({
                       className="flex-1 bg-transparent text-sm outline-none p-2"
                     />
                     <Button size="sm" variant="ghost" onClick={copyReferralLink} className="h-10 w-10 p-2">
-                      {referralCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                      {referralCopied ? <Loader2 className="h-4 w-4" /> : <Loader2 className="h-4 w-4" />}
                     </Button>
                   </div>
                   <div className="flex justify-center space-x-2">
                     <Button
                       size="sm"
                       variant="outline"
-                      className="flex items-center space-x-1 h-12 px-4 border-green-300 text-green-700 hover:bg-green-50 bg-transparent"
+                      className="flex items-center space-x-1 h-12 px-4 bg-transparent"
                       onClick={() => {
                         window.open(
                           `https://wa.me/?text=I just joined the Times NRI waitlist for senior care services in India. As an NRI, I found this service really promising for managing parent care from abroad: ${referralLink}`,
@@ -328,7 +358,7 @@ export function WaitlistForm({
                         )
                       }}
                     >
-                      <Share2 className="h-4 w-4" />
+                      <Loader2 className="h-4 w-4" />
                       <span>Share</span>
                     </Button>
                   </div>
@@ -345,10 +375,10 @@ export function WaitlistForm({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md" aria-describedby="waitlist-dialog-description">
-          <DialogHeader>
-            <DialogTitle className="text-center text-2xl">Join Our Waitlist</DialogTitle>
-          </DialogHeader>
+        <DialogContentComponent className="sm:max-w-md" aria-describedby="waitlist-dialog-description">
+          <DialogHeaderComponent>
+            <DialogTitleComponent className="text-center text-2xl">Join Our Waitlist</DialogTitleComponent>
+          </DialogHeaderComponent>
           <div className="p-6">
             <p id="waitlist-dialog-description" className="text-center mb-6 text-gray-600">
               Be among the first to access our Senior Care & Wellness Membership when we launch in your city.
@@ -428,7 +458,7 @@ export function WaitlistForm({
                         className="w-full bg-accent hover:bg-accent/90 text-white mt-2 flex items-center justify-center h-12"
                         disabled={isPending}
                       >
-                        Continue <ArrowRight className="ml-2 h-4 w-4" />
+                        Continue <Loader2 className="ml-2 h-4 w-4 animate-spin" />
                       </Button>
                     </div>
                   )}
@@ -438,8 +468,8 @@ export function WaitlistForm({
                       <h3 className="text-lg font-medium text-gray-800">About Your Parents</h3>
                       <div className="space-y-3">
                         <Select
-                          name="parent_location"
-                          onValueChange={(value) => handleInputChange("parent_location", value)}
+                          name="parentLocation"
+                          onValueChange={(value) => handleInputChange("parentLocation", value)}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select parent location" />
@@ -478,7 +508,7 @@ export function WaitlistForm({
                           className="flex-1 bg-accent hover:bg-accent/90 text-white flex items-center justify-center h-12"
                           disabled={isPending}
                         >
-                          Continue <ArrowRight className="ml-2 h-4 w-4" />
+                          Continue <Loader2 className="ml-2 h-4 w-4 animate-spin" />
                         </Button>
                       </div>
                     </div>
@@ -498,10 +528,10 @@ export function WaitlistForm({
                           <span className="font-medium">Your location:</span> {formData.city}
                         </p>
                         <p>
-                          <span className="font-medium">Parents' location:</span> {formData.parent_location}
+                          <span className="font-medium">Parents' location:</span> {formData.parentLocation}
                         </p>
                         <p>
-                          <span className="font-medium">Care needs:</span> {formData.care_needs}
+                          <span className="font-medium">Care needs:</span> {formData.careNeeds}
                         </p>
                       </div>
                       <p className="text-xs text-gray-500">
@@ -537,14 +567,14 @@ export function WaitlistForm({
               )}
             </form>
           </div>
-        </DialogContent>
+        </DialogContentComponent>
       </Dialog>
 
       <Dialog open={isSuccessOpen} onOpenChange={handleSuccessClose}>
-        <DialogContent className="sm:max-w-md" aria-describedby="waitlist-success-dialog-description">
-          <DialogHeader>
-            <DialogTitle className="text-center text-2xl">You're on the list!</DialogTitle>
-          </DialogHeader>
+        <DialogContentComponent className="sm:max-w-md" aria-describedby="waitlist-success-dialog-description">
+          <DialogHeaderComponent>
+            <DialogTitleComponent className="text-center text-2xl">You're on the list!</DialogTitleComponent>
+          </DialogHeaderComponent>
           <div className="flex flex-col items-center justify-center space-y-4 py-6">
             <div className="rounded-full bg-green-100 p-4">
               <CheckCircle className="h-8 w-8 text-green-600" />
@@ -552,9 +582,9 @@ export function WaitlistForm({
             <p id="waitlist-success-dialog-description" className="text-center text-lg text-green-800">
               {state.message}
             </p>
-            {formData.parent_location && (
+            {formData.parentLocation && (
               <p className="text-center text-sm text-gray-600">
-                We'll be in touch soon with personalized information about our services in {formData.parent_location}.
+                We'll be in touch soon with personalized information about our services in {formData.parentLocation}.
               </p>
             )}
 
@@ -570,7 +600,7 @@ export function WaitlistForm({
                     className="flex-1 bg-transparent text-sm outline-none p-2"
                   />
                   <Button size="sm" variant="ghost" onClick={copyReferralLink} className="h-10 w-10 p-2">
-                    {referralCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    {referralCopied ? <Loader2 className="h-4 w-4" /> : <Loader2 className="h-4 w-4" />}
                   </Button>
                 </div>
                 <div className="flex justify-center space-x-2">
@@ -585,7 +615,7 @@ export function WaitlistForm({
                       )
                     }}
                   >
-                    <Share2 className="h-4 w-4" />
+                    <Loader2 className="h-4 w-4" />
                     <span>Share</span>
                   </Button>
                 </div>
@@ -596,7 +626,7 @@ export function WaitlistForm({
               Close
             </Button>
           </div>
-        </DialogContent>
+        </DialogContentComponent>
       </Dialog>
     </>
   )
