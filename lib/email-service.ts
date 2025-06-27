@@ -179,13 +179,20 @@ async function sendViaSendGrid(payload: EmailPayload): Promise<EmailResult> {
     const fromEmail = fromMatch ? fromMatch[2].trim() : payload.from
     const fromName = fromMatch ? fromMatch[1].trim() : ""
 
-    console.log("SendGrid payload:", {
+    console.log("SendGrid payload details:", {
+      originalFrom: payload.from,
+      parsedFromEmail: fromEmail,
+      parsedFromName: fromName,
       to: payload.to,
-      fromEmail,
-      fromName,
       subject: payload.subject,
       htmlLength: payload.html.length,
     })
+
+    // Ensure we're using the exact verified email
+    const verifiedEmail = "timesnri@timesinternet.in"
+    if (fromEmail !== verifiedEmail) {
+      console.warn(`From email mismatch: configured="${fromEmail}", using verified="${verifiedEmail}"`)
+    }
 
     const sendGridPayload = {
       personalizations: [
@@ -195,8 +202,8 @@ async function sendViaSendGrid(payload: EmailPayload): Promise<EmailResult> {
         },
       ],
       from: {
-        email: fromEmail,
-        name: fromName || undefined,
+        email: verifiedEmail, // Use the exact verified email
+        name: fromName || "Times NRI Team",
       },
       content: [
         {
@@ -206,7 +213,8 @@ async function sendViaSendGrid(payload: EmailPayload): Promise<EmailResult> {
       ],
     }
 
-    console.log("Sending to SendGrid API...")
+    console.log("Sending to SendGrid API with payload:", JSON.stringify(sendGridPayload, null, 2))
+
     const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
       method: "POST",
       headers: {
@@ -239,6 +247,7 @@ async function sendViaSendGrid(payload: EmailPayload): Promise<EmailResult> {
           headers: Object.fromEntries(response.headers.entries()),
           body: errorData,
           payload: sendGridPayload,
+          originalPayload: payload,
         },
       }
     }
@@ -253,6 +262,7 @@ async function sendViaSendGrid(payload: EmailPayload): Promise<EmailResult> {
         messageId,
         status: response.status,
         headers: Object.fromEntries(response.headers.entries()),
+        fromEmailUsed: verifiedEmail,
       },
     }
   } catch (error) {

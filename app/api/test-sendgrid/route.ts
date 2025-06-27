@@ -9,11 +9,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (!process.env.SENDGRID_API_KEY) {
-      return NextResponse.json({ success: false, error: "SendGrid API key not configured" }, { status: 400 })
+      return NextResponse.json({ success: false, error: "SendGrid API key not configured" }, { status: 500 })
     }
 
-    // Simple test email
-    const testPayload = {
+    // Simple test email payload
+    const sendGridPayload = {
       personalizations: [
         {
           to: [{ email: testEmail }],
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
         },
       ],
       from: {
-        email: "noreply@timesnri.com", // You may need to change this to your verified sender
+        email: "timesnri@timesinternet.in",
         name: "Times NRI Test",
       },
       content: [
@@ -42,8 +42,8 @@ export async function POST(request: NextRequest) {
       ],
     }
 
-    console.log("Sending test email via SendGrid...")
-    console.log("Payload:", JSON.stringify(testPayload, null, 2))
+    console.log("SendGrid API Key (first 10 chars):", process.env.SENDGRID_API_KEY?.substring(0, 10))
+    console.log("SendGrid payload:", JSON.stringify(sendGridPayload, null, 2))
 
     const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
       method: "POST",
@@ -51,16 +51,15 @@ export async function POST(request: NextRequest) {
         Authorization: `Bearer ${process.env.SENDGRID_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(testPayload),
+      body: JSON.stringify(sendGridPayload),
     })
 
-    const responseHeaders = Object.fromEntries(response.headers.entries())
     console.log("SendGrid response status:", response.status)
-    console.log("SendGrid response headers:", responseHeaders)
+    console.log("SendGrid response headers:", Object.fromEntries(response.headers.entries()))
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error("SendGrid error:", errorText)
+      console.error("SendGrid error response:", errorText)
 
       let errorData
       try {
@@ -71,12 +70,12 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: false,
-        error: `SendGrid API error (${response.status})`,
+        error: `SendGrid API error (${response.status}): ${errorData.errors?.[0]?.message || errorData.message || "Unknown error"}`,
         details: {
           status: response.status,
-          headers: responseHeaders,
+          headers: Object.fromEntries(response.headers.entries()),
           body: errorData,
-          payload: testPayload,
+          payload: sendGridPayload,
         },
       })
     }
@@ -90,7 +89,7 @@ export async function POST(request: NextRequest) {
       details: {
         messageId,
         status: response.status,
-        headers: responseHeaders,
+        headers: Object.fromEntries(response.headers.entries()),
         timestamp: new Date().toISOString(),
       },
     })
@@ -99,8 +98,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-        details: error,
+        error: error instanceof Error ? error.message : "Unknown error occurred",
+        details: { error: error },
       },
       { status: 500 },
     )

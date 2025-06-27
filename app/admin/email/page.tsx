@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { updateEmailConfiguration, sendTestWelcomeEmail } from "@/app/actions/waitlist"
 
 interface EmailConfig {
@@ -272,6 +273,12 @@ export default function EmailConfigPage() {
     }
   }
 
+  // Check if the current from email might have sender verification issues
+  const hasSenderVerificationIssue = () => {
+    const fromEmail = config.welcome_email_from_email
+    return fromEmail && (fromEmail.includes("timesinternet.in") || fromEmail.includes("@timesnri.com"))
+  }
+
   if (loading) {
     return <div className="container mx-auto py-8 px-4">Loading...</div>
   }
@@ -279,6 +286,46 @@ export default function EmailConfigPage() {
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl">
       <h1 className="text-3xl font-bold mb-8">Email Configuration</h1>
+
+      {/* Sender Verification Warning */}
+      {hasSenderVerificationIssue() && (
+        <Alert className="mb-6 border-orange-200 bg-orange-50">
+          <AlertDescription className="text-orange-800">
+            <div className="space-y-2">
+              <p className="font-semibold">⚠️ Sender Verification Required</p>
+              <p>
+                Your from email <code className="bg-orange-100 px-1 rounded">{config.welcome_email_from_email}</code>{" "}
+                needs to be verified in SendGrid before emails can be sent.
+              </p>
+              <div className="mt-3">
+                <p className="font-medium">Quick Fix Options:</p>
+                <ol className="list-decimal list-inside space-y-1 text-sm">
+                  <li>
+                    <strong>Verify your current email:</strong> Go to{" "}
+                    <a
+                      href="https://app.sendgrid.com/settings/sender_auth"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 underline"
+                    >
+                      SendGrid Sender Authentication
+                    </a>{" "}
+                    and verify <code>{config.welcome_email_from_email}</code>
+                  </li>
+                  <li>
+                    <strong>Use a verified email:</strong> Change the "From Email" below to an email you've already
+                    verified in SendGrid
+                  </li>
+                  <li>
+                    <strong>Use a generic email:</strong> Try <code>noreply@timesnri.com</code> or{" "}
+                    <code>hello@timesnri.com</code> (you'll need to verify these too)
+                  </li>
+                </ol>
+              </div>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {message && (
         <div
@@ -333,11 +380,15 @@ export default function EmailConfigPage() {
                     type="email"
                     value={config.welcome_email_from_email || ""}
                     onChange={(e) => updateConfig("welcome_email_from_email", e.target.value)}
-                    placeholder="welcome@timesnri.com"
+                    placeholder="noreply@timesnri.com"
                   />
-                  <p className="text-xs text-gray-600">
-                    ⚠️ This email must be verified in your SendGrid account as a sender
-                  </p>
+                  <div className="text-xs text-gray-600 space-y-1">
+                    <p>⚠️ This email must be verified in your SendGrid account as a sender</p>
+                    <p>
+                      💡 Suggested emails: <code>noreply@timesnri.com</code>, <code>hello@timesnri.com</code>, or{" "}
+                      <code>support@timesnri.com</code>
+                    </p>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
