@@ -1,6 +1,3 @@
-// ──────────────────────────────────────────────────────────────────────────────
-//  SAFELY initialise Neon SQL client
-// ──────────────────────────────────────────────────────────────────────────────
 import { neon } from "@neondatabase/serverless"
 
 const databaseUrl = process.env.DATABASE_URL?.trim()
@@ -8,7 +5,6 @@ export const hasDb = Boolean(databaseUrl)
 
 function createNoOpClient() {
   return async () => {
-    // Executed only if someone accidentally calls SQL without a DB
     throw new Error(
       `DATABASE_URL is not set.  
 Add it in Vercel → Project Settings → Environment Variables (or .env locally) and redeploy.`,
@@ -20,9 +16,6 @@ export const sql: ReturnType<typeof neon> = hasDb
   ? neon(databaseUrl!)
   : (createNoOpClient() as unknown as ReturnType<typeof neon>)
 
-// ──────────────────────────────────────────────────────────────────────────────
-//  Types
-// ──────────────────────────────────────────────────────────────────────────────
 export interface WaitlistSubmission {
   id: number
   email: string
@@ -50,22 +43,17 @@ export interface ReferralDetail extends Referral {
   referred_id?: number
 }
 
-// Helper to warn & bail out gracefully in preview
 function noDb<T>(fallback: T, fnName: string): T {
   console.warn(`[lib/db] ${fnName} skipped – DATABASE_URL not set. Returning fallback.`)
   return fallback
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-//  READ helpers - FIXED TO ACTUALLY RETURN ALL DATA
-// ──────────────────────────────────────────────────────────────────────────────
 export async function getAllWaitlistSubmissions(limit = 1000, offset = 0) {
   if (!hasDb) return noDb([], "getAllWaitlistSubmissions")
 
   try {
     console.log(`Fetching waitlist submissions with limit: ${limit}, offset: ${offset}`)
 
-    // Simple query first - get ALL the data without joins
     const result = await sql`
       SELECT * FROM waitlist_submissions 
       ORDER BY created_at DESC
@@ -82,9 +70,6 @@ export async function getAllWaitlistSubmissions(limit = 1000, offset = 0) {
   }
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-//  CREATE helpers - ATOMIC OPERATION
-// ──────────────────────────────────────────────────────────────────────────────
 export async function addToWaitlist(
   email: string,
   source?: string,
@@ -109,7 +94,6 @@ export async function addToWaitlist(
       care_plan_interest,
     })
 
-    // Use a single INSERT with all data to avoid partial entries
     const result = await sql`
       INSERT INTO waitlist_submissions (
         email, 
@@ -147,7 +131,6 @@ export async function addToWaitlist(
   } catch (e) {
     console.error("addToWaitlist error", e)
 
-    // If the error is about missing columns, try the fallback approach
     if (e instanceof Error && e.message.includes("column") && e.message.includes("does not exist")) {
       console.log("Attempting fallback approach without new columns...")
       try {
@@ -224,9 +207,6 @@ export async function getWaitlistStats() {
   }
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-//  UPDATE helpers - ROBUST UPDATE WITH FALLBACK
-// ──────────────────────────────────────────────────────────────────────────────
 export async function updateWaitlistSubmission(
   id: number,
   data: Partial<WaitlistSubmission>,
@@ -237,18 +217,15 @@ export async function updateWaitlistSubmission(
   if (!entries.length) return null
 
   try {
-    // Try the full update first
     const set = entries.map(([k, v]) => sql`${sql.identifier([k])} = ${v}`).reduce((a, b) => sql`${a}, ${b}`)
     const res = await sql`UPDATE waitlist_submissions SET ${set} WHERE id = ${id} RETURNING *`
     return res[0] as WaitlistSubmission
   } catch (e) {
     console.error("Full update failed, trying fallback:", e)
 
-    // If the error is about missing columns, try fallback without new columns
     if (e instanceof Error && e.message.includes("column") && e.message.includes("does not exist")) {
       console.log("Attempting fallback update without new columns...")
       try {
-        // Filter out the new columns that might not exist
         const fallbackEntries = entries.filter(([k]) => !["care_plan", "care_plan_interest"].includes(k))
 
         if (fallbackEntries.length === 0) {
@@ -272,45 +249,36 @@ export async function updateWaitlistSubmission(
   }
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-//  DELETE helpers - CASCADE DELETE TO HANDLE FOREIGN KEYS
-// ──────────────────────────────────────────────────────────────────────────────
 export async function deleteWaitlistSubmission(id: number): Promise<boolean> {
   if (!hasDb) return noDb(false, "deleteWaitlistSubmission")
 
   try {
-    // Use a transaction to delete referrals first, then the waitlist submission
     await sql`BEGIN`
 
-    // Try to delete from referrals table first (where this submission is the referrer)
     try {
       await sql`DELETE FROM referrals WHERE referrer_id = ${id}`
     } catch (e) {
       console.log("referrals table might not exist, continuing...")
     }
 
-    // Try to delete from referral_details table first (where this submission is the referrer)
     try {
       await sql`DELETE FROM referral_details WHERE referrer_id = ${id}`
     } catch (e) {
       console.log("referral_details table might not exist, continuing...")
     }
 
-    // Also try to delete referrals where this submission was referred by someone else
     try {
       await sql`DELETE FROM referral_details WHERE referred_id = ${id}`
     } catch (e) {
       console.log("referral_details table might not exist, continuing...")
     }
 
-    // Now delete the waitlist submission
     const res = await sql`DELETE FROM waitlist_submissions WHERE id = ${id}`
 
     await sql`COMMIT`
 
     return res.count > 0
   } catch (error) {
-    // Rollback the transaction on error
     try {
       await sql`ROLLBACK`
     } catch (rollbackError) {
@@ -321,9 +289,6 @@ export async function deleteWaitlistSubmission(id: number): Promise<boolean> {
   }
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-//  SEARCH / FILTER helpers
-// ──────────────────────────────────────────────────────────────────────────────
 export async function searchWaitlistByEmail(email: string, limit = 100) {
   if (!hasDb) return noDb([], "searchWaitlistByEmail")
   return (await sql`
@@ -351,9 +316,6 @@ export async function filterWaitlistByParentLocation(parentLocation: string, lim
     LIMIT ${limit}`) as WaitlistSubmission[]
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-//  REFERRALS helpers
-// ──────────────────────────────────────────────────────────────────────────────
 export async function getReferralsByReferrerId(referrerId: number) {
   if (!hasDb) return noDb([], "getReferralsByReferrerId")
   try {

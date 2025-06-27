@@ -1,99 +1,108 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { sql, hasDb } from "@/lib/db"
+import { neon } from "@neondatabase/serverless"
+
+const sql = neon(process.env.DATABASE_URL!)
 
 export const dynamic = "force-dynamic"
 
 export async function GET(request: NextRequest) {
-  if (!hasDb) {
-    return NextResponse.json({
-      success: false,
-      error: "Database not configured",
-      submissions: [],
-      stats: { total: 0, lastWeek: 0 },
-    })
-  }
-
   try {
-    const { searchParams } = new URL(request.url)
-    const limit = Number.parseInt(searchParams.get("limit") || "1000")
-    const offset = Number.parseInt(searchParams.get("offset") || "0")
+    console.log("Waitlist API: Starting fetch...")
 
-    // Simple, direct query - no fancy stuff
-    const submissions = await sql`
-      SELECT * FROM waitlist_submissions 
+    // Get all waitlist submissions
+    const result = await sql`
+      SELECT 
+        id,
+        email,
+        name,
+        source,
+        location,
+        parent_location,
+        care_needs,
+        care_plan,
+        care_plan_interest,
+        waitlist_number,
+        referred_by,
+        created_at
+      FROM waitlist_submissions 
       ORDER BY created_at DESC
-      LIMIT ${limit} OFFSET ${offset}
     `
 
-    // Simple stats query
-    const statsResult = await sql`
-      SELECT
-        COUNT(*) as total,
-        COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '7 days') as last_week
-      FROM waitlist_submissions
-    `
+    const submissions = result.map((row) => ({
+      id: row.id,
+      email: row.email || "",
+      name: row.name || null,
+      source: row.source || null,
+      location: row.location || null,
+      parent_location: row.parent_location || null,
+      care_needs: row.care_needs || null,
+      care_plan: row.care_plan || null,
+      care_plan_interest: row.care_plan_interest || null,
+      waitlist_number: row.waitlist_number || null,
+      referred_by: row.referred_by || null,
+      created_at: row.created_at,
+    }))
 
-    const stats = {
-      total: Number(statsResult[0]?.total || 0),
-      lastWeek: Number(statsResult[0]?.last_week || 0),
-    }
+    console.log(`Waitlist API: Found ${submissions.length} submissions`)
 
     return NextResponse.json({
       success: true,
       submissions,
-      stats,
-      total: submissions.length,
+      count: submissions.length,
     })
   } catch (error) {
-    console.error("Error fetching waitlist:", error)
-    return NextResponse.json({
-      success: false,
-      error: "Failed to fetch waitlist data",
-      submissions: [],
-      stats: { total: 0, lastWeek: 0 },
-    })
+    console.error("Waitlist API Error:", error)
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        submissions: [],
+        count: 0,
+      },
+      { status: 500 },
+    )
   }
 }
 
 export async function POST(request: NextRequest) {
-  if (!hasDb) {
-    return NextResponse.json({ success: false, error: "Database not configured" }, { status: 500 })
-  }
-
   try {
     const body = await request.json()
-    const { email, name, source, location, parent_location, care_needs, care_plan, care_plan_interest } = body
+    const { email, name, source, location, parent_location, care_needs, care_plan, care_plan_interest, referred_by } =
+      body
 
     if (!email) {
       return NextResponse.json({ success: false, error: "Email is required" }, { status: 400 })
     }
 
+    // Get next waitlist number
+    const countResult = await sql`SELECT COUNT(*) as count FROM waitlist_submissions`
+    const waitlist_number = Number(countResult[0]?.count || 0) + 1
+
+    // Insert new submission
     const result = await sql`
       INSERT INTO waitlist_submissions (
-        email, source, name, location, parent_location, care_needs, care_plan, care_plan_interest
-      ) 
-      VALUES (
-        ${email}, ${source || null}, ${name || null}, ${location || null}, 
-        ${parent_location || null}, ${care_needs || null}, ${care_plan || null}, ${care_plan_interest || null}
-      )
-      ON CONFLICT (email) DO UPDATE SET
-        source = COALESCE(EXCLUDED.source, waitlist_submissions.source),
-        name = COALESCE(EXCLUDED.name, waitlist_submissions.name),
-        location = COALESCE(EXCLUDED.location, waitlist_submissions.location),
-        parent_location = COALESCE(EXCLUDED.parent_location, waitlist_submissions.parent_location),
-        care_needs = COALESCE(EXCLUDED.care_needs, waitlist_submissions.care_needs),
-        care_plan = COALESCE(EXCLUDED.care_plan, waitlist_submissions.care_plan),
-        care_plan_interest = COALESCE(EXCLUDED.care_plan_interest, waitlist_submissions.care_plan_interest)
-      RETURNING *
+        email, name, source, location, parent_location, care_needs, 
+        care_plan, care_plan_interest, waitlist_number, referred_by, created_at
+      ) VALUES (
+        ${email}, ${name}, ${source}, ${location}, ${parent_location}, 
+        ${care_needs}, ${care_plan}, ${care_plan_interest}, ${waitlist_number}, 
+        ${referred_by}, ${new Date().toISOString()}
+      ) RETURNING *
     `
 
     return NextResponse.json({
       success: true,
       submission: result[0],
-      message: "Successfully added to waitlist",
+      waitlist_number,
     })
   } catch (error) {
-    console.error("Error adding to waitlist:", error)
-    return NextResponse.json({ success: false, error: "Failed to add to waitlist" }, { status: 500 })
+    console.error("Waitlist POST Error:", error)
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    )
   }
 }
