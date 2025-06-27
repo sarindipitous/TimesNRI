@@ -1,42 +1,15 @@
 "use server"
-
-/**
- * This file is the single source-of-truth for all wait-list
- * related server actions.  It MUST export `createWaitlistSubmission`
- * so that client components (e.g. `<WaitlistForm />`) can import it
- * with:
- *
- *   import { createWaitlistSubmission } from '@/app/actions/waitlist'
- *
- * If you change the name here, remember to update every import.
- */
-
-import { revalidatePath } from "next/cache"
-import { addToWaitlist } from "@/lib/db"
+import { sql, hasDb } from "@/lib/db"
 import { sendWelcomeEmail } from "@/lib/email-service"
 import { updateEmailConfig } from "@/lib/email-config"
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
 
-export type WaitlistState = {
-  /** keyed by field name – used by <WaitlistForm/> to highlight errors */
-  errors?: Record<string, string[]>
-  /** success / generic message to surface to the user                */
-  message?: string | null
-  /**
-   * optional data bag –  the client form uses it to echo information
-   * back to the user after a successful submission.  All keys are
-   * optional so that we never break if a new field is added.
-   */
-  data?: {
-    name?: string
-    email?: string
-    city?: string
-    parentLocation?: string
-    careNeeds?: string
-    carePlan?: string
-  }
+export interface WaitlistState {
+  success: boolean
+  message: string
+  error?: string
 }
 
 /* ------------------------------------------------------------------ */
@@ -49,132 +22,174 @@ function isValidEmail(email?: unknown): email is string {
 /* ------------------------------------------------------------------ */
 /* Action                                                              */
 
-export async function createWaitlistSubmission(_prev: WaitlistState, formData: FormData): Promise<WaitlistState> {
+export async function createWaitlistSubmission(
+  prevState: WaitlistState | null,
+  formData: FormData,
+): Promise<WaitlistState> {
+  if (!hasDb) {
+    return {
+      success: false,
+      message: "Database not configured",
+      error: "Database connection not available",
+    }
+  }
+
   try {
-    const email = formData.get("email")
-    if (!isValidEmail(email)) {
+    const email = formData.get("email") as string
+    const name = formData.get("name") as string
+    const source = formData.get("source") as string
+    const location = formData.get("location") as string
+    const parent_location = formData.get("parent_location") as string
+    const care_needs = formData.get("care_needs") as string
+    const care_plan = formData.get("care_plan") as string
+    const care_plan_interest = formData.get("care_plan_interest") as string
+
+    if (!email) {
       return {
-        errors: { email: ["Please provide a valid email address."] },
-        message: null,
+        success: false,
+        message: "Email is required",
+        error: "Missing email address",
       }
     }
 
-    const name = (formData.get("name") as string | null) ?? undefined
-    const city = (formData.get("city") as string | null) ?? undefined
-    const parentLocation = (formData.get("parentLocation") as string | null) ?? undefined
-    const careNeeds = (formData.get("careNeeds") as string | null) ?? undefined
-    const carePlan = (formData.get("carePlan") as string | null) ?? undefined
-    const source = (formData.get("source") as string | null) ?? "main-form"
-
-    /* ---------------------------------------------------------------- */
-    /* Persist to DB                                                     */
-    const submission = await addToWaitlist(
-      email,
-      source,
-      name,
-      city,
-      parentLocation,
-      careNeeds,
-      carePlan,
-      /* carePlanInterest */ undefined,
+    // Insert into database
+    const result = await sql`
+    INSERT INTO waitlist_submissions (
+      email, name, source, location, parent_location, care_needs, care_plan, care_plan_interest
+    ) 
+    VALUES (
+      ${email}, ${name || null}, ${source || null}, ${location || null}, 
+      ${parent_location || null}, ${care_needs || null}, ${care_plan || null}, ${care_plan_interest || null}
     )
+    ON CONFLICT (email) DO UPDATE SET
+      name = COALESCE(EXCLUDED.name, waitlist_submissions.name),
+      source = COALESCE(EXCLUDED.source, waitlist_submissions.source),
+      location = COALESCE(EXCLUDED.location, waitlist_submissions.location),
+      parent_location = COALESCE(EXCLUDED.parent_location, waitlist_submissions.parent_location),
+      care_needs = COALESCE(EXCLUDED.care_needs, waitlist_submissions.care_needs),
+      care_plan = COALESCE(EXCLUDED.care_plan, waitlist_submissions.care_plan),
+      care_plan_interest = COALESCE(EXCLUDED.care_plan_interest, waitlist_submissions.care_plan_interest)
+    RETURNING *
+  `
 
-    if (!submission) {
-      return {
-        errors: { email: ["Failed to save. Please try again."] },
-        message: null,
-      }
-    }
+    const submission = result[0]
 
-    /* ---------------------------------------------------------------- */
-    /* Send welcome email (ignore error – we don’t want to block UX)     */
+    // Try to send welcome email
     try {
       await sendWelcomeEmail({
-        name,
-        email,
-        parent_location: parentLocation,
-        care_plan: carePlan,
-        waitlist_number: submission.waitlist_number,
-        referral_link: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://timesnri.com"}?ref=${encodeURIComponent(email)}`,
+        name: submission.name,
+        email: submission.email,
+        parent_location: submission.parent_location,
+        care_plan: submission.care_plan,
+        waitlist_number: submission.id,
       })
-    } catch (err) {
-      console.error("welcome-email error (non-fatal):", err)
+    } catch (emailError) {
+      console.error("Failed to send welcome email:", emailError)
+      // Don't fail the whole operation if email fails
     }
 
-    /* revalidate any pages that list wait-list numbers                  */
-    revalidatePath("/admin/waitlist")
-
     return {
-      message: "You've been added to our waitlist!",
-      data: { name, email, city, parentLocation, careNeeds, carePlan },
+      success: true,
+      message: "Successfully added to waitlist! Check your email for confirmation.",
     }
-  } catch (err) {
-    console.error("createWaitlistSubmission:", err)
+  } catch (error) {
+    console.error("Error creating waitlist submission:", error)
     return {
-      errors: { email: ["Unexpected error. Please try again later."] },
-      message: null,
+      success: false,
+      message: "Failed to add to waitlist. Please try again.",
+      error: error instanceof Error ? error.message : "Unknown error",
     }
   }
 }
 
 /* ------------------------------------------------------------------ */
 /*  Update global email settings (admin  settings)                   */
-export async function updateEmailConfiguration(formData: FormData) {
+export async function updateEmailConfiguration(
+  prevState: any,
+  formData: FormData,
+): Promise<{ success: boolean; message: string; error?: string }> {
   try {
-    /**
-     * Keys we allow from the admin screen.
-     * Each <input name="…"> in the form must match one of these.
-     */
-    const CONFIG_KEYS = [
-      "welcome_email_enabled",
-      "welcome_email_subject",
-      "welcome_email_from_name",
-      "welcome_email_from_email",
-      "welcome_email_template",
-    ] as const
+    const enabled = formData.get("enabled") === "on" ? "true" : "false"
+    const subject = formData.get("subject") as string
+    const fromName = formData.get("fromName") as string
+    const fromEmail = formData.get("fromEmail") as string
+    const template = formData.get("template") as string
 
-    for (const key of CONFIG_KEYS) {
-      const value = formData.get(key) as string | null
-      if (value !== null) {
-        /**
-         * For the “enabled” toggle we store a boolean → string.
-         * Everything else is stored as-is.
-         */
-        const enabled = key === "welcome_email_enabled" ? value === "true" : true
-        await updateEmailConfig(key, value, enabled)
+    if (!subject || !fromName || !fromEmail || !template) {
+      return {
+        success: false,
+        message: "All fields are required",
+        error: "Missing required fields",
       }
     }
 
-    return { success: true, message: "Email configuration saved." }
-  } catch (err) {
-    console.error("updateEmailConfiguration:", err)
-    return { success: false, message: "Failed to update email settings." }
+    // Update email configuration
+    await Promise.all([
+      updateEmailConfig("welcome_email_enabled", enabled),
+      updateEmailConfig("welcome_email_subject", subject),
+      updateEmailConfig("welcome_email_from_name", fromName),
+      updateEmailConfig("welcome_email_from_email", fromEmail),
+      updateEmailConfig("welcome_email_template", template),
+    ])
+
+    return {
+      success: true,
+      message: "Email configuration updated successfully",
+    }
+  } catch (error) {
+    console.error("Error updating email configuration:", error)
+    return {
+      success: false,
+      message: "Failed to update email configuration",
+      error: error instanceof Error ? error.message : "Unknown error",
+    }
   }
 }
 
 /* ------------------------------------------------------------------ */
 /*  Send a single test “Welcome” email to verify the SMTP integration  */
-export async function sendTestWelcomeEmail(formData: FormData) {
+export async function sendTestWelcomeEmail(
+  prevState: any,
+  formData: FormData,
+): Promise<{ success: boolean; message: string; error?: string }> {
   try {
-    const testEmail = formData.get("testEmail") as string | null
-    if (!testEmail || !isValidEmail(testEmail)) {
-      return { success: false, message: "Please supply a valid test email." }
+    const testEmail = formData.get("testEmail") as string
+
+    if (!testEmail) {
+      return {
+        success: false,
+        message: "Test email address is required",
+        error: "Missing email address",
+      }
     }
 
-    const ok = await sendWelcomeEmail({
+    // Send test email
+    const emailSent = await sendWelcomeEmail({
       name: "Test User",
       email: testEmail,
       parent_location: "Mumbai, India",
-      care_plan: "Peace Plan – $50/month",
+      care_plan: "Peace Plan - $50/month",
       waitlist_number: 999,
-      referral_link: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://timesnri.com"}?ref=test`,
     })
 
-    return ok
-      ? { success: true, message: `Test email sent to ${testEmail}` }
-      : { success: false, message: "Send failed – check API key / sender setup." }
-  } catch (err) {
-    console.error("sendTestWelcomeEmail:", err)
-    return { success: false, message: "Error when sending test email." }
+    if (emailSent) {
+      return {
+        success: true,
+        message: "Test email sent successfully! Check your inbox.",
+      }
+    } else {
+      return {
+        success: false,
+        message: "Failed to send test email. Check your configuration.",
+        error: "Email service failed",
+      }
+    }
+  } catch (error) {
+    console.error("Error sending test email:", error)
+    return {
+      success: false,
+      message: "Failed to send test email",
+      error: error instanceof Error ? error.message : "Unknown error",
+    }
   }
 }

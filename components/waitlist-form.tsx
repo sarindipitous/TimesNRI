@@ -1,16 +1,23 @@
 "use client"
 
-import { useRef } from "react"
+import { DialogTitle } from "@/components/ui/dialog"
 
-import { useState } from "react"
+import { DialogHeader } from "@/components/ui/dialog"
+
+import { DialogContent } from "@/components/ui/dialog"
+
+import { Dialog } from "@/components/ui/dialog"
+
+import { cn } from "@/lib/utils"
+
+import { useRef, useState } from "react"
 import { useActionState } from "react"
 import { createWaitlistSubmission, type WaitlistState } from "@/app/actions/waitlist"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { cn } from "@/lib/utils"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Check, Copy, Share2, ArrowRight } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Check, Copy, Share2, ArrowRight, CheckCircle, Loader2 } from "lucide-react"
 
 interface WaitlistFormProps {
   buttonText?: string
@@ -37,13 +44,24 @@ export function WaitlistForm({
   standalone = false,
   preSelectedPlan,
 }: WaitlistFormProps) {
-  const initialState: WaitlistState = { message: null }
+  const initialState: WaitlistState = { success: false, message: "" }
   const [state, dispatch, isPending] = useActionState(createWaitlistSubmission, initialState)
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    parent_location: "",
+    care_needs: "",
+    care_plan: "",
+  })
   const [step, setStep] = useState(1)
   const [isSuccessOpen, setIsSuccessOpen] = useState(false)
   const [referralLink, setReferralLink] = useState("")
   const [referralCopied, setReferralCopied] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
+  }
 
   const triggerConfetti = async () => {
     // Only run in the browser
@@ -176,13 +194,25 @@ export function WaitlistForm({
                 <div className="space-y-4 animate-fadeIn">
                   <h3 className="text-lg font-medium text-gray-800">About Your Parents</h3>
                   <div className="space-y-3">
-                    <Input
-                      type="text"
-                      name="parentLocation"
-                      placeholder="Mumbai, India"
-                      className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12"
-                      required
-                    />
+                    <Select
+                      name="parent_location"
+                      onValueChange={(value) => handleInputChange("parent_location", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select parent location" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="mumbai">Mumbai</SelectItem>
+                        <SelectItem value="delhi">Delhi</SelectItem>
+                        <SelectItem value="bangalore">Bangalore</SelectItem>
+                        <SelectItem value="pune">Pune</SelectItem>
+                        <SelectItem value="hyderabad">Hyderabad</SelectItem>
+                        <SelectItem value="chennai">Chennai</SelectItem>
+                        <SelectItem value="kolkata">Kolkata</SelectItem>
+                        <SelectItem value="ahmedabad">Ahmedabad</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <Textarea
                       id="careNeeds"
                       name="careNeeds"
@@ -216,19 +246,19 @@ export function WaitlistForm({
                   <h3 className="text-lg font-medium text-gray-800">Confirm Your Details</h3>
                   <div className="bg-gray-50 p-4 rounded-lg space-y-2 text-sm">
                     <p>
-                      <span className="font-medium">Name:</span> {state.data?.name}
+                      <span className="font-medium">Name:</span> {formData.name}
                     </p>
                     <p>
-                      <span className="font-medium">Email:</span> {state.data?.email}
+                      <span className="font-medium">Email:</span> {formData.email}
                     </p>
                     <p>
-                      <span className="font-medium">Your location:</span> {state.data?.city}
+                      <span className="font-medium">Your location:</span> {formData.city}
                     </p>
                     <p>
-                      <span className="font-medium">Parents' location:</span> {state.data?.parentLocation}
+                      <span className="font-medium">Parents' location:</span> {formData.parent_location}
                     </p>
                     <p>
-                      <span className="font-medium">Care needs:</span> {state.data?.careNeeds}
+                      <span className="font-medium">Care needs:</span> {formData.care_needs}
                     </p>
                   </div>
                   <p className="text-xs text-gray-500">
@@ -262,13 +292,12 @@ export function WaitlistForm({
           <div className="mt-8 p-6 bg-green-50 border border-green-200 rounded-xl">
             <div className="flex flex-col items-center text-center space-y-4 py-6">
               <div className="rounded-full bg-green-100 p-4">
-                <Check className="h-8 w-8 text-green-600" />
+                <CheckCircle className="h-8 w-8 text-green-600" />
               </div>
               <p className="text-center text-lg text-green-800">{state.message}</p>
-              {state.data?.parentLocation && (
+              {formData.parent_location && (
                 <p className="text-center text-sm text-gray-600">
-                  We'll be in touch soon with personalized information about our services in {state.data.parentLocation}
-                  .
+                  We'll be in touch soon with personalized information about our services in {formData.parent_location}.
                 </p>
               )}
 
@@ -408,13 +437,25 @@ export function WaitlistForm({
                     <div className="space-y-4 animate-fadeIn">
                       <h3 className="text-lg font-medium text-gray-800">About Your Parents</h3>
                       <div className="space-y-3">
-                        <Input
-                          type="text"
-                          name="parentLocation"
-                          placeholder="Mumbai, India"
-                          className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12"
-                          required
-                        />
+                        <Select
+                          name="parent_location"
+                          onValueChange={(value) => handleInputChange("parent_location", value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select parent location" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="mumbai">Mumbai</SelectItem>
+                            <SelectItem value="delhi">Delhi</SelectItem>
+                            <SelectItem value="bangalore">Bangalore</SelectItem>
+                            <SelectItem value="pune">Pune</SelectItem>
+                            <SelectItem value="hyderabad">Hyderabad</SelectItem>
+                            <SelectItem value="chennai">Chennai</SelectItem>
+                            <SelectItem value="kolkata">Kolkata</SelectItem>
+                            <SelectItem value="ahmedabad">Ahmedabad</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <Textarea
                           id="careNeeds"
                           name="careNeeds"
@@ -448,19 +489,19 @@ export function WaitlistForm({
                       <h3 className="text-lg font-medium text-gray-800">Confirm Your Details</h3>
                       <div className="bg-gray-50 p-4 rounded-lg space-y-2 text-sm">
                         <p>
-                          <span className="font-medium">Name:</span> {state.data?.name}
+                          <span className="font-medium">Name:</span> {formData.name}
                         </p>
                         <p>
-                          <span className="font-medium">Email:</span> {state.data?.email}
+                          <span className="font-medium">Email:</span> {formData.email}
                         </p>
                         <p>
-                          <span className="font-medium">Your location:</span> {state.data?.city}
+                          <span className="font-medium">Your location:</span> {formData.city}
                         </p>
                         <p>
-                          <span className="font-medium">Parents' location:</span> {state.data?.parentLocation}
+                          <span className="font-medium">Parents' location:</span> {formData.parent_location}
                         </p>
                         <p>
-                          <span className="font-medium">Care needs:</span> {state.data?.careNeeds}
+                          <span className="font-medium">Care needs:</span> {formData.care_needs}
                         </p>
                       </div>
                       <p className="text-xs text-gray-500">
@@ -480,7 +521,14 @@ export function WaitlistForm({
                           disabled={isPending}
                           className="flex-1 bg-accent hover:bg-accent/90 text-white h-12"
                         >
-                          {isPending ? "Submitting..." : "Join Waitlist"}
+                          {isPending ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Joining Waitlist...
+                            </>
+                          ) : (
+                            "Join Waitlist"
+                          )}
                         </Button>
                       </div>
                     </div>
@@ -499,14 +547,14 @@ export function WaitlistForm({
           </DialogHeader>
           <div className="flex flex-col items-center justify-center space-y-4 py-6">
             <div className="rounded-full bg-green-100 p-4">
-              <Check className="h-8 w-8 text-green-600" />
+              <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
             <p id="waitlist-success-dialog-description" className="text-center text-lg text-green-800">
               {state.message}
             </p>
-            {state.data?.parentLocation && (
+            {formData.parent_location && (
               <p className="text-center text-sm text-gray-600">
-                We'll be in touch soon with personalized information about our services in {state.data.parentLocation}.
+                We'll be in touch soon with personalized information about our services in {formData.parent_location}.
               </p>
             )}
 
