@@ -106,8 +106,11 @@ export default function EmailConfigPage() {
   const [saving, setSaving] = useState(false)
   const [testEmail, setTestEmail] = useState("")
   const [sendingTest, setSendingTest] = useState(false)
+  const [sendingDirectTest, setSendingDirectTest] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
   const [previewMode, setPreviewMode] = useState<"code" | "preview">("code")
+  const [diagnostics, setDiagnostics] = useState<any>(null)
+  const [loadingDiagnostics, setLoadingDiagnostics] = useState(false)
 
   useEffect(() => {
     fetchEmailConfig()
@@ -176,15 +179,55 @@ export default function EmailConfigPage() {
       const result = await sendTestWelcomeEmail(formData)
 
       if (result.success) {
-        setMessage({ type: "success", text: result.message })
-        setTestEmail("")
+        setMessage({
+          type: "success",
+          text: `${result.message}${result.details ? ` (Details: ${JSON.stringify(result.details)})` : ""}`,
+        })
       } else {
-        setMessage({ type: "error", text: result.message })
+        setMessage({
+          type: "error",
+          text: `${result.message}${result.details ? ` (Details: ${JSON.stringify(result.details)})` : ""}`,
+        })
       }
     } catch (error) {
       setMessage({ type: "error", text: "Failed to send test email" })
     } finally {
       setSendingTest(false)
+    }
+  }
+
+  const handleDirectSendGridTest = async () => {
+    if (!testEmail) return
+
+    setSendingDirectTest(true)
+    setMessage(null)
+
+    try {
+      const response = await fetch("/api/test-sendgrid", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ testEmail }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setMessage({
+          type: "success",
+          text: `${result.message} (Message ID: ${result.details?.messageId || "N/A"})`,
+        })
+      } else {
+        setMessage({
+          type: "error",
+          text: `SendGrid test failed: ${result.error}${result.details ? ` - ${JSON.stringify(result.details)}` : ""}`,
+        })
+      }
+    } catch (error) {
+      setMessage({ type: "error", text: "Failed to test SendGrid directly" })
+    } finally {
+      setSendingDirectTest(false)
     }
   }
 
@@ -215,6 +258,20 @@ export default function EmailConfigPage() {
     }
   }
 
+  const fetchDiagnostics = async () => {
+    setLoadingDiagnostics(true)
+    try {
+      const response = await fetch("/api/email-diagnostics")
+      const data = await response.json()
+      setDiagnostics(data)
+    } catch (error) {
+      console.error("Failed to fetch diagnostics:", error)
+      setMessage({ type: "error", text: "Failed to load diagnostics" })
+    } finally {
+      setLoadingDiagnostics(false)
+    }
+  }
+
   if (loading) {
     return <div className="container mx-auto py-8 px-4">Loading...</div>
   }
@@ -231,7 +288,7 @@ export default function EmailConfigPage() {
               : "bg-red-50 text-red-700 border border-red-200"
           }`}
         >
-          {message.text}
+          <div className="whitespace-pre-wrap break-words">{message.text}</div>
         </div>
       )}
 
@@ -239,8 +296,8 @@ export default function EmailConfigPage() {
         <TabsList>
           <TabsTrigger value="settings">Email Settings</TabsTrigger>
           <TabsTrigger value="template">HTML Template</TabsTrigger>
-          <TabsTrigger value="share">Share HTML</TabsTrigger>
           <TabsTrigger value="test">Test Email</TabsTrigger>
+          <TabsTrigger value="diagnostics">Diagnostics</TabsTrigger>
         </TabsList>
 
         <TabsContent value="settings">
@@ -278,6 +335,9 @@ export default function EmailConfigPage() {
                     onChange={(e) => updateConfig("welcome_email_from_email", e.target.value)}
                     placeholder="welcome@timesnri.com"
                   />
+                  <p className="text-xs text-gray-600">
+                    ⚠️ This email must be verified in your SendGrid account as a sender
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -454,61 +514,38 @@ export default function EmailConfigPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="share">
+        <TabsContent value="test">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>📤 Share HTML Code</CardTitle>
-                <p className="text-sm text-gray-600">
-                  Copy the complete HTML code to share with others or use in external email systems
-                </p>
+                <CardTitle>Test Welcome Email (Full System)</CardTitle>
+                <p className="text-sm text-gray-600">Send a test using your complete email configuration</p>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex gap-2 mb-4">
-                    <Button
-                      onClick={() =>
-                        copyToClipboard(config.welcome_email_template || "", "HTML code copied to clipboard!")
-                      }
-                      disabled={!config.welcome_email_template}
-                    >
-                      📋 Copy HTML Code
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => copyToClipboard(getPreviewHtml(), "HTML with sample data copied to clipboard!")}
-                      disabled={!config.welcome_email_template}
-                    >
-                      📋 Copy with Sample Data
-                    </Button>
-                  </div>
-
                   <div className="space-y-2">
-                    <Label>Raw HTML Template Code</Label>
-                    <Textarea
-                      value={config.welcome_email_template || ""}
-                      readOnly
-                      rows={20}
-                      className="font-mono text-xs bg-gray-50"
-                      placeholder="No template configured yet..."
+                    <Label htmlFor="test_email">Test Email Address</Label>
+                    <Input
+                      id="test_email"
+                      type="email"
+                      value={testEmail}
+                      onChange={(e) => setTestEmail(e.target.value)}
+                      placeholder="test@example.com"
                     />
                   </div>
+                  <Button onClick={handleTestEmail} disabled={!testEmail || sendingTest}>
+                    {sendingTest ? "Sending..." : "Send Test Email"}
+                  </Button>
 
-                  <div className="p-4 bg-blue-50 rounded-lg">
-                    <h4 className="font-semibold text-blue-900 mb-2">💡 Sharing Options:</h4>
+                  <div className="mt-4 p-4 bg-blue-50 rounded-md">
+                    <h4 className="font-semibold text-blue-900 mb-2">Test Email Will Include:</h4>
                     <ul className="text-sm text-blue-800 space-y-1">
-                      <li>
-                        • <strong>Copy HTML Code:</strong> Raw template with variables
-                      </li>
-                      <li>
-                        • <strong>Copy with Sample Data:</strong> HTML with variables replaced
-                      </li>
-                      <li>
-                        • <strong>Use in other systems:</strong> Import into MailChimp, Constant Contact, etc.
-                      </li>
-                      <li>
-                        • <strong>Share with team:</strong> Send to developers or designers
-                      </li>
+                      <li>• Name: "Test User"</li>
+                      <li>• Email: {testEmail || "your-test-email"}</li>
+                      <li>• Parent Location: "Mumbai, India"</li>
+                      <li>• Care Plan: "Peace Plan - $50/month"</li>
+                      <li>• Waitlist Number: #999</li>
+                      <li>• Your configured HTML template</li>
                     </ul>
                   </div>
                 </div>
@@ -517,64 +554,33 @@ export default function EmailConfigPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>🔗 Download & Preview</CardTitle>
-                <p className="text-sm text-gray-600">Download or preview your email template</p>
+                <CardTitle>Direct SendGrid Test</CardTitle>
+                <p className="text-sm text-gray-600">Test SendGrid directly with a simple email</p>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Download HTML File</Label>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        const htmlContent = config.welcome_email_template || ""
-                        const blob = new Blob([htmlContent], { type: "text/html" })
-                        const url = URL.createObjectURL(blob)
-                        const a = document.createElement("a")
-                        a.href = url
-                        a.download = "welcome-email-template.html"
-                        document.body.appendChild(a)
-                        a.click()
-                        document.body.removeChild(a)
-                        URL.revokeObjectURL(url)
-                        setMessage({ type: "success", text: "HTML file downloaded!" })
-                        setTimeout(() => setMessage(null), 3000)
-                      }}
-                      disabled={!config.welcome_email_template}
-                      className="w-full"
-                    >
-                      💾 Download HTML File
-                    </Button>
+                    <Label htmlFor="direct_test_email">Test Email Address</Label>
+                    <Input
+                      id="direct_test_email"
+                      type="email"
+                      value={testEmail}
+                      onChange={(e) => setTestEmail(e.target.value)}
+                      placeholder="test@example.com"
+                    />
                   </div>
+                  <Button onClick={handleDirectSendGridTest} disabled={!testEmail || sendingDirectTest}>
+                    {sendingDirectTest ? "Sending..." : "Send Direct SendGrid Test"}
+                  </Button>
 
-                  <div className="space-y-2">
-                    <Label>Preview Options</Label>
-                    <div className="grid grid-cols-1 gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const htmlContent = getPreviewHtml()
-                          const newWindow = window.open("", "_blank")
-                          if (newWindow) {
-                            newWindow.document.write(htmlContent)
-                            newWindow.document.close()
-                          }
-                        }}
-                        disabled={!config.welcome_email_template}
-                      >
-                        🌐 Open in Browser
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="p-4 bg-green-50 rounded-lg">
-                    <h4 className="font-semibold text-green-900 mb-2">✅ Testing Checklist:</h4>
-                    <ul className="text-sm text-green-800 space-y-1">
-                      <li>• Test in Gmail, Outlook, Apple Mail</li>
-                      <li>• Check mobile responsiveness</li>
-                      <li>• Verify all links work correctly</li>
-                      <li>• Test with different screen sizes</li>
+                  <div className="mt-4 p-4 bg-orange-50 rounded-md">
+                    <h4 className="font-semibold text-orange-900 mb-2">Direct Test Features:</h4>
+                    <ul className="text-sm text-orange-800 space-y-1">
+                      <li>• Bypasses your email configuration</li>
+                      <li>• Uses hardcoded simple HTML</li>
+                      <li>• Tests SendGrid API directly</li>
+                      <li>• Shows detailed error messages</li>
+                      <li>• Returns SendGrid message ID</li>
                     </ul>
                   </div>
                 </div>
@@ -583,42 +589,151 @@ export default function EmailConfigPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="test">
-          <Card>
-            <CardHeader>
-              <CardTitle>Test Welcome Email</CardTitle>
-              <p className="text-sm text-gray-600">Send a test welcome email to verify your configuration</p>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="test_email">Test Email Address</Label>
-                  <Input
-                    id="test_email"
-                    type="email"
-                    value={testEmail}
-                    onChange={(e) => setTestEmail(e.target.value)}
-                    placeholder="test@example.com"
-                  />
-                </div>
-                <Button onClick={handleTestEmail} disabled={!testEmail || sendingTest}>
-                  {sendingTest ? "Sending..." : "Send Test Email"}
-                </Button>
+        <TabsContent value="diagnostics">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  🔍 Email System Diagnostics
+                  <Button onClick={fetchDiagnostics} disabled={loadingDiagnostics} size="sm">
+                    {loadingDiagnostics ? "Checking..." : "Run Diagnostics"}
+                  </Button>
+                </CardTitle>
+                <p className="text-sm text-gray-600">Comprehensive check of your email configuration and services</p>
+              </CardHeader>
+              <CardContent>
+                {!diagnostics && !loadingDiagnostics && (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 mb-4">Click "Run Diagnostics" to check your email setup</p>
+                  </div>
+                )}
 
-                <div className="mt-4 p-4 bg-blue-50 rounded-md">
-                  <h4 className="font-semibold text-blue-900 mb-2">Test Email Will Include:</h4>
-                  <ul className="text-sm text-blue-800 space-y-1">
-                    <li>• Name: "Test User"</li>
-                    <li>• Email: {testEmail || "your-test-email"}</li>
-                    <li>• Parent Location: "Mumbai, India"</li>
-                    <li>• Care Plan: "Peace Plan - $50/month"</li>
-                    <li>• Waitlist Number: #999</li>
-                    <li>• Referral Link: Your site URL with ref parameter</li>
-                  </ul>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                {loadingDiagnostics && (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">Running diagnostics...</p>
+                  </div>
+                )}
+
+                {diagnostics && (
+                  <div className="space-y-6">
+                    {/* Diagnosis Summary */}
+                    <div className="p-4 bg-blue-50 rounded-lg">
+                      <h4 className="font-semibold text-blue-900 mb-3">📋 Diagnosis Summary</h4>
+                      <ul className="space-y-2">
+                        {diagnostics.diagnosis?.map((item: string, index: number) => (
+                          <li key={index} className="text-sm text-blue-800">
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* SendGrid Specific Info */}
+                    {diagnostics.sendgridSpecific?.configured && (
+                      <div className="p-4 bg-purple-50 rounded-lg">
+                        <h4 className="font-semibold text-purple-900 mb-3">📧 SendGrid Troubleshooting</h4>
+                        <div className="space-y-2">
+                          <p className="text-sm text-purple-800">
+                            <strong>From Email:</strong> {diagnostics.sendgridSpecific.fromEmail || "Not configured"}
+                          </p>
+                          <ul className="text-sm text-purple-800 space-y-1">
+                            {diagnostics.sendgridSpecific.troubleshooting?.map((step: string, index: number) => (
+                              <li key={index}>{step}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Environment Variables */}
+                    <div>
+                      <h4 className="font-semibold mb-3">🔧 Environment Variables</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {Object.entries(diagnostics.environment || {}).map(([key, value]) => (
+                          <div key={key} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                            <span className="font-mono text-sm">{key}</span>
+                            <span className={`text-sm ${value ? "text-green-600" : "text-red-600"}`}>
+                              {value ? "✅ Set" : "❌ Missing"}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Email Configuration */}
+                    <div>
+                      <h4 className="font-semibold mb-3">⚙️ Email Configuration</h4>
+                      <div className="space-y-2">
+                        {diagnostics.emailConfig?.map((config: any, index: number) => (
+                          <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                            <div>
+                              <span className="font-medium">{config.config}</span>
+                              <div className="text-xs text-gray-600">{config.value}</div>
+                            </div>
+                            <span
+                              className={`text-sm ${config.status.includes("✅") ? "text-green-600" : "text-red-600"}`}
+                            >
+                              {config.status}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Service Tests */}
+                    <div>
+                      <h4 className="font-semibold mb-3">🌐 Email Service Tests</h4>
+                      {diagnostics.serviceTests?.length > 0 ? (
+                        <div className="space-y-2">
+                          {diagnostics.serviceTests.map((test: any, index: number) => (
+                            <div key={index} className="p-3 bg-gray-50 rounded">
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="font-medium">{test.service}</span>
+                                <span
+                                  className={`text-sm ${test.status.includes("✅") ? "text-green-600" : "text-red-600"}`}
+                                >
+                                  {test.status}
+                                </span>
+                              </div>
+                              <div className="text-xs text-gray-600">{test.details}</div>
+                              {test.senders && (
+                                <div className="mt-2 text-xs">
+                                  <strong>Verified Senders:</strong>{" "}
+                                  {test.senders.results?.map((s: any) => s.from_email).join(", ") || "None"}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-4 bg-yellow-50 rounded-lg">
+                          <p className="text-yellow-800">
+                            No email services configured. Add API keys to enable email sending.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Recommendations */}
+                    <div className="p-4 bg-green-50 rounded-lg">
+                      <h4 className="font-semibold text-green-900 mb-3">💡 Troubleshooting Tips</h4>
+                      <ul className="space-y-1">
+                        {diagnostics.recommendations?.map((rec: string, index: number) => (
+                          <li key={index} className="text-sm text-green-800">
+                            • {rec}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="text-xs text-gray-500">
+                      Last checked: {new Date(diagnostics.timestamp).toLocaleString()}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

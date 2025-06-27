@@ -8,7 +8,7 @@ import {
   updateWaitlistSubmission,
   deleteWaitlistSubmission,
 } from "@/lib/db"
-import { sendWelcomeEmail } from "@/lib/email-service"
+import { sendWelcomeEmail, sendWelcomeEmailWithDetails } from "@/lib/email-service"
 
 /* ------------------------------------------------------------------ */
 /* Shared helpers                                                     */
@@ -190,7 +190,7 @@ export async function sendTestWelcomeEmail(formData: FormData) {
       return { success: false, message: "Please provide a valid test email address." }
     }
 
-    const success = await sendWelcomeEmail({
+    const result = await sendWelcomeEmailWithDetails({
       name: "Test User",
       email: testEmail,
       parent_location: "Mumbai",
@@ -199,11 +199,25 @@ export async function sendTestWelcomeEmail(formData: FormData) {
       referral_link: `${process.env.NEXT_PUBLIC_SITE_URL || "https://times-nri.vercel.app"}?ref=test`,
     })
 
-    return success
-      ? { success: true, message: `Test email sent successfully to ${testEmail}!` }
-      : { success: false, message: "Failed to send test email. Check your configuration." }
+    if (result.success) {
+      return {
+        success: true,
+        message: `Test email sent successfully to ${testEmail} via ${result.service}!`,
+        details: result.details,
+      }
+    } else {
+      return {
+        success: false,
+        message: `Failed to send test email: ${result.error}`,
+        details: result.details,
+      }
+    }
   } catch (error) {
     console.error("Error sending test email:", error)
-    return { success: false, message: "Error sending test email." }
+    return {
+      success: false,
+      message: "Error sending test email.",
+      details: error instanceof Error ? error.message : "Unknown error",
+    }
   }
 }
