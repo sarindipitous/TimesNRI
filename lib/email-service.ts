@@ -11,12 +11,8 @@ interface EmailData {
 
 export async function sendWelcomeEmail(data: EmailData): Promise<boolean> {
   try {
-    console.log("Starting sendWelcomeEmail for:", data.email)
-
     // Check if welcome emails are enabled
     const enabled = await getEmailConfig("welcome_email_enabled")
-    console.log("Welcome emails enabled:", enabled)
-
     if (enabled !== "true") {
       console.log("Welcome emails are disabled")
       return false
@@ -30,14 +26,8 @@ export async function sendWelcomeEmail(data: EmailData): Promise<boolean> {
       getEmailConfig("welcome_email_template"),
     ])
 
-    console.log("Email config loaded:", { subject, fromName, fromEmail, hasTemplate: !!template })
-
     if (!subject || !fromEmail || !template) {
-      console.error("Missing email configuration:", {
-        subject: !!subject,
-        fromEmail: !!fromEmail,
-        template: !!template,
-      })
+      console.error("Missing email configuration")
       return false
     }
 
@@ -50,10 +40,8 @@ export async function sendWelcomeEmail(data: EmailData): Promise<boolean> {
     emailHtml = emailHtml.replace(/\{\{waitlist_number\}\}/g, data.waitlist_number?.toString() || "TBD")
     emailHtml = emailHtml.replace(/\{\{referral_link\}\}/g, data.referral_link || "#")
 
-    console.log("Template variables replaced, attempting to send email...")
-
-    // Try SendGrid first
-    const emailSent = await sendViaSendGrid({
+    // Try different email services in order of preference
+    const emailSent = await tryEmailServices({
       to: data.email,
       from: `${fromName} <${fromEmail}>`,
       subject,
@@ -64,11 +52,11 @@ export async function sendWelcomeEmail(data: EmailData): Promise<boolean> {
       console.log(`Welcome email sent successfully to ${data.email}`)
       return true
     } else {
-      console.error("Failed to send email via SendGrid")
+      console.error("All email services failed")
       return false
     }
   } catch (error) {
-    console.error("Error in sendWelcomeEmail:", error)
+    console.error("Error sending welcome email:", error)
     return false
   }
 }
@@ -80,76 +68,136 @@ interface EmailPayload {
   html: string
 }
 
-async function sendViaSendGrid(payload: EmailPayload): Promise<boolean> {
-  try {
-    console.log("Attempting to send via SendGrid...")
+async function tryEmailServices(payload: EmailPayload): Promise<boolean> {
+  // Try Resend first
+  if (process.env.RESEND_API_KEY) {
+    console.log("Trying Resend...")
+    const success = await sendViaResend(payload)
+    if (success) return true
+  }
 
-    if (!process.env.SENDGRID_API_KEY) {
-      console.error("SENDGRID_API_KEY not found in environment variables")
+  // Try SendGrid
+  if (process.env.SENDGRID_API_KEY) {
+    console.log("Trying SendGrid...")
+    const success = await sendViaSendGrid(payload)
+    if (success) return true
+  }
+
+  // Try Nodemailer (SMTP)
+  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    console.log("Trying SMTP...")
+    const success = await sendViaSMTP(payload)
+    if (success) return true
+  }
+
+  // Try Mailgun
+  if (process.env.MAILGUN_API_KEY && process.env.MAILGUN_DOMAIN) {
+    console.log("Trying Mailgun...")
+    const success = await sendViaMailgun(payload)
+    if (success) return true
+  }
+
+  return false
+}
+
+async function sendViaResend(payload: EmailPayload): Promise<boolean> {
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: payload.from,
+        to: [payload.to],
+        subject: payload.subject,
+        html: payload.html,
+      }),
+    })
+
+    if (!response.ok) {
+      const error = await response.text()
+      console.error("Resend error:", error)
       return false
     }
 
-    console.log("SendGrid API key found, preparing request...")
+    console.log("Email sent via Resend")
+    return true
+  } catch (error) {
+    console.error("Resend failed:", error)
+    return false
+  }
+}
 
-    // Extract email and name from the "from" field
-    const fromMatch = payload.from.match(/^(.+?)\s*<(.+)>$/)
-    const fromName = fromMatch ? fromMatch[1].trim() : "Times NRI"
-    const fromEmail = fromMatch ? fromMatch[2].trim() : payload.from
-
-    console.log("Parsed from field:", { fromName, fromEmail })
-
-    const requestBody = {
-      personalizations: [
-        {
-          to: [{ email: payload.to }],
-          subject: payload.subject,
-        },
-      ],
-      from: {
-        email: fromEmail,
-        name: fromName,
-      },
-      content: [
-        {
-          type: "text/html",
-          value: payload.html,
-        },
-      ],
-    }
-
-    console.log("SendGrid request body prepared:", {
-      to: payload.to,
-      from: `${fromName} <${fromEmail}>`,
-      subject: payload.subject,
-      contentLength: payload.html.length,
-    })
-
+async function sendViaSendGrid(payload: EmailPayload): Promise<boolean> {
+  try {
     const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${process.env.SENDGRID_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email: payload.to }] }],
+        from: { email: payload.from.match(/<(.+)>/)?.[1] || payload.from, name: payload.from.split("<")[0].trim() },
+        subject: payload.subject,
+        content: [{ type: "text/html", value: payload.html }],
+      }),
     })
 
-    console.log("SendGrid response status:", response.status)
-
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error("SendGrid error response:", {
-        status: response.status,
-        statusText: response.statusText,
-        body: errorText,
-      })
+      const error = await response.text()
+      console.error("SendGrid error:", error)
       return false
     }
 
-    const result = await response.text()
-    console.log("SendGrid success response:", result)
+    console.log("Email sent via SendGrid")
     return true
   } catch (error) {
-    console.error("SendGrid request failed:", error)
+    console.error("SendGrid failed:", error)
+    return false
+  }
+}
+
+async function sendViaSMTP(payload: EmailPayload): Promise<boolean> {
+  try {
+    // Note: This would require nodemailer package in a real implementation
+    // For now, we'll just log that SMTP is configured
+    console.log("SMTP configured but requires nodemailer package")
+    return false
+  } catch (error) {
+    console.error("SMTP failed:", error)
+    return false
+  }
+}
+
+async function sendViaMailgun(payload: EmailPayload): Promise<boolean> {
+  try {
+    const formData = new FormData()
+    formData.append("from", payload.from)
+    formData.append("to", payload.to)
+    formData.append("subject", payload.subject)
+    formData.append("html", payload.html)
+
+    const response = await fetch(`https://api.mailgun.net/v3/${process.env.MAILGUN_DOMAIN}/messages`, {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${Buffer.from(`api:${process.env.MAILGUN_API_KEY}`).toString("base64")}`,
+      },
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const error = await response.text()
+      console.error("Mailgun error:", error)
+      return false
+    }
+
+    console.log("Email sent via Mailgun")
+    return true
+  } catch (error) {
+    console.error("Mailgun failed:", error)
     return false
   }
 }
