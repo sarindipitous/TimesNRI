@@ -53,8 +53,7 @@ export async function createWaitlistSubmission(_prev: WaitlistState, formData: F
         location = COALESCE(EXCLUDED.location, waitlist_submissions.location),
         parent_location = COALESCE(EXCLUDED.parent_location, waitlist_submissions.parent_location),
         care_needs = COALESCE(EXCLUDED.care_needs, waitlist_submissions.care_needs),
-        care_plan = COALESCE(EXCLUDED.care_plan, waitlist_submissions.care_plan),
-        updated_at = CURRENT_TIMESTAMP
+        care_plan = COALESCE(EXCLUDED.care_plan, waitlist_submissions.care_plan)
       RETURNING *
     `
 
