@@ -1,70 +1,93 @@
 "use server"
 
-import {
-  addToWaitlist,
-  addReferral,
-  addDetailedReferral,
-  getWaitlistSubmissionByEmail,
-  updateWaitlistSubmission,
-  deleteWaitlistSubmission,
-} from "@/lib/db"
+/**
+ * This file is the single source-of-truth for all wait-list
+ * related server actions.  It MUST export `createWaitlistSubmission`
+ * so that client components (e.g. `<WaitlistForm />`) can import it
+ * with:
+ *
+ *   import { createWaitlistSubmission } from '@/app/actions/waitlist'
+ *
+ * If you change the name here, remember to update every import.
+ */
+
+import { revalidatePath } from "next/cache"
+import { addToWaitlist } from "@/lib/db"
 import { sendWelcomeEmail } from "@/lib/email-service"
+import { updateEmailConfig } from "@/lib/email-config"
 
 /* ------------------------------------------------------------------ */
-/* Shared helpers                                                     */
-function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+/* Types                                                               */
+
+export type WaitlistState = {
+  /** keyed by field name – used by <WaitlistForm/> to highlight errors */
+  errors?: Record<string, string[]>
+  /** success / generic message to surface to the user                */
+  message?: string | null
+  /**
+   * optional data bag –  the client form uses it to echo information
+   * back to the user after a successful submission.  All keys are
+   * optional so that we never break if a new field is added.
+   */
+  data?: {
+    name?: string
+    email?: string
+    city?: string
+    parentLocation?: string
+    careNeeds?: string
+    carePlan?: string
+  }
 }
 
 /* ------------------------------------------------------------------ */
-/* 1. Original single-argument action (kept for backwards compatibility) */
-export async function submitToWaitlist(formData: FormData) {
-  try {
-    const email = formData.get("email") as string
-    const source = (formData.get("source") as string) || "main-form"
-    const name = (formData.get("name") as string) || undefined
-    const location = (formData.get("city") as string) || undefined
-    const parentLocation = (formData.get("parentLocation") as string) || undefined
-    const careNeeds = (formData.get("careNeeds") as string) || undefined
-    const referredBy = (formData.get("referredBy") as string) || undefined
-    const carePlan = (formData.get("carePlan") as string) || undefined
-    const carePlanInterest = (formData.get("carePlanInterest") as string) || undefined
+/* Helpers                                                             */
 
-    if (!email || !isValidEmail(email)) {
-      return { success: false, message: "Please provide a valid email address." }
+function isValidEmail(email?: unknown): email is string {
+  return typeof email === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
+
+/* ------------------------------------------------------------------ */
+/* Action                                                              */
+
+export async function createWaitlistSubmission(_prev: WaitlistState, formData: FormData): Promise<WaitlistState> {
+  try {
+    const email = formData.get("email")
+    if (!isValidEmail(email)) {
+      return {
+        errors: { email: ["Please provide a valid email address."] },
+        message: null,
+      }
     }
 
-    /* upsert submission */
+    const name = (formData.get("name") as string | null) ?? undefined
+    const city = (formData.get("city") as string | null) ?? undefined
+    const parentLocation = (formData.get("parentLocation") as string | null) ?? undefined
+    const careNeeds = (formData.get("careNeeds") as string | null) ?? undefined
+    const carePlan = (formData.get("carePlan") as string | null) ?? undefined
+    const source = (formData.get("source") as string | null) ?? "main-form"
+
+    /* ---------------------------------------------------------------- */
+    /* Persist to DB                                                     */
     const submission = await addToWaitlist(
       email,
       source,
       name,
-      location,
+      city,
       parentLocation,
       careNeeds,
       carePlan,
-      carePlanInterest,
+      /* carePlanInterest */ undefined,
     )
 
     if (!submission) {
-      return { success: false, message: "Failed to add to waitlist. Please try again." }
-    }
-
-    /* link referral */
-    if (referredBy) {
-      const referrer = await getWaitlistSubmissionByEmail(referredBy)
-      if (referrer) {
-        await addReferral(referrer.id, email)
-        await addDetailedReferral(referrer.id, email, submission.id)
+      return {
+        errors: { email: ["Failed to save. Please try again."] },
+        message: null,
       }
     }
 
-    /* build referral link */
-    let siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://times-nri.vercel.app"
-    if (!siteUrl.startsWith("http")) siteUrl = `https://${siteUrl}`
-    const referralLink = `${siteUrl}?ref=${encodeURIComponent(email)}`
-
-    /* send welcome email */
+    /* ---------------------------------------------------------------- */
+    /* Send welcome email (ignore error – we don’t want to block UX)     */
     try {
       await sendWelcomeEmail({
         name,
@@ -72,138 +95,86 @@ export async function submitToWaitlist(formData: FormData) {
         parent_location: parentLocation,
         care_plan: carePlan,
         waitlist_number: submission.waitlist_number,
-        referral_link: referralLink,
+        referral_link: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://timesnri.com"}?ref=${encodeURIComponent(email)}`,
       })
-    } catch (emailError) {
-      console.error("Failed to send welcome email:", emailError)
-      // Don't fail the entire submission if email fails
+    } catch (err) {
+      console.error("welcome-email error (non-fatal):", err)
     }
+
+    /* revalidate any pages that list wait-list numbers                  */
+    revalidatePath("/admin/waitlist")
 
     return {
-      success: true,
       message: "You've been added to our waitlist!",
-      referralLink,
-      submissionId: submission.id,
-      waitlistNumber: submission.waitlist_number,
+      data: { name, email, city, parentLocation, careNeeds, carePlan },
     }
-  } catch (error) {
-    console.error("Error in submitToWaitlist:", error)
-    return { success: false, message: "An unexpected error occurred. Please try again." }
+  } catch (err) {
+    console.error("createWaitlistSubmission:", err)
+    return {
+      errors: { email: ["Unexpected error. Please try again later."] },
+      message: null,
+    }
   }
 }
 
 /* ------------------------------------------------------------------ */
-/* 2. App-Router friendly action used with `useActionState`            */
-export type WaitlistState = { errors?: Record<string, string[]>; message?: string | null }
-
-export async function createWaitlistSubmission(_prev: WaitlistState, formData: FormData): Promise<WaitlistState> {
-  const res = await submitToWaitlist(formData)
-  return res.success ? { message: res.message } : { errors: { email: [res.message ?? "Error"] }, message: null }
-}
-
-/* ------------------------------------------------------------------ */
-/* 3. Update an existing wait-list entry                               */
-export async function updateWaitlistEntry(formData: FormData) {
-  try {
-    const id = Number(formData.get("id"))
-    const name = formData.get("name") as string
-    const email = formData.get("email") as string
-    const location = formData.get("location") as string
-    const parentLocation = formData.get("parentLocation") as string
-    const careNeeds = formData.get("careNeeds") as string
-    const carePlan = formData.get("carePlan") as string
-    const carePlanInterest = formData.get("carePlanInterest") as string
-
-    if (!id || Number.isNaN(id)) return { success: false, message: "Invalid ID." }
-    if (!email || !isValidEmail(email)) return { success: false, message: "Invalid email." }
-
-    const updated = await updateWaitlistSubmission(id, {
-      name,
-      email,
-      location,
-      parent_location: parentLocation,
-      care_needs: careNeeds,
-      care_plan: carePlan,
-      care_plan_interest: carePlanInterest,
-    })
-
-    return updated
-      ? { success: true, message: "Entry updated!", submission: updated }
-      : { success: false, message: "Update failed." }
-  } catch (error) {
-    console.error("updateWaitlistEntry:", error)
-    return { success: false, message: "Unexpected error during update." }
-  }
-}
-
-/* ------------------------------------------------------------------ */
-/* 4. Delete a wait-list entry                                         */
-export async function deleteWaitlistEntry(formData: FormData) {
-  try {
-    const id = Number(formData.get("id"))
-    if (!id || Number.isNaN(id)) return { success: false, message: "Invalid ID." }
-
-    const ok = await deleteWaitlistSubmission(id)
-    return ok
-      ? { success: true, message: "Entry deleted." }
-      : { success: false, message: "Delete failed. Entry may not exist." }
-  } catch (error) {
-    console.error("deleteWaitlistEntry:", error)
-    return { success: false, message: "Unexpected error during delete." }
-  }
-}
-
-/* ------------------------------------------------------------------ */
-/* 5. Email configuration actions                                      */
+/*  Update global email settings (admin  settings)                   */
 export async function updateEmailConfiguration(formData: FormData) {
   try {
-    const { updateEmailConfig } = await import("@/lib/email-config")
-
-    const configs = [
+    /**
+     * Keys we allow from the admin screen.
+     * Each <input name="…"> in the form must match one of these.
+     */
+    const CONFIG_KEYS = [
       "welcome_email_enabled",
       "welcome_email_subject",
       "welcome_email_from_name",
       "welcome_email_from_email",
       "welcome_email_template",
-    ]
+    ] as const
 
-    for (const key of configs) {
-      const value = formData.get(key) as string
+    for (const key of CONFIG_KEYS) {
+      const value = formData.get(key) as string | null
       if (value !== null) {
+        /**
+         * For the “enabled” toggle we store a boolean → string.
+         * Everything else is stored as-is.
+         */
         const enabled = key === "welcome_email_enabled" ? value === "true" : true
         await updateEmailConfig(key, value, enabled)
       }
     }
 
-    return { success: true, message: "Email configuration updated successfully!" }
-  } catch (error) {
-    console.error("Error updating email configuration:", error)
-    return { success: false, message: "Failed to update email configuration." }
+    return { success: true, message: "Email configuration saved." }
+  } catch (err) {
+    console.error("updateEmailConfiguration:", err)
+    return { success: false, message: "Failed to update email settings." }
   }
 }
 
+/* ------------------------------------------------------------------ */
+/*  Send a single test “Welcome” email to verify the SMTP integration  */
 export async function sendTestWelcomeEmail(formData: FormData) {
   try {
-    const testEmail = formData.get("testEmail") as string
-
+    const testEmail = formData.get("testEmail") as string | null
     if (!testEmail || !isValidEmail(testEmail)) {
-      return { success: false, message: "Please provide a valid test email address." }
+      return { success: false, message: "Please supply a valid test email." }
     }
 
-    const success = await sendWelcomeEmail({
+    const ok = await sendWelcomeEmail({
       name: "Test User",
       email: testEmail,
-      parent_location: "Mumbai",
-      care_plan: "Peace: $50/month",
+      parent_location: "Mumbai, India",
+      care_plan: "Peace Plan – $50/month",
       waitlist_number: 999,
-      referral_link: `${process.env.NEXT_PUBLIC_SITE_URL || "https://times-nri.vercel.app"}?ref=test`,
+      referral_link: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://timesnri.com"}?ref=test`,
     })
 
-    return success
-      ? { success: true, message: `Test email sent successfully to ${testEmail}!` }
-      : { success: false, message: "Failed to send test email. Check your configuration." }
-  } catch (error) {
-    console.error("Error sending test email:", error)
-    return { success: false, message: "Error sending test email." }
+    return ok
+      ? { success: true, message: `Test email sent to ${testEmail}` }
+      : { success: false, message: "Send failed – check API key / sender setup." }
+  } catch (err) {
+    console.error("sendTestWelcomeEmail:", err)
+    return { success: false, message: "Error when sending test email." }
   }
 }
