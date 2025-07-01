@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { WaitlistForm } from "@/components/waitlist-form"
 import { Header } from "@/components/header"
@@ -8,23 +8,15 @@ import { Footer } from "@/components/footer"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 
-function WaitlistContent() {
+export default function WaitlistPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
-  const [referredBy, setReferredBy] = useState<string | null>(null)
 
   useEffect(() => {
     const plan = searchParams.get("plan")
-    const ref = searchParams.get("ref")
-
     if (plan) {
       setSelectedPlan(plan)
-    }
-
-    // Store referral parameter in state
-    if (ref) {
-      setReferredBy(ref)
     }
   }, [searchParams])
 
@@ -77,8 +69,6 @@ function WaitlistContent() {
                     handleClose()
                   }
                 }}
-                referredBy={referredBy}
-                standalone={true}
               />
             </div>
 
@@ -114,13 +104,5 @@ function WaitlistContent() {
 
       <Footer />
     </div>
-  )
-}
-
-export default function WaitlistPage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading...</div>}>
-      <WaitlistContent />
-    </Suspense>
   )
 }
