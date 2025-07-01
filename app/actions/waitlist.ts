@@ -25,16 +25,6 @@ function sanitizeString(input: unknown): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined
 }
 
-function validateFormData(formData: FormData) {
-  const email = formData.get("email") as string
-
-  if (!email || !isValidEmail(email)) {
-    return { isValid: false, error: "Please provide a valid email address." }
-  }
-
-  return { isValid: true, error: null }
-}
-
 // ──────────────────────────────────────────────────────────────────────────────
 // Main action used throughout the app - PRODUCTION READY
 // ──────────────────────────────────────────────────────────────────────────────
@@ -42,43 +32,72 @@ export async function submitToWaitlist(formData: FormData) {
   try {
     console.log("=== WAITLIST SUBMISSION START ===")
 
-    // Validate form data
-    const validation = validateFormData(formData)
-    if (!validation.isValid) {
-      console.log("❌ Validation failed:", validation.error)
-      return { success: false, message: validation.error }
-    }
+    // Extract form data
+    const email = formData.get("email") as string
+    const name = formData.get("name") as string
+    const city = formData.get("city") as string
+    const parentLocation = formData.get("parentLocation") as string
+    const careNeeds = formData.get("careNeeds") as string
+    const carePlan = formData.get("carePlan") as string
+    const carePlanInterest = formData.get("carePlanInterest") as string
+    const source = formData.get("source") as string
+    const referredBy = formData.get("referredBy") as string
 
-    // Extract and sanitize form data
-    const email = (formData.get("email") as string).toLowerCase().trim()
-    const source = sanitizeString(formData.get("source")) || "main-form"
-    const name = sanitizeString(formData.get("name"))
-    const location = sanitizeString(formData.get("city"))
-    const parentLocation = sanitizeString(formData.get("parentLocation"))
-    const careNeeds = sanitizeString(formData.get("careNeeds"))
-    const referredBy = sanitizeString(formData.get("referredBy"))
-    const carePlan = sanitizeString(formData.get("carePlan"))
-    const carePlanInterest = sanitizeString(formData.get("carePlanInterest"))
-
-    console.log("Form data extracted:", {
+    console.log("📝 Form data received:", {
       email,
-      source,
       name,
-      location,
+      city,
       parentLocation,
-      careNeeds,
+      careNeeds: careNeeds ? careNeeds.substring(0, 50) + "..." : undefined,
+      carePlan,
+      carePlanInterest: carePlanInterest ? carePlanInterest.substring(0, 50) + "..." : undefined,
+      source,
       referredBy,
-      carePlan: carePlan ? carePlan.substring(0, 20) + "..." : undefined,
-      carePlanInterest: carePlanInterest ? carePlanInterest.substring(0, 20) + "..." : undefined,
     })
 
-    // Add to waitlist (upsert)
-    console.log("📝 Adding to waitlist...")
+    // Validation
+    const errors: Record<string, string[]> = {}
+
+    if (!email || !email.includes("@")) {
+      errors.email = ["Please enter a valid email address"]
+    }
+
+    if (!name || name.trim().length < 2) {
+      errors.name = ["Please enter your full name"]
+    }
+
+    if (!city || city.trim().length < 2) {
+      errors.city = ["Please enter your current city"]
+    }
+
+    if (!parentLocation || parentLocation.trim().length < 2) {
+      errors.parentLocation = ["Please enter your parent's location in India"]
+    }
+
+    if (!careNeeds || careNeeds.trim().length < 10) {
+      errors.careNeeds = ["Please describe your parents' care needs (at least 10 characters)"]
+    }
+
+    if (Object.keys(errors).length > 0) {
+      console.log("❌ Validation errors:", errors)
+      return {
+        errors,
+        message: "Please fix the errors above",
+      }
+    }
+
+    // Check if email already exists
+    const existingSubmission = await getWaitlistSubmissionByEmail(email)
+    if (existingSubmission) {
+      console.log("⚠️ Email already exists, updating submission")
+    }
+
+    // Add to waitlist
     const submission = await addToWaitlist(
       email,
-      source,
+      source || "direct",
       name,
-      location,
+      city,
       parentLocation,
       careNeeds,
       carePlan,
@@ -87,14 +106,13 @@ export async function submitToWaitlist(formData: FormData) {
 
     if (!submission) {
       console.log("❌ Failed to add to waitlist")
-      return { success: false, message: "Failed to add to waitlist. Please try again." }
+      return {
+        errors: { email: ["Failed to add to waitlist. Please try again."] },
+        message: "Something went wrong. Please try again.",
+      }
     }
 
-    console.log("✅ Added to waitlist:", {
-      id: submission.id,
-      email: submission.email,
-      waitlist_number: submission.waitlist_number,
-    })
+    console.log("✅ Successfully added to waitlist:", submission.id)
 
     // Handle referral linking with proper validation
     if (referredBy && isValidEmail(referredBy)) {
@@ -188,29 +206,35 @@ export async function submitToWaitlist(formData: FormData) {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// App-Router friendly wrapper for useActionState - PRODUCTION READY
+// Types
 // ──────────────────────────────────────────────────────────────────────────────
 export type WaitlistState = {
   errors?: Record<string, string[]>
   message?: string | null
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// App-Router friendly wrapper for useActionState
+// ──────────────────────────────────────────────────────────────────────────────
 export async function createWaitlistSubmission(_prev: WaitlistState, formData: FormData): Promise<WaitlistState> {
+  "use server"
+
   try {
     const res = await submitToWaitlist(formData)
 
     if (res.success) {
-      return { message: res.message }
-    } else {
-      return {
-        errors: { email: [res.message ?? "Submission failed"] },
-        message: null,
-      }
+      // no field-level errors – surface success message for UI
+      return { message: res.message ?? "Added to waitlist!" }
+    }
+
+    return {
+      errors: { email: [res.message ?? "Submission failed"] },
+      message: null,
     }
   } catch (error) {
-    console.error("❌ Error in createWaitlistSubmission:", error)
+    console.error("❌ createWaitlistSubmission error:", error)
     return {
-      errors: { email: ["An unexpected error occurred"] },
+      errors: { email: ["An unexpected error occurred. Please try again."] },
       message: null,
     }
   }
