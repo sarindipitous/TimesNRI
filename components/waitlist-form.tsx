@@ -50,6 +50,7 @@ export function WaitlistForm({
   const [formError, setFormError] = useState("")
   const formRef = useRef<HTMLFormElement>(null)
   const [carePlanInterest, setCarePlanInterest] = useState("")
+  const [referredBy, setReferredBy] = useState<string | null>(null)
 
   // Basic email validation function for client-side
   const isValidEmail = (email: string): boolean => {
@@ -63,8 +64,20 @@ export function WaitlistForm({
     const ref = urlParams.get("ref")
     const planParam = urlParams.get("plan")
 
+    console.log("URL params:", { ref, planParam })
+
     if (ref) {
+      console.log("Setting referredBy to:", ref)
+      setReferredBy(ref)
+      // Store in localStorage as backup
       localStorage.setItem("referredBy", ref)
+    } else {
+      // Check localStorage as fallback
+      const storedRef = localStorage.getItem("referredBy")
+      if (storedRef) {
+        console.log("Using stored referral:", storedRef)
+        setReferredBy(storedRef)
+      }
     }
 
     // Set plan based on preSelectedPlan prop first, then URL parameter
@@ -153,9 +166,6 @@ export function WaitlistForm({
     setFormError("")
 
     try {
-      // Get referrer from localStorage if exists
-      const referredBy = localStorage.getItem("referredBy")
-
       // Create FormData and append values
       const formData = new FormData()
 
@@ -176,7 +186,9 @@ export function WaitlistForm({
         }
       }
 
+      // Add referral information
       if (referredBy) {
+        console.log("Adding referredBy to form data:", referredBy)
         formData.append("referredBy", referredBy)
       }
 
@@ -209,6 +221,9 @@ export function WaitlistForm({
         setCarePlan("")
         setCarePlanInterest("")
         setStep(1)
+
+        // Clear referral from localStorage after successful submission
+        localStorage.removeItem("referredBy")
 
         // Show waitlist number if available
         if (result.waitlistNumber) {
@@ -246,6 +261,21 @@ export function WaitlistForm({
   if (standalone) {
     return (
       <div className="w-full">
+        {/* Show referral info if present */}
+        {referredBy && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Check className="h-5 w-5 text-green-600" />
+              <div>
+                <p className="font-medium text-green-800">You were referred!</p>
+                <p className="text-sm text-green-600">
+                  Referred by: <span className="font-mono">{referredBy}</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <form ref={formRef} onSubmit={handleSubmit} className="w-full">
           {!isDetailed ? (
             <div className="space-y-4">
@@ -447,6 +477,12 @@ export function WaitlistForm({
                         <span className="font-medium">Interest in plan:</span> {carePlanInterest}
                       </p>
                     )}
+                    {referredBy && (
+                      <p>
+                        <span className="font-medium">Referred by:</span>{" "}
+                        <span className="font-mono">{referredBy}</span>
+                      </p>
+                    )}
                   </div>
                   <p className="text-xs text-gray-500">
                     By joining our waitlist, you'll be among the first to know when we launch in your parents' city.
@@ -511,7 +547,7 @@ export function WaitlistForm({
                     <Button
                       size="sm"
                       variant="outline"
-                      className="flex items-center space-x-1 h-12 px-4 border-green-300 text-green-700 hover:bg-green-50"
+                      className="flex items-center space-x-1 h-12 px-4 border-green-300 text-green-700 hover:bg-green-50 bg-transparent"
                       onClick={() => {
                         window.open(
                           `https://wa.me/?text=I just joined the Times NRI waitlist for senior care services in India. As an NRI, I found this service really promising for managing parent care from abroad: ${referralLink}`,
@@ -544,6 +580,21 @@ export function WaitlistForm({
             <p id="waitlist-dialog-description" className="text-center mb-6 text-gray-600">
               Be among the first to access our Senior Care & Wellness Membership when we launch in your city.
             </p>
+
+            {/* Show referral info if present */}
+            {referredBy && (
+              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-600" />
+                  <div>
+                    <p className="text-sm font-medium text-green-800">You were referred!</p>
+                    <p className="text-xs text-green-600">
+                      By: <span className="font-mono">{referredBy}</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <form ref={formRef} onSubmit={handleSubmit} className="w-full">
               {!isDetailed ? (
@@ -579,7 +630,7 @@ export function WaitlistForm({
                   </Button>
                 </div>
               ) : (
-                // Detailed form steps here
+                // Detailed form steps here (same as standalone version)
                 <div>
                   {step === 1 && (
                     <div className="space-y-4 animate-fadeIn">
@@ -746,6 +797,12 @@ export function WaitlistForm({
                             <span className="font-medium">Interest in plan:</span> {carePlanInterest}
                           </p>
                         )}
+                        {referredBy && (
+                          <p>
+                            <span className="font-medium">Referred by:</span>{" "}
+                            <span className="font-mono">{referredBy}</span>
+                          </p>
+                        )}
                       </div>
                       <p className="text-xs text-gray-500">
                         By joining our waitlist, you'll be among the first to know when we launch in your parents' city.
@@ -814,7 +871,7 @@ export function WaitlistForm({
                   <Button
                     size="sm"
                     variant="outline"
-                    className="flex items-center space-x-1 h-12 px-4"
+                    className="flex items-center space-x-1 h-12 px-4 bg-transparent"
                     onClick={() => {
                       window.open(
                         `https://wa.me/?text=I just joined the Times NRI waitlist for senior care services in India. As an NRI, I found this service really promising for managing parent care from abroad: ${referralLink}`,

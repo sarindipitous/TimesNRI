@@ -20,6 +20,9 @@ function isValidEmail(email: string): boolean {
 /* 1.  Main action used throughout the app                            */
 export async function submitToWaitlist(formData: FormData) {
   try {
+    console.log("=== WAITLIST SUBMISSION START ===")
+
+    // Extract form data
     const email = formData.get("email") as string
     const source = (formData.get("source") as string) || "main-form"
     const name = (formData.get("name") as string) || undefined
@@ -30,11 +33,28 @@ export async function submitToWaitlist(formData: FormData) {
     const carePlan = (formData.get("carePlan") as string) || undefined
     const carePlanInterest = (formData.get("carePlanInterest") as string) || undefined
 
+    console.log("Form data extracted:", {
+      email,
+      source,
+      name,
+      location,
+      parentLocation,
+      careNeeds,
+      referredBy,
+      carePlan: carePlan ? carePlan.substring(0, 20) + "..." : undefined,
+      carePlanInterest: carePlanInterest ? carePlanInterest.substring(0, 20) + "..." : undefined,
+    })
+
+    // Validate email
     if (!email || !isValidEmail(email)) {
+      console.log("❌ Invalid email:", email)
       return { success: false, message: "Please provide a valid email address." }
     }
 
-    /* upsert submission */
+    console.log("✅ Email validation passed")
+
+    // Add to waitlist (upsert)
+    console.log("📝 Adding to waitlist...")
     const submission = await addToWaitlist(
       email,
       source,
@@ -47,25 +67,67 @@ export async function submitToWaitlist(formData: FormData) {
     )
 
     if (!submission) {
+      console.log("❌ Failed to add to waitlist")
       return { success: false, message: "Failed to add to waitlist. Please try again." }
     }
 
-    /* link referral */
-    if (referredBy) {
-      const referrer = await getWaitlistSubmissionByEmail(referredBy)
-      if (referrer) {
-        await addReferral(referrer.id, email)
-        await addDetailedReferral(referrer.id, email, submission.id)
+    console.log("✅ Added to waitlist:", {
+      id: submission.id,
+      email: submission.email,
+      waitlist_number: submission.waitlist_number,
+    })
+
+    // Handle referral linking
+    if (referredBy && isValidEmail(referredBy)) {
+      console.log("🔗 Processing referral from:", referredBy)
+
+      try {
+        const referrer = await getWaitlistSubmissionByEmail(referredBy)
+        if (referrer) {
+          console.log("✅ Found referrer:", { id: referrer.id, email: referrer.email })
+
+          // Add to referrals table
+          const referralResult = await addReferral(referrer.id, email)
+          if (referralResult) {
+            console.log("✅ Added to referrals table:", referralResult.id)
+          }
+
+          // Add to detailed referrals table
+          const detailedReferralResult = await addDetailedReferral(referrer.id, email, submission.id)
+          if (detailedReferralResult) {
+            console.log("✅ Added to detailed referrals table:", detailedReferralResult.id)
+          }
+
+          // Update the submission with referrer info
+          const updatedSubmission = await updateWaitlistSubmission(submission.id, {
+            referred_by: referredBy,
+          })
+
+          if (updatedSubmission) {
+            console.log("✅ Updated submission with referrer info")
+          }
+        } else {
+          console.log("⚠️ Referrer not found in waitlist:", referredBy)
+        }
+      } catch (referralError) {
+        console.error("❌ Error processing referral:", referralError)
+        // Don't fail the main submission if referral fails
       }
+    } else if (referredBy) {
+      console.log("⚠️ Invalid referrer email:", referredBy)
     }
 
-    /* build referral link */
+    // Build referral link
     let siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://times-nri.vercel.app"
-    if (!siteUrl.startsWith("http")) siteUrl = `https://${siteUrl}`
+    if (!siteUrl.startsWith("http")) {
+      siteUrl = `https://${siteUrl}`
+    }
     const referralLink = `${siteUrl}?ref=${encodeURIComponent(email)}`
+    console.log("🔗 Generated referral link:", referralLink)
 
-    /* send welcome email */
+    // Send welcome email
     try {
+      console.log("📧 Sending welcome email...")
       await sendWelcomeEmail({
         name,
         email,
@@ -74,11 +136,13 @@ export async function submitToWaitlist(formData: FormData) {
         waitlist_number: submission.waitlist_number,
         referral_link: referralLink,
       })
+      console.log("✅ Welcome email sent successfully")
     } catch (emailError) {
-      console.error("Failed to send welcome email:", emailError)
+      console.error("❌ Failed to send welcome email:", emailError)
       // Do not fail submission if email fails
     }
 
+    console.log("=== WAITLIST SUBMISSION SUCCESS ===")
     return {
       success: true,
       message: "You've been added to our waitlist!",
@@ -87,7 +151,7 @@ export async function submitToWaitlist(formData: FormData) {
       waitlistNumber: submission.waitlist_number,
     }
   } catch (error) {
-    console.error("Error in submitToWaitlist:", error)
+    console.error("❌ Error in submitToWaitlist:", error)
     return { success: false, message: "An unexpected error occurred. Please try again." }
   }
 }
