@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { WaitlistForm } from "@/components/waitlist-form"
 import { Header } from "@/components/header"
@@ -8,7 +8,7 @@ import { Footer } from "@/components/footer"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 
-export default function WaitlistPage() {
+function WaitlistContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
@@ -78,6 +78,7 @@ export default function WaitlistPage() {
                   }
                 }}
                 referredBy={referredBy}
+                standalone={true}
               />
             </div>
 
@@ -113,5 +114,13 @@ export default function WaitlistPage() {
 
       <Footer />
     </div>
+  )
+}
+
+export default function WaitlistPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading...</div>}>
+      <WaitlistContent />
+    </Suspense>
   )
 }
