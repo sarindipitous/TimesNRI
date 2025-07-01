@@ -19,11 +19,6 @@ const adminRoutes = [
     exact: true,
   },
   {
-    label: "Dashboard Overview",
-    href: "/admin/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
     label: "Waitlist Management",
     href: "/admin/waitlist",
     icon: Users,
