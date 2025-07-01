@@ -57,7 +57,7 @@ function noDb<T>(fallback: T, fnName: string): T {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-//  READ helpers - FIXED TO ACTUALLY RETURN ALL DATA
+//  READ helpers - PRODUCTION READY WITH ERROR HANDLING
 // ──────────────────────────────────────────────────────────────────────────────
 export async function getAllWaitlistSubmissions(limit = 1000, offset = 0) {
   if (!hasDb) return noDb([], "getAllWaitlistSubmissions")
@@ -65,7 +65,10 @@ export async function getAllWaitlistSubmissions(limit = 1000, offset = 0) {
   try {
     console.log(`📊 Fetching waitlist submissions with limit: ${limit}, offset: ${offset}`)
 
-    // Simple query first - get ALL the data without joins
+    // Validate inputs
+    const safeLimit = Math.min(Math.max(1, limit), 10000) // Cap at 10k for performance
+    const safeOffset = Math.max(0, offset)
+
     const result = await sql`
       SELECT 
         id,
@@ -82,23 +85,15 @@ export async function getAllWaitlistSubmissions(limit = 1000, offset = 0) {
         created_at
       FROM waitlist_submissions 
       ORDER BY created_at DESC
-      LIMIT ${limit} OFFSET ${offset}
+      LIMIT ${safeLimit} OFFSET ${safeOffset}
     `
 
     console.log(`✅ Found ${result.length} submissions`)
-    if (result.length > 0) {
-      console.log("📝 Sample submission:", {
-        id: result[0].id,
-        email: result[0].email,
-        referred_by: result[0].referred_by,
-        created_at: result[0].created_at,
-      })
-    }
-
     return result as WaitlistSubmission[]
   } catch (error) {
     console.error("❌ Error in getAllWaitlistSubmissions:", error)
-    throw error
+    // Don't throw in production - return empty array and log error
+    return []
   }
 }
 
@@ -106,10 +101,16 @@ export async function getWaitlistSubmissionByEmail(email: string): Promise<Waitl
   if (!hasDb) return noDb(null, "getWaitlistSubmissionByEmail")
 
   try {
+    // Input validation
+    if (!email || typeof email !== "string" || !email.includes("@")) {
+      console.warn("Invalid email provided to getWaitlistSubmissionByEmail:", email)
+      return null
+    }
+
     console.log(`🔍 Looking for waitlist submission by email: ${email}`)
     const res = await sql`
       SELECT * FROM waitlist_submissions 
-      WHERE email = ${email} 
+      WHERE email = ${email.toLowerCase().trim()} 
       LIMIT 1
     `
 
@@ -124,15 +125,19 @@ export async function getWaitlistSubmissionByEmail(email: string): Promise<Waitl
 
 export async function getWaitlistStats() {
   if (!hasDb) return noDb({ total: 0, lastWeek: 0 }, "getWaitlistStats")
+
   try {
     console.log("📊 Fetching waitlist stats...")
     const res = await sql`
       SELECT
-        COUNT(*)                        AS total,
-        COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '7 days') AS last_week
+        COUNT(*)::int                        AS total,
+        COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '7 days')::int AS last_week
       FROM waitlist_submissions`
 
-    const stats = { total: Number(res[0].total), lastWeek: Number(res[0].last_week) }
+    const stats = {
+      total: Number(res[0]?.total || 0),
+      lastWeek: Number(res[0]?.last_week || 0),
+    }
     console.log("✅ Stats:", stats)
     return stats
   } catch (error) {
@@ -142,7 +147,7 @@ export async function getWaitlistStats() {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-//  CREATE helpers - ATOMIC OPERATION
+//  CREATE helpers - PRODUCTION READY WITH VALIDATION
 // ──────────────────────────────────────────────────────────────────────────────
 export async function addToWaitlist(
   email: string,
@@ -157,18 +162,33 @@ export async function addToWaitlist(
   if (!hasDb) return noDb(null, "addToWaitlist")
 
   try {
+    // Input validation
+    if (!email || typeof email !== "string" || !email.includes("@")) {
+      console.error("Invalid email provided to addToWaitlist:", email)
+      return null
+    }
+
+    // Sanitize inputs
+    const cleanEmail = email.toLowerCase().trim()
+    const cleanName = name?.trim() || null
+    const cleanSource = source?.trim() || null
+    const cleanLocation = location?.trim() || null
+    const cleanParentLocation = parent_location?.trim() || null
+    const cleanCareNeeds = care_needs?.trim() || null
+    const cleanCarePlan = care_plan?.trim() || null
+    const cleanCarePlanInterest = care_plan_interest?.trim() || null
+
     console.log("📝 Adding to waitlist:", {
-      email,
-      source,
-      name,
-      location,
-      parent_location,
-      care_needs,
-      care_plan: care_plan ? care_plan.substring(0, 20) + "..." : undefined,
-      care_plan_interest: care_plan_interest ? care_plan_interest.substring(0, 20) + "..." : undefined,
+      email: cleanEmail,
+      source: cleanSource,
+      name: cleanName,
+      location: cleanLocation,
+      parent_location: cleanParentLocation,
+      care_needs: cleanCareNeeds,
+      care_plan: cleanCarePlan ? cleanCarePlan.substring(0, 20) + "..." : undefined,
+      care_plan_interest: cleanCarePlanInterest ? cleanCarePlanInterest.substring(0, 20) + "..." : undefined,
     })
 
-    // Use a single INSERT with all data to avoid partial entries
     const result = await sql`
       INSERT INTO waitlist_submissions (
         email, 
@@ -181,14 +201,14 @@ export async function addToWaitlist(
         care_plan_interest
       ) 
       VALUES (
-        ${email}, 
-        ${source || null}, 
-        ${name || null}, 
-        ${location || null}, 
-        ${parent_location || null}, 
-        ${care_needs || null}, 
-        ${care_plan || null}, 
-        ${care_plan_interest || null}
+        ${cleanEmail}, 
+        ${cleanSource}, 
+        ${cleanName}, 
+        ${cleanLocation}, 
+        ${cleanParentLocation}, 
+        ${cleanCareNeeds}, 
+        ${cleanCarePlan}, 
+        ${cleanCarePlanInterest}
       )
       ON CONFLICT (email) DO UPDATE SET
         source = COALESCE(EXCLUDED.source, waitlist_submissions.source),
@@ -208,16 +228,16 @@ export async function addToWaitlist(
       waitlist_number: submission.waitlist_number,
     })
     return submission
-  } catch (e) {
-    console.error("❌ addToWaitlist error", e)
+  } catch (error) {
+    console.error("❌ addToWaitlist error", error)
 
-    // If the error is about missing columns, try the fallback approach
-    if (e instanceof Error && e.message.includes("column") && e.message.includes("does not exist")) {
+    // Graceful fallback for missing columns
+    if (error instanceof Error && error.message.includes("column") && error.message.includes("does not exist")) {
       console.log("⚠️ Attempting fallback approach without new columns...")
       try {
         const fallbackResult = await sql`
           INSERT INTO waitlist_submissions (email, source, name, location, parent_location, care_needs) 
-          VALUES (${email}, ${source || null}, ${name || null}, ${location || null}, ${parent_location || null}, ${care_needs || null})
+          VALUES (${email.toLowerCase().trim()}, ${source || null}, ${name?.trim() || null}, ${location?.trim() || null}, ${parent_location?.trim() || null}, ${care_needs?.trim() || null})
           ON CONFLICT (email) DO UPDATE SET
             source = COALESCE(EXCLUDED.source, waitlist_submissions.source),
             name = COALESCE(EXCLUDED.name, waitlist_submissions.name),
@@ -240,19 +260,33 @@ export async function addToWaitlist(
 
 export async function addReferral(referrerId: number, referredEmail: string): Promise<Referral | null> {
   if (!hasDb) return noDb(null, "addReferral")
+
   try {
-    console.log(`🔗 Adding referral: ${referrerId} -> ${referredEmail}`)
+    // Input validation
+    if (!referrerId || !Number.isInteger(referrerId) || referrerId <= 0) {
+      console.error("Invalid referrerId:", referrerId)
+      return null
+    }
+
+    if (!referredEmail || typeof referredEmail !== "string" || !referredEmail.includes("@")) {
+      console.error("Invalid referredEmail:", referredEmail)
+      return null
+    }
+
+    const cleanReferredEmail = referredEmail.toLowerCase().trim()
+
+    console.log(`🔗 Adding referral: ${referrerId} -> ${cleanReferredEmail}`)
     const res = await sql`
       INSERT INTO referrals (referrer_id, referred_email, status) 
-      VALUES (${referrerId}, ${referredEmail}, 'registered') 
+      VALUES (${referrerId}, ${cleanReferredEmail}, 'registered') 
       ON CONFLICT (referrer_id, referred_email) DO UPDATE SET
         status = 'registered'
       RETURNING *
     `
     console.log("✅ Referral added:", res[0]?.id)
     return res[0] as Referral
-  } catch (e) {
-    console.error("❌ addReferral error", e)
+  } catch (error) {
+    console.error("❌ addReferral error", error)
     return null
   }
 }
@@ -263,25 +297,39 @@ export async function addDetailedReferral(
   referredId?: number,
 ): Promise<ReferralDetail | null> {
   if (!hasDb) return noDb(null, "addDetailedReferral")
+
   try {
-    console.log(`🔗 Adding detailed referral: ${referrerId} -> ${referredEmail} (ID: ${referredId})`)
+    // Input validation
+    if (!referrerId || !Number.isInteger(referrerId) || referrerId <= 0) {
+      console.error("Invalid referrerId:", referrerId)
+      return null
+    }
+
+    if (!referredEmail || typeof referredEmail !== "string" || !referredEmail.includes("@")) {
+      console.error("Invalid referredEmail:", referredEmail)
+      return null
+    }
+
+    const cleanReferredEmail = referredEmail.toLowerCase().trim()
+
+    console.log(`🔗 Adding detailed referral: ${referrerId} -> ${cleanReferredEmail} (ID: ${referredId})`)
     const res = await sql`
       INSERT INTO referral_details (referrer_id, referred_email, referred_id, status)
-      VALUES (${referrerId}, ${referredEmail}, ${referredId || null}, 'registered')
+      VALUES (${referrerId}, ${cleanReferredEmail}, ${referredId || null}, 'registered')
       ON CONFLICT (referrer_id, referred_email) DO UPDATE SET
         referred_id = COALESCE(EXCLUDED.referred_id, referral_details.referred_id),
         status = 'registered'
       RETURNING *`
     console.log("✅ Detailed referral added:", res[0]?.id)
     return res[0] as ReferralDetail
-  } catch (e) {
-    console.error("❌ addDetailedReferral error", e)
+  } catch (error) {
+    console.error("❌ addDetailedReferral error", error)
     return null
   }
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-//  UPDATE helpers - ROBUST UPDATE WITH FALLBACK
+//  UPDATE helpers - PRODUCTION READY WITH VALIDATION
 // ──────────────────────────────────────────────────────────────────────────────
 export async function updateWaitlistSubmission(
   id: number,
@@ -289,13 +337,36 @@ export async function updateWaitlistSubmission(
 ): Promise<WaitlistSubmission | null> {
   if (!hasDb) return noDb(null, "updateWaitlistSubmission")
 
-  const entries = Object.entries(data).filter(([k]) => k !== "id" && k !== "created_at")
-  if (!entries.length) return null
-
   try {
-    console.log(`📝 Updating waitlist submission ${id}:`, data)
+    // Input validation
+    if (!id || !Number.isInteger(id) || id <= 0) {
+      console.error("Invalid id provided to updateWaitlistSubmission:", id)
+      return null
+    }
 
-    // Build the SET clause dynamically
+    // Filter out invalid fields and sanitize
+    const allowedFields = [
+      "name",
+      "email",
+      "location",
+      "parent_location",
+      "care_needs",
+      "care_plan",
+      "care_plan_interest",
+      "referred_by",
+    ]
+    const entries = Object.entries(data)
+      .filter(([key, value]) => allowedFields.includes(key) && value !== undefined)
+      .map(([key, value]) => [key, typeof value === "string" ? value.trim() : value])
+
+    if (!entries.length) {
+      console.warn("No valid fields to update")
+      return null
+    }
+
+    console.log(`📝 Updating waitlist submission ${id}:`, Object.fromEntries(entries))
+
+    // Build the SET clause dynamically with proper escaping
     const setClauses = entries.map(([key, value]) => {
       return sql`${sql.identifier([key])} = ${value}`
     })
@@ -309,147 +380,141 @@ export async function updateWaitlistSubmission(
       RETURNING *
     `
 
-    console.log("✅ Update successful")
-    return res[0] as WaitlistSubmission
-  } catch (e) {
-    console.error("❌ Full update failed, trying fallback:", e)
-
-    // If the error is about missing columns, try fallback without new columns
-    if (e instanceof Error && e.message.includes("column") && e.message.includes("does not exist")) {
-      console.log("⚠️ Attempting fallback update without new columns...")
-      try {
-        // Filter out the new columns that might not exist
-        const fallbackEntries = entries.filter(([k]) => !["care_plan", "care_plan_interest"].includes(k))
-
-        if (fallbackEntries.length === 0) {
-          console.log("⚠️ No valid columns to update in fallback")
-          return null
-        }
-
-        const fallbackSetClauses = fallbackEntries.map(([key, value]) => {
-          return sql`${sql.identifier([key])} = ${value}`
-        })
-
-        const fallbackSetClause = fallbackSetClauses.reduce((acc, clause) => sql`${acc}, ${clause}`)
-
-        const fallbackRes = await sql`
-          UPDATE waitlist_submissions 
-          SET ${fallbackSetClause}
-          WHERE id = ${id} 
-          RETURNING *
-        `
-        console.log("✅ Fallback update successful")
-        return fallbackRes[0] as WaitlistSubmission
-      } catch (fallbackError) {
-        console.error("❌ Fallback update also failed", fallbackError)
-        return null
-      }
+    if (res.length === 0) {
+      console.warn(`No submission found with id ${id}`)
+      return null
     }
 
+    console.log("✅ Update successful")
+    return res[0] as WaitlistSubmission
+  } catch (error) {
+    console.error("❌ updateWaitlistSubmission error:", error)
     return null
   }
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-//  DELETE helpers - SIMPLIFIED AND ROBUST
+//  DELETE helpers - PRODUCTION READY WITH VALIDATION
 // ──────────────────────────────────────────────────────────────────────────────
 export async function deleteWaitlistSubmission(id: number): Promise<boolean> {
   if (!hasDb) return noDb(false, "deleteWaitlistSubmission")
 
   try {
+    // Input validation
+    if (!id || !Number.isInteger(id) || id <= 0) {
+      console.error("Invalid id provided to deleteWaitlistSubmission:", id)
+      return false
+    }
+
     console.log(`🗑️ Starting delete process for waitlist submission ID: ${id}`)
 
     // First, check if the entry exists
-    const existingEntry = await sql`SELECT id FROM waitlist_submissions WHERE id = ${id}`
+    const existingEntry = await sql`SELECT id, email FROM waitlist_submissions WHERE id = ${id}`
     if (existingEntry.length === 0) {
       console.log(`❌ Entry with ID ${id} not found`)
       return false
     }
 
-    // Delete related referrals first (if tables exist)
-    try {
-      console.log(`🗑️ Deleting referrals for ID: ${id}`)
-      await sql`DELETE FROM referrals WHERE referrer_id = ${id} OR referred_email = (SELECT email FROM waitlist_submissions WHERE id = ${id})`
-      console.log(`✅ Deleted referrals for ID: ${id}`)
-    } catch (e) {
-      console.log("⚠️ referrals table might not exist or no referrals to delete, continuing...")
-    }
+    const email = existingEntry[0].email
 
-    try {
-      console.log(`🗑️ Deleting referral_details for ID: ${id}`)
+    // Use a transaction to ensure data consistency
+    await sql.begin(async (sql) => {
+      // Delete related referrals first
       await sql`DELETE FROM referral_details WHERE referrer_id = ${id} OR referred_id = ${id}`
-      console.log(`✅ Deleted referral_details for ID: ${id}`)
-    } catch (e) {
-      console.log("⚠️ referral_details table might not exist or no details to delete, continuing...")
-    }
+      await sql`DELETE FROM referrals WHERE referrer_id = ${id} OR referred_email = ${email}`
 
-    // Now delete the main waitlist submission
-    console.log(`🗑️ Deleting waitlist submission with ID: ${id}`)
-    const deleteResult = await sql`DELETE FROM waitlist_submissions WHERE id = ${id}`
+      // Delete the main waitlist submission
+      await sql`DELETE FROM waitlist_submissions WHERE id = ${id}`
+    })
 
-    console.log(`📊 Delete result:`, deleteResult)
-    const success = deleteResult.count > 0
-
-    if (success) {
-      console.log(`✅ Successfully deleted waitlist submission with ID: ${id}`)
-    } else {
-      console.log(`❌ Failed to delete waitlist submission with ID: ${id} - no rows affected`)
-    }
-
-    return success
+    console.log(`✅ Successfully deleted waitlist submission with ID: ${id}`)
+    return true
   } catch (error) {
     console.error(`❌ Error in deleteWaitlistSubmission for ID ${id}:`, error)
-
-    // Try a simple delete as fallback
-    try {
-      console.log(`⚠️ Attempting simple delete fallback for ID: ${id}`)
-      const fallbackResult = await sql`DELETE FROM waitlist_submissions WHERE id = ${id}`
-      const fallbackSuccess = fallbackResult.count > 0
-      console.log(`📊 Fallback delete result: ${fallbackSuccess}`)
-      return fallbackSuccess
-    } catch (fallbackError) {
-      console.error(`❌ Fallback delete also failed for ID ${id}:`, fallbackError)
-      return false
-    }
+    return false
   }
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-//  SEARCH / FILTER helpers
+//  SEARCH / FILTER helpers - PRODUCTION READY
 // ──────────────────────────────────────────────────────────────────────────────
 export async function searchWaitlistByEmail(email: string, limit = 100) {
   if (!hasDb) return noDb([], "searchWaitlistByEmail")
-  return (await sql`
-    SELECT * FROM waitlist_submissions 
-    WHERE email ILIKE ${"%" + email + "%"}
-    ORDER BY created_at DESC
-    LIMIT ${limit}`) as WaitlistSubmission[]
+
+  try {
+    if (!email || typeof email !== "string") {
+      return []
+    }
+
+    const safeLimit = Math.min(Math.max(1, limit), 1000)
+    const searchTerm = `%${email.toLowerCase().trim()}%`
+
+    return (await sql`
+      SELECT * FROM waitlist_submissions 
+      WHERE LOWER(email) LIKE ${searchTerm}
+      ORDER BY created_at DESC
+      LIMIT ${safeLimit}`) as WaitlistSubmission[]
+  } catch (error) {
+    console.error("❌ Error in searchWaitlistByEmail:", error)
+    return []
+  }
 }
 
 export async function filterWaitlistByLocation(location: string, limit = 100) {
   if (!hasDb) return noDb([], "filterWaitlistByLocation")
-  return (await sql`
-    SELECT * FROM waitlist_submissions 
-    WHERE location ILIKE ${"%" + location + "%"}
-    ORDER BY created_at DESC
-    LIMIT ${limit}`) as WaitlistSubmission[]
+
+  try {
+    if (!location || typeof location !== "string") {
+      return []
+    }
+
+    const safeLimit = Math.min(Math.max(1, limit), 1000)
+    const searchTerm = `%${location.toLowerCase().trim()}%`
+
+    return (await sql`
+      SELECT * FROM waitlist_submissions 
+      WHERE LOWER(location) LIKE ${searchTerm}
+      ORDER BY created_at DESC
+      LIMIT ${safeLimit}`) as WaitlistSubmission[]
+  } catch (error) {
+    console.error("❌ Error in filterWaitlistByLocation:", error)
+    return []
+  }
 }
 
 export async function filterWaitlistByParentLocation(parentLocation: string, limit = 100) {
   if (!hasDb) return noDb([], "filterWaitlistByParentLocation")
-  return (await sql`
-    SELECT * FROM waitlist_submissions 
-    WHERE parent_location ILIKE ${"%" + parentLocation + "%"}
-    ORDER BY created_at DESC
-    LIMIT ${limit}`) as WaitlistSubmission[]
+
+  try {
+    if (!parentLocation || typeof parentLocation !== "string") {
+      return []
+    }
+
+    const safeLimit = Math.min(Math.max(1, limit), 1000)
+    const searchTerm = `%${parentLocation.toLowerCase().trim()}%`
+
+    return (await sql`
+      SELECT * FROM waitlist_submissions 
+      WHERE LOWER(parent_location) LIKE ${searchTerm}
+      ORDER BY created_at DESC
+      LIMIT ${safeLimit}`) as WaitlistSubmission[]
+  } catch (error) {
+    console.error("❌ Error in filterWaitlistByParentLocation:", error)
+    return []
+  }
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-//  REFERRALS helpers
+//  REFERRALS helpers - PRODUCTION READY
 // ──────────────────────────────────────────────────────────────────────────────
 export async function getReferralsByReferrerId(referrerId: number) {
   if (!hasDb) return noDb([], "getReferralsByReferrerId")
+
   try {
+    if (!referrerId || !Number.isInteger(referrerId) || referrerId <= 0) {
+      return []
+    }
+
     return (await sql`
       SELECT * FROM referrals 
       WHERE referrer_id = ${referrerId}
@@ -462,7 +527,12 @@ export async function getReferralsByReferrerId(referrerId: number) {
 
 export async function getDetailedReferralsByReferrerId(referrerId: number) {
   if (!hasDb) return noDb([], "getDetailedReferralsByReferrerId")
+
   try {
+    if (!referrerId || !Number.isInteger(referrerId) || referrerId <= 0) {
+      return []
+    }
+
     return (await sql`
       SELECT * FROM referral_details 
       WHERE referrer_id = ${referrerId}
