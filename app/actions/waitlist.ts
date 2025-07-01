@@ -1,6 +1,5 @@
 "use server"
 
-import { neon } from "@neondatabase/serverless"
 import {
   addToWaitlist,
   addReferral,
@@ -10,18 +9,15 @@ import {
   deleteWaitlistSubmission,
 } from "@/lib/db"
 import { sendWelcomeEmail, sendWelcomeEmailWithDetails } from "@/lib/email-service"
-import { updateEmailConfig } from "@/lib/email-config"
-
-const sql = neon(process.env.DATABASE_URL!)
 
 /* ------------------------------------------------------------------ */
-/* Shared helpers                                                     */
+/* Helpers                                                            */
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
 /* ------------------------------------------------------------------ */
-/* 1. Original single-argument action (kept for backwards compatibility) */
+/* 1.  Main action used throughout the app                            */
 export async function submitToWaitlist(formData: FormData) {
   try {
     const email = formData.get("email") as string
@@ -80,7 +76,7 @@ export async function submitToWaitlist(formData: FormData) {
       })
     } catch (emailError) {
       console.error("Failed to send welcome email:", emailError)
-      // Don't fail the entire submission if email fails
+      // Do not fail submission if email fails
     }
 
     return {
@@ -97,7 +93,7 @@ export async function submitToWaitlist(formData: FormData) {
 }
 
 /* ------------------------------------------------------------------ */
-/* 2. App-Router friendly action used with `useActionState`            */
+/* 2.  App-Router friendly wrapper for useActionState                  */
 export type WaitlistState = { errors?: Record<string, string[]>; message?: string | null }
 
 export async function createWaitlistSubmission(_prev: WaitlistState, formData: FormData): Promise<WaitlistState> {
@@ -106,7 +102,7 @@ export async function createWaitlistSubmission(_prev: WaitlistState, formData: F
 }
 
 /* ------------------------------------------------------------------ */
-/* 3. Update an existing wait-list entry                               */
+/* 3.  Update existing waitlist entry                                  */
 export async function updateWaitlistEntry(formData: FormData) {
   try {
     const id = Number(formData.get("id"))
@@ -141,7 +137,7 @@ export async function updateWaitlistEntry(formData: FormData) {
 }
 
 /* ------------------------------------------------------------------ */
-/* 4. Delete a wait-list entry                                         */
+/* 4.  Delete waitlist entry                                           */
 export async function deleteWaitlistEntry(formData: FormData) {
   try {
     const id = Number(formData.get("id"))
@@ -158,160 +154,75 @@ export async function deleteWaitlistEntry(formData: FormData) {
 }
 
 /* ------------------------------------------------------------------ */
-/* 5. Email configuration actions                                      */
+/* 5.  Email configuration                                             */
 export async function updateEmailConfiguration(formData: FormData) {
   try {
-    const updates = [
-      { key: "welcome_email_enabled", value: formData.get("welcome_email_enabled") as string },
-      { key: "welcome_email_subject", value: formData.get("welcome_email_subject") as string },
-      { key: "welcome_email_from_name", value: formData.get("welcome_email_from_name") as string },
-      { key: "welcome_email_from_email", value: formData.get("welcome_email_from_email") as string },
-      { key: "welcome_email_template", value: formData.get("welcome_email_template") as string },
+    const { updateEmailConfig } = await import("@/lib/email-config")
+
+    const configs = [
+      "welcome_email_enabled",
+      "welcome_email_subject",
+      "welcome_email_from_name",
+      "welcome_email_from_email",
+      "welcome_email_template",
     ]
 
-    for (const update of updates) {
-      if (update.value !== null) {
-        await updateEmailConfig(update.key, update.value)
+    for (const key of configs) {
+      const value = formData.get(key) as string
+      if (value !== null) {
+        const enabled = key === "welcome_email_enabled" ? value === "true" : true
+        await updateEmailConfig(key, value, enabled)
       }
     }
 
-    return {
-      success: true,
-      message: "Email configuration updated successfully",
-    }
+    return { success: true, message: "Email configuration updated successfully!" }
   } catch (error) {
     console.error("Error updating email configuration:", error)
-    return {
-      success: false,
-      message: "Failed to update email configuration",
-    }
+    return { success: false, message: "Failed to update email configuration." }
   }
 }
 
+/* ------------------------------------------------------------------ */
+/* 6.  Send test welcome email                                         */
 export async function sendTestWelcomeEmail(formData: FormData) {
   try {
     const testEmail = formData.get("testEmail") as string
 
-    if (!testEmail) {
-      return {
-        success: false,
-        message: "Test email address is required",
-      }
+    if (!testEmail || !isValidEmail(testEmail)) {
+      return { success: false, message: "Please provide a valid test email address." }
     }
 
-    const emailResult = await sendWelcomeEmailWithDetails({
+    const result = await sendWelcomeEmailWithDetails({
       name: "Test User",
       email: testEmail,
-      parent_location: "Mumbai, India",
-      care_plan: "Peace Plan - $50/month",
+      parent_location: "Mumbai",
+      care_plan: "Peace: $50/month",
       waitlist_number: 999,
-      referral_link: `${process.env.NEXT_PUBLIC_SITE_URL || "https://timesnri.com"}?ref=testuser`,
+      referral_link: `${process.env.NEXT_PUBLIC_SITE_URL || "https://times-nri.vercel.app"}?ref=test`,
     })
 
-    return {
-      success: emailResult.success,
-      message: emailResult.success
-        ? `Test email sent successfully to ${testEmail} via ${emailResult.service}`
-        : `Failed to send test email: ${emailResult.error}`,
-      details: emailResult.details,
+    if (result.success) {
+      return {
+        success: true,
+        message: `Test email sent successfully to ${testEmail} via ${result.service}!`,
+        details: result.details,
+      }
+    } else {
+      return {
+        success: false,
+        message: `Failed to send test email: ${result.error}`,
+        details: result.details,
+      }
     }
   } catch (error) {
     console.error("Error sending test email:", error)
     return {
       success: false,
-      message: "An error occurred while sending test email",
+      message: "Error sending test email.",
+      details: error instanceof Error ? error.message : "Unknown error",
     }
   }
 }
 
-/* ------------------------------------------------------------------ */
-/* 6. New action to join waitlist                                      */
-export async function joinWaitlist(formData: FormData) {
-  try {
-    const name = formData.get("name") as string
-    const email = formData.get("email") as string
-    const parentLocation = formData.get("parentLocation") as string
-    const carePlanInterest = formData.get("carePlanInterest") as string
-    const referralSource = formData.get("referralSource") as string
-
-    if (!name || !email || !parentLocation) {
-      return {
-        success: false,
-        message: "Please fill in all required fields",
-      }
-    }
-
-    // Check if email already exists
-    const existingUser = await sql`
-      SELECT id FROM waitlist WHERE email = ${email}
-    `
-
-    if (existingUser.length > 0) {
-      return {
-        success: false,
-        message: "This email is already on our waitlist",
-      }
-    }
-
-    // Get the next waitlist number
-    const countResult = await sql`
-      SELECT COUNT(*) as count FROM waitlist
-    `
-    const waitlistNumber = Number.parseInt(countResult[0].count) + 1
-
-    // Generate referral code (simple hash of email)
-    const referralCode = Buffer.from(email)
-      .toString("base64")
-      .replace(/[^a-zA-Z0-9]/g, "")
-      .substring(0, 8)
-
-    // Create referral link
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://timesnri.com"
-    const referralLink = `${siteUrl}?ref=${referralCode}`
-
-    // Insert into waitlist
-    const result = await sql`
-      INSERT INTO waitlist (
-        name, email, parent_location, care_plan_interest, 
-        referral_source, waitlist_number, referral_code
-      ) VALUES (
-        ${name}, ${email}, ${parentLocation}, ${carePlanInterest}, 
-        ${referralSource}, ${waitlistNumber}, ${referralCode}
-      ) RETURNING id
-    `
-
-    if (result.length === 0) {
-      throw new Error("Failed to insert into waitlist")
-    }
-
-    // Send welcome email
-    const emailResult = await sendWelcomeEmailWithDetails({
-      name,
-      email,
-      parent_location: parentLocation,
-      care_plan: carePlanInterest,
-      waitlist_number: waitlistNumber,
-      referral_link: referralLink,
-    })
-
-    console.log("Welcome email result:", emailResult)
-
-    return {
-      success: true,
-      message: "Successfully joined the waitlist!",
-      data: {
-        waitlistNumber,
-        referralCode,
-        referralLink,
-        emailSent: emailResult.success,
-        emailError: emailResult.success ? null : emailResult.error,
-      },
-    }
-  } catch (error) {
-    console.error("Error joining waitlist:", error)
-    return {
-      success: false,
-      message: "An error occurred. Please try again.",
-    }
-  }
-}
+// 👇 Legacy alias — kept for compatibility with older imports
+export { submitToWaitlist as submitWaitlist }

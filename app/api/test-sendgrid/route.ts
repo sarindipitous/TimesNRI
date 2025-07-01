@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
     console.log("SendGrid API Key (first 10 chars):", process.env.SENDGRID_API_KEY?.substring(0, 10))
     console.log("SendGrid payload:", JSON.stringify(sendGridPayload, null, 2))
 
+    // ACTUAL API CALL TO SENDGRID
     const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
       method: "POST",
       headers: {
@@ -54,18 +55,21 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(sendGridPayload),
     })
 
+    // LOG SENDGRID RESPONSE
     console.log("SendGrid response status:", response.status)
     console.log("SendGrid response headers:", Object.fromEntries(response.headers.entries()))
 
+    const responseText = await response.text()
+    console.log("SendGrid response body:", responseText)
+
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error("SendGrid error response:", errorText)
+      console.error("SendGrid API error:", responseText)
 
       let errorData
       try {
-        errorData = JSON.parse(errorText)
+        errorData = JSON.parse(responseText)
       } catch {
-        errorData = { message: errorText }
+        errorData = { message: responseText }
       }
 
       return NextResponse.json({
@@ -91,6 +95,7 @@ export async function POST(request: NextRequest) {
         status: response.status,
         headers: Object.fromEntries(response.headers.entries()),
         timestamp: new Date().toISOString(),
+        responseBody: responseText,
       },
     })
   } catch (error) {
