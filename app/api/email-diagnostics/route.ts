@@ -45,10 +45,8 @@ export async function GET() {
           })
 
           let senderInfo = "Could not fetch sender info"
-          let sendersData = null
-
           if (sendersResponse.ok) {
-            sendersData = await sendersResponse.json()
+            const sendersData = await sendersResponse.json()
             const verifiedSenders = sendersData.results || []
             senderInfo = `${verifiedSenders.length} verified sender(s): ${verifiedSenders.map((s: any) => s.from_email).join(", ")}`
           }
@@ -58,7 +56,7 @@ export async function GET() {
             status: "✅ Connected",
             details: `API key valid. Account: ${profileData.email || "Unknown"}. ${senderInfo}`,
             account: profileData,
-            senders: sendersData,
+            senders: sendersResponse.ok ? await sendersResponse.json() : null,
           })
         } else {
           const errorText = await profileResponse.text()

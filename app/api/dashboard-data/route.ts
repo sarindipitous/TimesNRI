@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
-import { sql, hasDb } from "@/lib/db" // ✅ FIXED: Added hasDb import
+import { neon } from "@neondatabase/serverless"
+
+const sql = neon(process.env.DATABASE_URL!)
 
 export const dynamic = "force-dynamic"
 
@@ -7,37 +9,20 @@ export async function GET() {
   console.log("=== DASHBOARD DATA API REQUEST ===")
 
   try {
-    // ✅ FIXED: Check database availability
-    if (!hasDb) {
-      console.log("❌ Database not configured")
-      return NextResponse.json(
-        {
-          error: "Database not configured",
-          waitlist: {
-            total: 0,
-            thisWeek: 0,
-            withReferrals: 0,
-          },
-          recentSubmissions: [],
-        },
-        { status: 500 },
-      )
-    }
-
     console.log("🔍 Testing database connection...")
 
     // Test database connection first
     const testResult = await sql`SELECT 1 as test`
     console.log("✅ Database connection test:", testResult)
 
-    // Get total waitlist count with proper casting
+    // Get total waitlist count
     console.log("📊 Fetching total waitlist count...")
     const totalResult = await sql`
-      SELECT COUNT(*)::int as count 
+      SELECT COUNT(*) as count 
       FROM waitlist_submissions
     `
     console.log("📊 Total count query result:", totalResult)
-    const total = Number(totalResult[0]?.count || 0)
+    const total = Number.parseInt(totalResult[0]?.count || "0")
 
     // Get this week's count
     const weekAgo = new Date()
@@ -45,22 +30,22 @@ export async function GET() {
     console.log("📅 Week ago date:", weekAgo.toISOString())
 
     const thisWeekResult = await sql`
-      SELECT COUNT(*)::int as count 
+      SELECT COUNT(*) as count 
       FROM waitlist_submissions 
       WHERE created_at >= ${weekAgo.toISOString()}
     `
     console.log("📊 This week query result:", thisWeekResult)
-    const thisWeek = Number(thisWeekResult[0]?.count || 0)
+    const thisWeek = Number.parseInt(thisWeekResult[0]?.count || "0")
 
     // Get count with referrals
     console.log("🔗 Fetching referral count...")
     const referralsResult = await sql`
-      SELECT COUNT(*)::int as count 
+      SELECT COUNT(*) as count 
       FROM waitlist_submissions 
       WHERE referred_by IS NOT NULL AND referred_by != ''
     `
     console.log("🔗 Referrals query result:", referralsResult)
-    const withReferrals = Number(referralsResult[0]?.count || 0)
+    const withReferrals = Number.parseInt(referralsResult[0]?.count || "0")
 
     // Get recent submissions (last 10)
     console.log("📝 Fetching recent submissions...")
@@ -120,6 +105,7 @@ export async function GET() {
   } catch (error) {
     console.error("❌ Dashboard API Error:", error)
 
+    // Return error response so we can debug
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Unknown error",

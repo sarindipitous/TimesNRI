@@ -16,24 +16,8 @@ interface EmailResult {
   details?: any
 }
 
-// Input validation
-function validateEmailData(data: EmailData): { isValid: boolean; error?: string } {
-  if (!data.email || typeof data.email !== "string" || !data.email.includes("@")) {
-    return { isValid: false, error: "Invalid email address" }
-  }
-
-  return { isValid: true }
-}
-
 export async function sendWelcomeEmail(data: EmailData): Promise<boolean> {
   try {
-    // Validate input
-    const validation = validateEmailData(data)
-    if (!validation.isValid) {
-      console.error("❌ Email validation failed:", validation.error)
-      return false
-    }
-
     // Check if welcome emails are enabled
     const enabled = await getEmailConfig("welcome_email_enabled")
     if (enabled !== "true") {
@@ -58,14 +42,14 @@ export async function sendWelcomeEmail(data: EmailData): Promise<boolean> {
       return false
     }
 
-    // Replace template variables with proper escaping
+    // Replace template variables
     let emailHtml = template
-    emailHtml = emailHtml.replace(/\{\{name\}\}/g, escapeHtml(data.name || "Valued Member"))
-    emailHtml = emailHtml.replace(/\{\{email\}\}/g, escapeHtml(data.email))
-    emailHtml = emailHtml.replace(/\{\{parent_location\}\}/g, escapeHtml(data.parent_location || "your area"))
-    emailHtml = emailHtml.replace(/\{\{care_plan\}\}/g, escapeHtml(data.care_plan || "Not specified"))
-    emailHtml = emailHtml.replace(/\{\{waitlist_number\}\}/g, escapeHtml(data.waitlist_number?.toString() || "TBD"))
-    emailHtml = emailHtml.replace(/\{\{referral_link\}\}/g, escapeHtml(data.referral_link || "#"))
+    emailHtml = emailHtml.replace(/\{\{name\}\}/g, data.name || "Valued Member")
+    emailHtml = emailHtml.replace(/\{\{email\}\}/g, data.email)
+    emailHtml = emailHtml.replace(/\{\{parent_location\}\}/g, data.parent_location || "your area")
+    emailHtml = emailHtml.replace(/\{\{care_plan\}\}/g, data.care_plan || "Not specified")
+    emailHtml = emailHtml.replace(/\{\{waitlist_number\}\}/g, data.waitlist_number?.toString() || "TBD")
+    emailHtml = emailHtml.replace(/\{\{referral_link\}\}/g, data.referral_link || "#")
 
     // Try different email services in order of preference
     const result = await tryEmailServices({
@@ -91,12 +75,6 @@ export async function sendWelcomeEmail(data: EmailData): Promise<boolean> {
 // Enhanced version that returns detailed results for debugging
 export async function sendWelcomeEmailWithDetails(data: EmailData): Promise<EmailResult> {
   try {
-    // Validate input
-    const validation = validateEmailData(data)
-    if (!validation.isValid) {
-      return { success: false, error: validation.error }
-    }
-
     // Check if welcome emails are enabled
     const enabled = await getEmailConfig("welcome_email_enabled")
     if (enabled !== "true") {
@@ -119,14 +97,14 @@ export async function sendWelcomeEmailWithDetails(data: EmailData): Promise<Emai
       }
     }
 
-    // Replace template variables with proper escaping
+    // Replace template variables
     let emailHtml = template
-    emailHtml = emailHtml.replace(/\{\{name\}\}/g, escapeHtml(data.name || "Valued Member"))
-    emailHtml = emailHtml.replace(/\{\{email\}\}/g, escapeHtml(data.email))
-    emailHtml = emailHtml.replace(/\{\{parent_location\}\}/g, escapeHtml(data.parent_location || "your area"))
-    emailHtml = emailHtml.replace(/\{\{care_plan\}\}/g, escapeHtml(data.care_plan || "Not specified"))
-    emailHtml = emailHtml.replace(/\{\{waitlist_number\}\}/g, escapeHtml(data.waitlist_number?.toString() || "TBD"))
-    emailHtml = emailHtml.replace(/\{\{referral_link\}\}/g, escapeHtml(data.referral_link || "#"))
+    emailHtml = emailHtml.replace(/\{\{name\}\}/g, data.name || "Valued Member")
+    emailHtml = emailHtml.replace(/\{\{email\}\}/g, data.email)
+    emailHtml = emailHtml.replace(/\{\{parent_location\}\}/g, data.parent_location || "your area")
+    emailHtml = emailHtml.replace(/\{\{care_plan\}\}/g, data.care_plan || "Not specified")
+    emailHtml = emailHtml.replace(/\{\{waitlist_number\}\}/g, data.waitlist_number?.toString() || "TBD")
+    emailHtml = emailHtml.replace(/\{\{referral_link\}\}/g, data.referral_link || "#")
 
     // Try different email services in order of preference
     const result = await tryEmailServices({
@@ -153,29 +131,8 @@ interface EmailPayload {
   html: string
 }
 
-// HTML escaping function to prevent XSS
-function escapeHtml(text: string): string {
-  const map: Record<string, string> = {
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#039;",
-  }
-  return text.replace(/[&<>"']/g, (m) => map[m])
-}
-
 async function tryEmailServices(payload: EmailPayload): Promise<EmailResult> {
   const errors: string[] = []
-
-  // Validate payload
-  if (!payload.to || !payload.from || !payload.subject || !payload.html) {
-    return {
-      success: false,
-      error: "Invalid email payload",
-      details: { payload },
-    }
-  }
 
   // Try SendGrid first since you have it configured
   if (process.env.SENDGRID_API_KEY) {
@@ -256,7 +213,7 @@ async function sendViaSendGrid(payload: EmailPayload): Promise<EmailResult> {
       ],
     }
 
-    console.log("Sending to SendGrid API...")
+    console.log("Sending to SendGrid API with payload:", JSON.stringify(sendGridPayload, null, 2))
 
     const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
       method: "POST",
@@ -268,6 +225,7 @@ async function sendViaSendGrid(payload: EmailPayload): Promise<EmailResult> {
     })
 
     console.log("SendGrid response status:", response.status)
+    console.log("SendGrid response headers:", Object.fromEntries(response.headers.entries()))
 
     if (!response.ok) {
       const errorText = await response.text()
@@ -288,6 +246,8 @@ async function sendViaSendGrid(payload: EmailPayload): Promise<EmailResult> {
           status: response.status,
           headers: Object.fromEntries(response.headers.entries()),
           body: errorData,
+          payload: sendGridPayload,
+          originalPayload: payload,
         },
       }
     }
@@ -301,6 +261,7 @@ async function sendViaSendGrid(payload: EmailPayload): Promise<EmailResult> {
       details: {
         messageId,
         status: response.status,
+        headers: Object.fromEntries(response.headers.entries()),
         fromEmailUsed: verifiedEmail,
       },
     }
@@ -310,7 +271,10 @@ async function sendViaSendGrid(payload: EmailPayload): Promise<EmailResult> {
       success: false,
       service: "SendGrid",
       error: error instanceof Error ? error.message : "Network error",
-      details: { error },
+      details: {
+        error: error,
+        payload: payload,
+      },
     }
   }
 }
@@ -352,7 +316,7 @@ async function sendViaResend(payload: EmailPayload): Promise<EmailResult> {
       success: false,
       service: "Resend",
       error: error instanceof Error ? error.message : "Network error",
-      details: { error },
+      details: error,
     }
   }
 }
@@ -394,7 +358,7 @@ async function sendViaMailgun(payload: EmailPayload): Promise<EmailResult> {
       success: false,
       service: "Mailgun",
       error: error instanceof Error ? error.message : "Network error",
-      details: { error },
+      details: error,
     }
   }
 }
