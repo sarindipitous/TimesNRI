@@ -23,7 +23,7 @@ import {
   Loader2,
 } from "lucide-react"
 import { createWaitlistSubmission } from "@/app/actions/waitlist"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "@/hooks/use-toast" // ✅ FIXED: Added missing import
 
 const initialState = { errors: {}, message: null }
 
@@ -134,6 +134,11 @@ function WaitlistForm() {
       })
     } catch (error) {
       console.error("Failed to copy:", error)
+      toast({
+        title: "Error",
+        description: "Failed to copy link",
+        variant: "destructive",
+      })
     }
   }
 

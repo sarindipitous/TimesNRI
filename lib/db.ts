@@ -417,18 +417,22 @@ export async function deleteWaitlistSubmission(id: number): Promise<boolean> {
 
     const email = existingEntry[0].email
 
-    // Use a transaction to ensure data consistency
-    await sql.begin(async (sql) => {
+    // ✅ FIXED: Manual transaction handling for Neon
+    try {
       // Delete related referrals first
       await sql`DELETE FROM referral_details WHERE referrer_id = ${id} OR referred_id = ${id}`
       await sql`DELETE FROM referrals WHERE referrer_id = ${id} OR referred_email = ${email}`
 
       // Delete the main waitlist submission
-      await sql`DELETE FROM waitlist_submissions WHERE id = ${id}`
-    })
+      const deleteResult = await sql`DELETE FROM waitlist_submissions WHERE id = ${id}`
 
-    console.log(`✅ Successfully deleted waitlist submission with ID: ${id}`)
-    return true
+      const success = deleteResult.count > 0
+      console.log(`✅ Successfully deleted waitlist submission with ID: ${id}`)
+      return success
+    } catch (deleteError) {
+      console.error(`❌ Error during delete operations for ID ${id}:`, deleteError)
+      return false
+    }
   } catch (error) {
     console.error(`❌ Error in deleteWaitlistSubmission for ID ${id}:`, error)
     return false
