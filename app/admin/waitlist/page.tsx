@@ -6,7 +6,20 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Users, Search, Download, Filter, Trash2, Eye, Mail, MapPin, Heart, User, Calendar } from "lucide-react"
+import {
+  Users,
+  Search,
+  Download,
+  Filter,
+  Trash2,
+  Eye,
+  Mail,
+  MapPin,
+  Heart,
+  User,
+  Calendar,
+  UserCheck,
+} from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -121,7 +134,8 @@ export default function WaitlistAdminPage() {
       !searchTerm ||
       submission.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       submission.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      submission.care_needs?.toLowerCase().includes(searchTerm.toLowerCase())
+      submission.care_needs?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      submission.referred_by?.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchesLocation =
       !filterLocation ||
@@ -174,6 +188,12 @@ export default function WaitlistAdminPage() {
     window.URL.revokeObjectURL(url)
   }
 
+  // Count referrals for stats
+  const referralStats = {
+    totalReferrals: submissions.filter((sub) => sub.referred_by).length,
+    uniqueReferrers: new Set(submissions.filter((sub) => sub.referred_by).map((sub) => sub.referred_by)).size,
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -213,7 +233,8 @@ export default function WaitlistAdminPage() {
           <h1 className="text-2xl font-bold">Complete Waitlist Management</h1>
           <p className="text-gray-600">
             Total entries: <strong>{submissions.length}</strong> | Showing:{" "}
-            <strong>{filteredSubmissions.length}</strong>
+            <strong>{filteredSubmissions.length}</strong> | Referrals: <strong>{referralStats.totalReferrals}</strong>{" "}
+            from <strong>{referralStats.uniqueReferrers}</strong> referrers
           </p>
         </div>
         <div className="flex gap-2">
@@ -235,7 +256,7 @@ export default function WaitlistAdminPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Search by name, email, or care needs..."
+                  placeholder="Search by name, email, care needs, or referrer..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -294,6 +315,7 @@ export default function WaitlistAdminPage() {
                     <TableHead>Care Needs</TableHead>
                     <TableHead>Care Plan</TableHead>
                     <TableHead>Interest</TableHead>
+                    <TableHead>Referrer</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead className="w-32">Actions</TableHead>
                   </TableRow>
@@ -375,6 +397,20 @@ export default function WaitlistAdminPage() {
                         )}
                       </TableCell>
                       <TableCell>
+                        {submission.referred_by ? (
+                          <div className="flex items-center gap-1">
+                            <UserCheck className="h-3 w-3 text-green-600" />
+                            <Badge variant="secondary" className="text-xs bg-green-50 text-green-700">
+                              {submission.referred_by.length > 15
+                                ? submission.referred_by.substring(0, 15) + "..."
+                                : submission.referred_by}
+                            </Badge>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs">Direct signup</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         <div className="flex items-center gap-1">
                           <Calendar className="h-3 w-3 text-gray-400" />
                           <span className="text-sm text-gray-600">
@@ -448,7 +484,12 @@ export default function WaitlistAdminPage() {
                                 {submission.referred_by && (
                                   <div>
                                     <label className="text-sm font-medium text-gray-500">Referred By</label>
-                                    <p className="text-sm mt-1 p-3 bg-blue-50 rounded">{submission.referred_by}</p>
+                                    <p className="text-sm mt-1 p-3 bg-green-50 rounded border border-green-200">
+                                      <span className="flex items-center gap-2">
+                                        <UserCheck className="h-4 w-4 text-green-600" />
+                                        {submission.referred_by}
+                                      </span>
+                                    </p>
                                   </div>
                                 )}
                               </div>
