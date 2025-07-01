@@ -9,6 +9,7 @@ import Link from "next/link"
 export function FloatingCTA() {
   const [isVisible, setIsVisible] = useState(false)
   const [isPulsing, setPulsing] = useState(false)
+  const [referralParam, setReferralParam] = useState<string | null>(null)
   const isMobile = useMobile()
   const prefersReducedMotion = useReducedMotion()
 
@@ -33,6 +34,22 @@ export function FloatingCTA() {
     }
   }, [isVisible])
 
+  useEffect(() => {
+    // Capture referral parameter from URL
+    const urlParams = new URLSearchParams(window.location.search)
+    const ref = urlParams.get("ref")
+    if (ref) {
+      setReferralParam(ref)
+    }
+  }, [])
+
+  const getWaitlistUrl = () => {
+    if (referralParam) {
+      return `/waitlist?ref=${encodeURIComponent(referralParam)}`
+    }
+    return "/waitlist"
+  }
+
   return (
     <AnimatePresence>
       {isVisible && (
@@ -44,7 +61,7 @@ export function FloatingCTA() {
           transition={{ duration: prefersReducedMotion ? 0.1 : 0.3 }}
         >
           <motion.div animate={isPulsing ? { scale: [1, 1.1, 1] } : {}} transition={{ duration: 0.5 }}>
-            <Link href="/waitlist">
+            <Link href={getWaitlistUrl()}>
               <Button
                 className="bg-accent hover:bg-accent/90 text-white shadow-warm transition-all duration-300 h-14 px-6"
                 size="lg"

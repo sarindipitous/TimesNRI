@@ -219,6 +219,15 @@ export default function Home() {
     }
   }, [searchParams])
 
+  // Get referral parameter for hero CTA
+  const referralParam = searchParams.get("ref")
+  const getWaitlistUrl = () => {
+    if (referralParam) {
+      return `/waitlist?ref=${encodeURIComponent(referralParam)}`
+    }
+    return "/waitlist"
+  }
+
   // Define variants here inside the component to use hooks properly
   const itemVariants = {
     hidden: {
@@ -342,7 +351,7 @@ export default function Home() {
                 transition={{ duration: 0.8, delay: 1, ease: "easeOut" }}
               >
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
-                  <Link href="/waitlist">
+                  <Link href={getWaitlistUrl()}>
                     <Button
                       size="lg"
                       className="bg-accent hover:bg-accent/90 text-white transition-all duration-300 py-7 px-8 text-lg font-semibold"
@@ -624,7 +633,7 @@ export default function Home() {
                   </p>
                 </motion.div>
                 <motion.div className="pt-8" variants={itemVariants}>
-                  <Link href="/waitlist">
+                  <Link href={getWaitlistUrl()}>
                     <Button
                       size="lg"
                       className="bg-accent hover:bg-accent/90 text-white transition-all duration-300 py-6 px-8 text-lg font-semibold"
