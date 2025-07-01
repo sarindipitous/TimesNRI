@@ -4,7 +4,7 @@ import type React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { LayoutDashboard, FileText, Mail, Database, ArrowLeft, Menu, X } from "lucide-react"
+import { LayoutDashboard, FileText, Mail, Database, ArrowLeft, Menu, X, Users } from "lucide-react"
 import { useState } from "react"
 
 interface AdminLayoutProps {
@@ -22,6 +22,11 @@ const adminRoutes = [
     label: "Dashboard Overview",
     href: "/admin/dashboard",
     icon: LayoutDashboard,
+  },
+  {
+    label: "Waitlist Management",
+    href: "/admin/waitlist",
+    icon: Users,
   },
   {
     label: "Blog Management",
