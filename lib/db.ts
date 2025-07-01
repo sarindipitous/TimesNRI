@@ -273,51 +273,66 @@ export async function updateWaitlistSubmission(
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-//  DELETE helpers - CASCADE DELETE TO HANDLE FOREIGN KEYS
+//  DELETE helpers - SIMPLIFIED AND ROBUST
 // ──────────────────────────────────────────────────────────────────────────────
 export async function deleteWaitlistSubmission(id: number): Promise<boolean> {
   if (!hasDb) return noDb(false, "deleteWaitlistSubmission")
 
   try {
-    // Use a transaction to delete referrals first, then the waitlist submission
-    await sql`BEGIN`
+    console.log(`Starting delete process for waitlist submission ID: ${id}`)
 
-    // Try to delete from referrals table first (where this submission is the referrer)
+    // First, check if the entry exists
+    const existingEntry = await sql`SELECT id FROM waitlist_submissions WHERE id = ${id}`
+    if (existingEntry.length === 0) {
+      console.log(`Entry with ID ${id} not found`)
+      return false
+    }
+
+    // Delete related referrals first (if tables exist)
     try {
+      console.log(`Deleting referrals for ID: ${id}`)
       await sql`DELETE FROM referrals WHERE referrer_id = ${id}`
+      console.log(`Deleted referrals where referrer_id = ${id}`)
     } catch (e) {
-      console.log("referrals table might not exist, continuing...")
+      console.log("referrals table might not exist or no referrals to delete, continuing...")
     }
 
-    // Try to delete from referral_details table first (where this submission is the referrer)
     try {
-      await sql`DELETE FROM referral_details WHERE referrer_id = ${id}`
+      console.log(`Deleting referral_details for ID: ${id}`)
+      await sql`DELETE FROM referral_details WHERE referrer_id = ${id} OR referred_id = ${id}`
+      console.log(`Deleted referral_details for ID: ${id}`)
     } catch (e) {
-      console.log("referral_details table might not exist, continuing...")
+      console.log("referral_details table might not exist or no details to delete, continuing...")
     }
 
-    // Also try to delete referrals where this submission was referred by someone else
-    try {
-      await sql`DELETE FROM referral_details WHERE referred_id = ${id}`
-    } catch (e) {
-      console.log("referral_details table might not exist, continuing...")
+    // Now delete the main waitlist submission
+    console.log(`Deleting waitlist submission with ID: ${id}`)
+    const deleteResult = await sql`DELETE FROM waitlist_submissions WHERE id = ${id}`
+
+    console.log(`Delete result:`, deleteResult)
+    const success = deleteResult.count > 0
+
+    if (success) {
+      console.log(`Successfully deleted waitlist submission with ID: ${id}`)
+    } else {
+      console.log(`Failed to delete waitlist submission with ID: ${id} - no rows affected`)
     }
 
-    // Now delete the waitlist submission
-    const res = await sql`DELETE FROM waitlist_submissions WHERE id = ${id}`
-
-    await sql`COMMIT`
-
-    return res.count > 0
+    return success
   } catch (error) {
-    // Rollback the transaction on error
+    console.error(`Error in deleteWaitlistSubmission for ID ${id}:`, error)
+
+    // Try a simple delete as fallback
     try {
-      await sql`ROLLBACK`
-    } catch (rollbackError) {
-      console.error("Rollback failed:", rollbackError)
+      console.log(`Attempting simple delete fallback for ID: ${id}`)
+      const fallbackResult = await sql`DELETE FROM waitlist_submissions WHERE id = ${id}`
+      const fallbackSuccess = fallbackResult.count > 0
+      console.log(`Fallback delete result: ${fallbackSuccess}`)
+      return fallbackSuccess
+    } catch (fallbackError) {
+      console.error(`Fallback delete also failed for ID ${id}:`, fallbackError)
+      return false
     }
-    console.error("Error in deleteWaitlistSubmission:", error)
-    throw error
   }
 }
 

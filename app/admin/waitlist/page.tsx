@@ -15,6 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { useToast } from "@/hooks/use-toast"
 
 interface WaitlistSubmission {
   id: number
@@ -39,6 +40,7 @@ export default function WaitlistAdminPage() {
   const [filterLocation, setFilterLocation] = useState("")
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [selectedSubmission, setSelectedSubmission] = useState<WaitlistSubmission | null>(null)
+  const { toast } = useToast()
 
   useEffect(() => {
     fetchWaitlistData()
@@ -74,17 +76,41 @@ export default function WaitlistAdminPage() {
 
     try {
       setDeletingId(id)
-      const response = await fetch(`/api/waitlist/${id}`, { method: "DELETE" })
+      console.log(`Attempting to delete submission with ID: ${id}`)
+
+      const response = await fetch(`/api/waitlist/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+
+      console.log(`Delete response status: ${response.status}`)
       const data = await response.json()
+      console.log("Delete response data:", data)
 
       if (!data.success) {
         throw new Error(data.error || "Failed to delete")
       }
 
+      // Remove from local state
       setSubmissions((prev) => prev.filter((sub) => sub.id !== id))
-      alert("Entry deleted successfully!")
+
+      toast({
+        title: "Success",
+        description: "Entry deleted successfully!",
+      })
+
+      console.log(`Successfully deleted submission with ID: ${id}`)
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to delete")
+      console.error("Delete error:", err)
+      const errorMessage = err instanceof Error ? err.message : "Failed to delete"
+
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
     } finally {
       setDeletingId(null)
     }
@@ -170,7 +196,7 @@ export default function WaitlistAdminPage() {
               <p className="text-sm mt-2">
                 Try visiting <code>/api/waitlist</code> directly to see the raw API response.
               </p>
-              <Button onClick={fetchWaitlistData} className="mt-4" variant="outline">
+              <Button onClick={fetchWaitlistData} className="mt-4 bg-transparent" variant="outline">
                 Try Again
               </Button>
             </div>
