@@ -45,7 +45,7 @@ importers:
         specifier: ^1.0.6
         version: 1.0.6(@types/react-dom@18.0.0)(@types/react@18.0.0)(react-dom@18.0.0(react@18.0.0))(react@18.0.0)
       canvas-confetti:
-        specifier: ^1.9.2
+        specifier: latest
         version: 1.9.3
       class-variance-authority:
         specifier: ^0.7.1

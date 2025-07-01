@@ -1,328 +1,896 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { CheckCircle, Loader2 } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Check, Copy, Share2, ArrowRight } from "lucide-react"
 import { submitToWaitlist } from "@/app/actions/waitlist"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface WaitlistFormProps {
   buttonText?: string
   source?: string
   includeNameField?: boolean
+  className?: string
   isDetailed?: boolean
   onClose?: () => void
   isOpen?: boolean
   onOpenChange?: (open: boolean) => void
-  referredBy?: string | null
+  standalone?: boolean
+  preSelectedPlan?: string
 }
 
 export function WaitlistForm({
-  buttonText = "Join Waitlist",
+  buttonText = "Join the Waitlist",
   source = "main-form",
-  includeNameField = false,
+  includeNameField = true,
+  className = "",
   isDetailed = false,
   onClose,
   isOpen = false,
   onOpenChange,
-  referredBy = null,
+  standalone = false,
+  preSelectedPlan,
 }: WaitlistFormProps) {
+  const [email, setEmail] = useState("")
+  const [name, setName] = useState("")
+  const [city, setCity] = useState("")
+  const [parentLocation, setParentLocation] = useState("")
+  const [careNeeds, setCareNeeds] = useState("")
+  const [carePlan, setCarePlan] = useState(preSelectedPlan || "")
+  const [step, setStep] = useState(1)
+  const [isSuccessOpen, setIsSuccessOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSuccess, setIsSuccess] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [referralLink, setReferralLink] = useState<string | null>(null)
-  const [waitlistNumber, setWaitlistNumber] = useState<number | null>(null)
+  const [referralLink, setReferralLink] = useState("")
+  const [referralCopied, setReferralCopied] = useState(false)
+  const [formMessage, setFormMessage] = useState("")
+  const [formError, setFormError] = useState("")
+  const formRef = useRef<HTMLFormElement>(null)
+  const [carePlanInterest, setCarePlanInterest] = useState("")
+  const [referredBy, setReferredBy] = useState<string | null>(null)
 
-  // Form state
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    city: "",
-    parentLocation: "",
-    careNeeds: "",
-    carePlan: "",
-    carePlanInterest: "",
-  })
+  // Basic email validation function for client-side
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email)
+  }
 
-  // Debug log to verify referredBy is received
+  // Check for referral in URL and plan parameter
   useEffect(() => {
-    if (referredBy) {
-      console.log("WaitlistForm received referredBy:", referredBy)
-    }
-  }, [referredBy])
+    const urlParams = new URLSearchParams(window.location.search)
+    const ref = urlParams.get("ref")
+    const planParam = urlParams.get("plan")
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
+    console.log("URL params:", { ref, planParam })
+
+    // FIXED: Only set referral if it exists in URL, don't use localStorage fallback
+    if (ref) {
+      console.log("Setting referredBy to:", ref)
+      setReferredBy(ref)
+      // Store in localStorage for this session only
+      localStorage.setItem("timesnri_referral", ref)
+    } else {
+      // FIXED: Clear any stale referral data when no ref parameter
+      console.log("No referral parameter found, clearing any stored referral")
+      setReferredBy(null)
+      localStorage.removeItem("timesnri_referral")
+    }
+
+    // Set plan based on preSelectedPlan prop first, then URL parameter
+    if (preSelectedPlan) {
+      setCarePlan(preSelectedPlan)
+    } else if (planParam) {
+      const planMap: Record<string, string> = {
+        peace: "Peace: $50/month",
+        presence: "Presence: $200/month",
+        honour: "Honour: $500/month (By Invitation Only)",
+      }
+      setCarePlan(planMap[planParam] || "")
+    }
+  }, [preSelectedPlan])
+
+  const triggerConfetti = async () => {
+    // Only run in the browser
+    if (typeof window === "undefined") return
+
+    try {
+      const { default: confetti } = await import("canvas-confetti")
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+      })
+
+      // Optional mobile vibration feedback
+      if (navigator.vibrate) {
+        navigator.vibrate(100)
+      }
+    } catch (err) {
+      // Silently ignore if the import fails (e.g. offline)
+      console.error("Unable to load canvas-confetti:", err)
+    }
+  }
+
+  const copyReferralLink = () => {
+    navigator.clipboard.writeText(referralLink)
+    setReferralCopied(true)
+    setTimeout(() => setReferralCopied(false), 2000)
+  }
+
+  const validateForm = (): boolean => {
+    // Reset error messages
+    setFormError("")
+
+    // Validate email
+    if (!email || !isValidEmail(email)) {
+      setFormError("Please provide a valid email address.")
+      return false
+    }
+
+    // If detailed form, validate required fields based on current step
+    if (isDetailed) {
+      if (step === 1 && (!name || !city)) {
+        setFormError("Please fill in all required fields.")
+        return false
+      }
+
+      if (step === 2 && (!parentLocation || !careNeeds)) {
+        setFormError("Please fill in all required fields.")
+        return false
+      }
+    } else if (includeNameField && !name) {
+      setFormError("Please provide your name.")
+      return false
+    }
+
+    return true
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    console.log("Form submission started")
+
+    if (isDetailed && step < 3) {
+      console.log(`Moving to next step: ${step + 1}`)
+      setStep(step + 1)
+      return
+    }
+
     setIsSubmitting(true)
-    setError(null)
+    setFormMessage("")
+    setFormError("")
 
     try {
-      const formDataToSubmit = new FormData()
-      formDataToSubmit.append("email", formData.email)
-      formDataToSubmit.append("source", source)
+      // Create FormData and append values
+      const formData = new FormData()
 
-      if (includeNameField && formData.name) {
-        formDataToSubmit.append("name", formData.name)
+      // Manually add form fields to ensure they're included
+      formData.append("email", email)
+      formData.append("name", name)
+      formData.append("source", source)
+
+      if (isDetailed) {
+        formData.append("city", city)
+        formData.append("parentLocation", parentLocation)
+        formData.append("careNeeds", careNeeds)
+        if (carePlan) {
+          formData.append("carePlan", carePlan)
+        }
+        if (carePlanInterest) {
+          formData.append("carePlanInterest", carePlanInterest)
+        }
       }
 
-      if (formData.city) {
-        formDataToSubmit.append("city", formData.city)
-      }
-
-      if (formData.parentLocation) {
-        formDataToSubmit.append("parentLocation", formData.parentLocation)
-      }
-
-      if (formData.careNeeds) {
-        formDataToSubmit.append("careNeeds", formData.careNeeds)
-      }
-
-      if (formData.carePlan) {
-        formDataToSubmit.append("carePlan", formData.carePlan)
-      }
-
-      if (formData.carePlanInterest) {
-        formDataToSubmit.append("carePlanInterest", formData.carePlanInterest)
-      }
-
-      // Add referredBy if present
+      // Add referral information ONLY if it exists
       if (referredBy) {
-        formDataToSubmit.append("referredBy", referredBy)
-        console.log("Adding referredBy to form submission:", referredBy) // Debug log
+        console.log("Adding referredBy to form data:", referredBy)
+        formData.append("referredBy", referredBy)
       }
 
-      const result = await submitToWaitlist(formDataToSubmit)
+      console.log("Submitting form with data:", {
+        email,
+        name,
+        city,
+        parentLocation,
+        careNeeds,
+        carePlan,
+        source,
+        referredBy,
+      })
+
+      // Submit to server action
+      const result = await submitToWaitlist(formData)
+      console.log("Server response:", result)
 
       if (result.success) {
-        setIsSuccess(true)
-        setReferralLink(result.referralLink || null)
-        setWaitlistNumber(result.waitlistNumber || null)
+        setIsSuccessOpen(true)
+        await triggerConfetti()
+        if (result.referralLink) {
+          setReferralLink(result.referralLink)
+        }
+        setEmail("")
+        setName("")
+        setCity("")
+        setParentLocation("")
+        setCareNeeds("")
+        setCarePlan("")
+        setCarePlanInterest("")
+        setStep(1)
 
-        // Reset form
-        setFormData({
-          name: "",
-          email: "",
-          city: "",
-          parentLocation: "",
-          careNeeds: "",
-          carePlan: "",
-          carePlanInterest: "",
-        })
+        // Clear referral from localStorage after successful submission
+        localStorage.removeItem("timesnri_referral")
+
+        // Show waitlist number if available
+        if (result.waitlistNumber) {
+          setFormMessage(`Your waitlist number is #${result.waitlistNumber}`)
+        }
       } else {
-        setError(result.message || "Something went wrong. Please try again.")
+        console.error("Form submission failed:", result)
+        setFormError(result.message || "Something went wrong. Please try again.")
       }
-    } catch (err) {
-      console.error("Form submission error:", err)
-      setError("Something went wrong. Please try again.")
+    } catch (error) {
+      console.error("Error submitting form:", error)
+      setFormError("An unexpected error occurred. Please try again.")
     } finally {
       setIsSubmitting(false)
     }
   }
 
   const handleClose = () => {
-    setIsSuccess(false)
-    setError(null)
+    if (onOpenChange) {
+      onOpenChange(false)
+    }
     if (onClose) {
       onClose()
     }
   }
 
-  const copyReferralLink = async () => {
-    if (referralLink) {
-      try {
-        await navigator.clipboard.writeText(referralLink)
-        // Could add a toast notification here
-      } catch (err) {
-        console.error("Failed to copy referral link:", err)
-      }
+  const handleSuccessClose = () => {
+    setIsSuccessOpen(false)
+    if (!standalone) {
+      handleClose()
     }
   }
 
-  if (isSuccess) {
+  // Standalone version (for dedicated waitlist page)
+  if (standalone) {
     return (
-      <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-green-600">
-              <CheckCircle className="h-5 w-5" />
-              Welcome to the Waitlist!
-            </DialogTitle>
-            <DialogDescription className="space-y-4">
-              <p>Thank you for joining our waitlist! We'll keep you updated on our launch progress.</p>
+      <div className="w-full">
+        {/* Show referral info if present */}
+        {referredBy && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Check className="h-5 w-5 text-green-600" />
+              <div>
+                <p className="font-medium text-green-800">You were referred!</p>
+                <p className="text-sm text-green-600">
+                  Referred by: <span className="font-mono">{referredBy}</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
-              {waitlistNumber && (
-                <div className="bg-primary/10 p-4 rounded-lg">
-                  <p className="font-medium text-primary">You're #{waitlistNumber} on our waitlist!</p>
+        <form ref={formRef} onSubmit={handleSubmit} className="w-full">
+          {!isDetailed ? (
+            <div className="space-y-4">
+              {includeNameField && (
+                <Input
+                  type="text"
+                  name="name"
+                  placeholder="Your name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12"
+                  required
+                />
+              )}
+              <Input
+                type="email"
+                name="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12"
+              />
+              {formError && <p className="text-sm text-red-500">{formError}</p>}
+              {formMessage && <p className="text-sm text-green-500">{formMessage}</p>}
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full bg-accent hover:bg-accent/90 text-white h-12"
+              >
+                {isSubmitting ? "Joining..." : buttonText}
+              </Button>
+            </div>
+          ) : (
+            // Detailed form steps here
+            <div>
+              {step === 1 && (
+                <div className="space-y-4 animate-fadeIn">
+                  <h3 className="text-lg font-medium text-gray-800">About You</h3>
+                  <div className="space-y-3">
+                    <Input
+                      type="text"
+                      name="name"
+                      placeholder="Your name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12"
+                      required
+                    />
+                    <Input
+                      type="email"
+                      name="email"
+                      placeholder="Your email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12"
+                    />
+                    <Select value={city} onValueChange={setCity}>
+                      <SelectTrigger className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12">
+                        <SelectValue placeholder="Where are you based?" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="us">United States</SelectItem>
+                        <SelectItem value="canada">Canada</SelectItem>
+                        <SelectItem value="uk">United Kingdom</SelectItem>
+                        <SelectItem value="australia">Australia</SelectItem>
+                        <SelectItem value="singapore">Singapore</SelectItem>
+                        <SelectItem value="uae">UAE</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {formError && <p className="text-sm text-red-500">{formError}</p>}
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      if (validateForm()) setStep(2)
+                    }}
+                    className="w-full bg-accent hover:bg-accent/90 text-white mt-2 flex items-center justify-center h-12"
+                    disabled={!name || !email || !city}
+                  >
+                    Continue <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
                 </div>
+              )}
+
+              {step === 2 && (
+                <div className="space-y-4 animate-fadeIn">
+                  <h3 className="text-lg font-medium text-gray-800">About Your Parents</h3>
+                  <div className="space-y-3">
+                    <Select value={parentLocation} onValueChange={setParentLocation}>
+                      <SelectTrigger className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12">
+                        <SelectValue placeholder="Where are your parents located?" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="delhi">Delhi NCR</SelectItem>
+                        <SelectItem value="mumbai">Mumbai</SelectItem>
+                        <SelectItem value="bangalore">Bangalore</SelectItem>
+                        <SelectItem value="hyderabad">Hyderabad</SelectItem>
+                        <SelectItem value="pune">Pune</SelectItem>
+                        <SelectItem value="chennai">Chennai</SelectItem>
+                        <SelectItem value="kolkata">Kolkata</SelectItem>
+                        <SelectItem value="ahmedabad">Ahmedabad</SelectItem>
+                        <SelectItem value="jaipur">Jaipur</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={careNeeds} onValueChange={setCareNeeds}>
+                      <SelectTrigger className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12">
+                        <SelectValue placeholder="What type of care do they need?" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="regular">Regular check-ins</SelectItem>
+                        <SelectItem value="medical">Medical appointment assistance</SelectItem>
+                        <SelectItem value="daily">Daily living assistance</SelectItem>
+                        <SelectItem value="emergency">Emergency support</SelectItem>
+                        <SelectItem value="all">All of the above</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={carePlan} onValueChange={setCarePlan}>
+                      <SelectTrigger className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12">
+                        <SelectValue placeholder="Which care plan interests you?" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Peace: $50/month">Peace: $50/month</SelectItem>
+                        <SelectItem value="Presence: $200/month">Presence: $200/month</SelectItem>
+                        <SelectItem value="Honour: $500/month (By Invitation Only)">
+                          Honour: $500/month (By Invitation Only)
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {carePlan && (
+                      <div className="space-y-2">
+                        <label htmlFor="carePlanInterest" className="block text-sm font-medium text-gray-700">
+                          What interests you about the {carePlan.split(":")[0]} plan?
+                        </label>
+                        <textarea
+                          id="carePlanInterest"
+                          name="carePlanInterest"
+                          placeholder="Tell us what drew you to this plan or any specific needs you have..."
+                          value={carePlanInterest}
+                          onChange={(e) => setCarePlanInterest(e.target.value)}
+                          className="w-full border border-gray-300 focus:border-accent focus:ring-accent rounded-md p-3 min-h-[80px] resize-none"
+                          rows={3}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  {formError && <p className="text-sm text-red-500">{formError}</p>}
+                  <div className="flex space-x-2">
+                    <Button
+                      type="button"
+                      onClick={() => setStep(1)}
+                      className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 h-12"
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        if (validateForm()) setStep(3)
+                      }}
+                      className="flex-1 bg-accent hover:bg-accent/90 text-white flex items-center justify-center h-12"
+                      disabled={!parentLocation || !careNeeds}
+                    >
+                      Continue <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {step === 3 && (
+                <div className="space-y-4 animate-fadeIn">
+                  <h3 className="text-lg font-medium text-gray-800">Confirm Your Details</h3>
+                  <div className="bg-gray-50 p-4 rounded-lg space-y-2 text-sm">
+                    <p>
+                      <span className="font-medium">Name:</span> {name}
+                    </p>
+                    <p>
+                      <span className="font-medium">Email:</span> {email}
+                    </p>
+                    <p>
+                      <span className="font-medium">Your location:</span> {city}
+                    </p>
+                    <p>
+                      <span className="font-medium">Parents' location:</span> {parentLocation}
+                    </p>
+                    <p>
+                      <span className="font-medium">Care needs:</span> {careNeeds}
+                    </p>
+                    {carePlan && (
+                      <p>
+                        <span className="font-medium">Interested in:</span> {carePlan}
+                      </p>
+                    )}
+                    {carePlanInterest && (
+                      <p>
+                        <span className="font-medium">Interest in plan:</span> {carePlanInterest}
+                      </p>
+                    )}
+                    {referredBy && (
+                      <p>
+                        <span className="font-medium">Referred by:</span>{" "}
+                        <span className="font-mono">{referredBy}</span>
+                      </p>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    By joining our waitlist, you'll be among the first to know when we launch in your parents' city.
+                    We'll also send you resources on senior care in India.
+                  </p>
+                  {formError && <p className="text-sm text-red-500">{formError}</p>}
+                  <div className="flex space-x-2">
+                    <Button
+                      type="button"
+                      onClick={() => setStep(2)}
+                      className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 h-12"
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="flex-1 bg-accent hover:bg-accent/90 text-white h-12"
+                    >
+                      {isSubmitting ? "Submitting..." : "Join Waitlist"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </form>
+
+        {/* Success message for standalone mode */}
+        {isSuccessOpen && (
+          <div className="mt-8 p-6 bg-green-50 border border-green-200 rounded-xl">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="rounded-full bg-green-100 p-4">
+                <Check className="h-8 w-8 text-green-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-green-800">You're on the list!</h3>
+              <p className="text-green-700">
+                {isDetailed ? `Thank you for sharing your needs with us.` : `We'll reach out when your city is live.`}
+              </p>
+              {isDetailed && (
+                <p className="text-sm text-green-600">
+                  We'll be in touch soon with personalized information about our services in {parentLocation}.
+                </p>
               )}
 
               {referralLink && (
-                <div className="space-y-2">
-                  <p className="font-medium">Share with friends and family:</p>
-                  <div className="flex gap-2">
-                    <Input value={referralLink} readOnly className="text-sm" />
-                    <Button onClick={copyReferralLink} variant="outline" size="sm">
-                      Copy
+                <div className="w-full space-y-3 mt-4 pt-4 border-t border-green-200">
+                  <p className="font-medium text-green-800">Want priority access?</p>
+                  <p className="text-sm text-green-600">Share with other NRIs who might need our help.</p>
+                  <div className="flex items-center space-x-2 rounded-md border border-green-300 p-2 bg-white">
+                    <input
+                      type="text"
+                      value={referralLink}
+                      readOnly
+                      className="flex-1 bg-transparent text-sm outline-none p-2"
+                    />
+                    <Button size="sm" variant="ghost" onClick={copyReferralLink} className="h-10 w-10 p-2">
+                      {referralCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                     </Button>
                   </div>
-                  <p className="text-xs text-gray-500">Get priority access when people join through your link!</p>
+                  <div className="flex justify-center space-x-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex items-center space-x-1 h-12 px-4 border-green-300 text-green-700 hover:bg-green-50 bg-transparent"
+                      onClick={() => {
+                        window.open(
+                          `https://wa.me/?text=I just joined the Times NRI waitlist for senior care services in India. As an NRI, I found this service really promising for managing parent care from abroad: ${referralLink}`,
+                          "_blank",
+                        )
+                      }}
+                    >
+                      <Share2 className="h-4 w-4" />
+                      <span>Share</span>
+                    </Button>
+                  </div>
                 </div>
               )}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end">
-            <Button onClick={handleClose}>Close</Button>
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
-    )
-  }
-
-  const formContent = (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-700 text-sm">{error}</p>
-        </div>
-      )}
-
-      {referredBy && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <p className="text-green-700 text-sm">
-            <strong>Referred by:</strong> {referredBy}
-          </p>
-        </div>
-      )}
-
-      {includeNameField && (
-        <div className="space-y-2">
-          <Label htmlFor="name">Full Name</Label>
-          <Input
-            id="name"
-            type="text"
-            value={formData.name}
-            onChange={(e) => handleInputChange("name", e.target.value)}
-            placeholder="Enter your full name"
-            required={includeNameField}
-          />
-        </div>
-      )}
-
-      <div className="space-y-2">
-        <Label htmlFor="email">Email Address</Label>
-        <Input
-          id="email"
-          type="email"
-          value={formData.email}
-          onChange={(e) => handleInputChange("email", e.target.value)}
-          placeholder="Enter your email address"
-          required
-        />
-      </div>
-
-      {isDetailed && (
-        <>
-          <div className="space-y-2">
-            <Label htmlFor="city">Your Current City</Label>
-            <Input
-              id="city"
-              type="text"
-              value={formData.city}
-              onChange={(e) => handleInputChange("city", e.target.value)}
-              placeholder="e.g., New York, London, Dubai"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="parentLocation">Parent's Location in India</Label>
-            <Input
-              id="parentLocation"
-              type="text"
-              value={formData.parentLocation}
-              onChange={(e) => handleInputChange("parentLocation", e.target.value)}
-              placeholder="e.g., Mumbai, Delhi, Bangalore"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="careNeeds">Care Needs (Optional)</Label>
-            <Textarea
-              id="careNeeds"
-              value={formData.careNeeds}
-              onChange={(e) => handleInputChange("careNeeds", e.target.value)}
-              placeholder="Tell us about your parent's specific care needs..."
-              rows={3}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="carePlan">Interested Care Plan</Label>
-            <Select onValueChange={(value) => handleInputChange("carePlan", value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a care plan" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="peace">Peace Plan - $50/month</SelectItem>
-                <SelectItem value="comfort">Comfort Plan - $150/month</SelectItem>
-                <SelectItem value="comprehensive">Comprehensive Plan - $300/month</SelectItem>
-                <SelectItem value="not-sure">Not sure yet</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="carePlanInterest">What interests you most?</Label>
-            <Select onValueChange={(value) => handleInputChange("carePlanInterest", value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select your primary interest" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="emergency">Emergency Response</SelectItem>
-                <SelectItem value="health-monitoring">Health Monitoring</SelectItem>
-                <SelectItem value="companionship">Companionship</SelectItem>
-                <SelectItem value="daily-assistance">Daily Assistance</SelectItem>
-                <SelectItem value="all">All of the above</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </>
-      )}
-
-      <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-white" disabled={isSubmitting}>
-        {isSubmitting ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Joining...
-          </>
-        ) : (
-          buttonText
         )}
-      </Button>
-    </form>
-  )
-
-  if (isOpen !== undefined) {
-    return (
-      <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Join Our Waitlist</DialogTitle>
-            <DialogDescription>Be among the first to access our Elderly Care Concierge service.</DialogDescription>
-          </DialogHeader>
-          {formContent}
-        </DialogContent>
-      </Dialog>
+      </div>
     )
   }
 
-  return formContent
+  // Modal version (existing code)
+  return (
+    <>
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md" aria-describedby="waitlist-dialog-description">
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl">Join Our Waitlist</DialogTitle>
+          </DialogHeader>
+          <div className="p-6">
+            <p id="waitlist-dialog-description" className="text-center mb-6 text-gray-600">
+              Be among the first to access our Senior Care & Wellness Membership when we launch in your city.
+            </p>
+
+            {/* Show referral info if present */}
+            {referredBy && (
+              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-600" />
+                  <div>
+                    <p className="text-sm font-medium text-green-800">You were referred!</p>
+                    <p className="text-xs text-green-600">
+                      By: <span className="font-mono">{referredBy}</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <form ref={formRef} onSubmit={handleSubmit} className="w-full">
+              {!isDetailed ? (
+                <div className="space-y-4">
+                  {includeNameField && (
+                    <Input
+                      type="text"
+                      name="name"
+                      placeholder="Your name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12"
+                      required
+                    />
+                  )}
+                  <Input
+                    type="email"
+                    name="email"
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12"
+                  />
+                  {formError && <p className="text-sm text-red-500">{formError}</p>}
+                  {formMessage && <p className="text-sm text-green-500">{formMessage}</p>}
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full bg-accent hover:bg-accent/90 text-white h-12"
+                  >
+                    {isSubmitting ? "Joining..." : buttonText}
+                  </Button>
+                </div>
+              ) : (
+                // Detailed form steps here (same as standalone version)
+                <div>
+                  {step === 1 && (
+                    <div className="space-y-4 animate-fadeIn">
+                      <h3 className="text-lg font-medium text-gray-800">About You</h3>
+                      <div className="space-y-3">
+                        <Input
+                          type="text"
+                          name="name"
+                          placeholder="Your name"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12"
+                          required
+                        />
+                        <Input
+                          type="email"
+                          name="email"
+                          placeholder="Your email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          required
+                          className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12"
+                        />
+                        <Select value={city} onValueChange={setCity}>
+                          <SelectTrigger className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12">
+                            <SelectValue placeholder="Where are you based?" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="us">United States</SelectItem>
+                            <SelectItem value="canada">Canada</SelectItem>
+                            <SelectItem value="uk">United Kingdom</SelectItem>
+                            <SelectItem value="australia">Australia</SelectItem>
+                            <SelectItem value="singapore">Singapore</SelectItem>
+                            <SelectItem value="uae">UAE</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {formError && <p className="text-sm text-red-500">{formError}</p>}
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          if (validateForm()) setStep(2)
+                        }}
+                        className="w-full bg-accent hover:bg-accent/90 text-white mt-2 flex items-center justify-center h-12"
+                        disabled={!name || !email || !city}
+                      >
+                        Continue <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+
+                  {step === 2 && (
+                    <div className="space-y-4 animate-fadeIn">
+                      <h3 className="text-lg font-medium text-gray-800">About Your Parents</h3>
+                      <div className="space-y-3">
+                        <Select value={parentLocation} onValueChange={setParentLocation}>
+                          <SelectTrigger className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12">
+                            <SelectValue placeholder="Where are your parents located?" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="delhi">Delhi NCR</SelectItem>
+                            <SelectItem value="mumbai">Mumbai</SelectItem>
+                            <SelectItem value="bangalore">Bangalore</SelectItem>
+                            <SelectItem value="hyderabad">Hyderabad</SelectItem>
+                            <SelectItem value="pune">Pune</SelectItem>
+                            <SelectItem value="chennai">Chennai</SelectItem>
+                            <SelectItem value="kolkata">Kolkata</SelectItem>
+                            <SelectItem value="ahmedabad">Ahmedabad</SelectItem>
+                            <SelectItem value="jaipur">Jaipur</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Select value={careNeeds} onValueChange={setCareNeeds}>
+                          <SelectTrigger className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12">
+                            <SelectValue placeholder="What type of care do they need?" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="regular">Regular check-ins</SelectItem>
+                            <SelectItem value="medical">Medical appointment assistance</SelectItem>
+                            <SelectItem value="daily">Daily living assistance</SelectItem>
+                            <SelectItem value="emergency">Emergency support</SelectItem>
+                            <SelectItem value="all">All of the above</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Select value={carePlan} onValueChange={setCarePlan}>
+                          <SelectTrigger className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12">
+                            <SelectValue placeholder="Which care plan interests you?" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Peace: $50/month">Peace: $50/month</SelectItem>
+                            <SelectItem value="Presence: $200/month">Presence: $200/month</SelectItem>
+                            <SelectItem value="Honour: $500/month (By Invitation Only)">
+                              Honour: $500/month (By Invitation Only)
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {carePlan && (
+                          <div className="space-y-2">
+                            <label htmlFor="carePlanInterest" className="block text-sm font-medium text-gray-700">
+                              What interests you about the {carePlan.split(":")[0]} plan?
+                            </label>
+                            <textarea
+                              id="carePlanInterest"
+                              name="carePlanInterest"
+                              placeholder="Tell us what drew you to this plan or any specific needs you have..."
+                              value={carePlanInterest}
+                              onChange={(e) => setCarePlanInterest(e.target.value)}
+                              className="w-full border border-gray-300 focus:border-accent focus:ring-accent rounded-md p-3 min-h-[80px] resize-none"
+                              rows={3}
+                            />
+                          </div>
+                        )}
+                      </div>
+                      {formError && <p className="text-sm text-red-500">{formError}</p>}
+                      <div className="flex space-x-2">
+                        <Button
+                          type="button"
+                          onClick={() => setStep(1)}
+                          className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 h-12"
+                        >
+                          Back
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            if (validateForm()) setStep(3)
+                          }}
+                          className="flex-1 bg-accent hover:bg-accent/90 text-white flex items-center justify-center h-12"
+                          disabled={!parentLocation || !careNeeds}
+                        >
+                          Continue <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {step === 3 && (
+                    <div className="space-y-4 animate-fadeIn">
+                      <h3 className="text-lg font-medium text-gray-800">Confirm Your Details</h3>
+                      <div className="bg-gray-50 p-4 rounded-lg space-y-2 text-sm">
+                        <p>
+                          <span className="font-medium">Name:</span> {name}
+                        </p>
+                        <p>
+                          <span className="font-medium">Email:</span> {email}
+                        </p>
+                        <p>
+                          <span className="font-medium">Your location:</span> {city}
+                        </p>
+                        <p>
+                          <span className="font-medium">Parents' location:</span> {parentLocation}
+                        </p>
+                        <p>
+                          <span className="font-medium">Care needs:</span> {careNeeds}
+                        </p>
+                        {carePlan && (
+                          <p>
+                            <span className="font-medium">Interested in:</span> {carePlan}
+                          </p>
+                        )}
+                        {carePlanInterest && (
+                          <p>
+                            <span className="font-medium">Interest in plan:</span> {carePlanInterest}
+                          </p>
+                        )}
+                        {referredBy && (
+                          <p>
+                            <span className="font-medium">Referred by:</span>{" "}
+                            <span className="font-mono">{referredBy}</span>
+                          </p>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        By joining our waitlist, you'll be among the first to know when we launch in your parents' city.
+                        We'll also send you resources on senior care in India.
+                      </p>
+                      {formError && <p className="text-sm text-red-500">{formError}</p>}
+                      <div className="flex space-x-2">
+                        <Button
+                          type="button"
+                          onClick={() => setStep(2)}
+                          className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 h-12"
+                        >
+                          Back
+                        </Button>
+                        <Button
+                          type="submit"
+                          disabled={isSubmitting}
+                          className="flex-1 bg-accent hover:bg-accent/90 text-white h-12"
+                        >
+                          {isSubmitting ? "Submitting..." : "Join Waitlist"}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </form>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isSuccessOpen} onOpenChange={handleSuccessClose}>
+        <DialogContent className="sm:max-w-md" aria-describedby="waitlist-success-dialog-description">
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl">You're on the list!</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center space-y-4 py-6">
+            <div className="rounded-full bg-green-100 p-4">
+              <Check className="h-8 w-8 text-green-600" />
+            </div>
+            <p id="waitlist-success-dialog-description" className="text-center text-lg">
+              {isDetailed ? `Thank you for sharing your needs with us.` : `We'll reach out when your city is live.`}
+            </p>
+            {isDetailed && (
+              <p className="text-center text-sm text-gray-600">
+                We'll be in touch soon with personalized information about our services in {parentLocation}.
+              </p>
+            )}
+
+            {referralLink && (
+              <div className="w-full space-y-3 mt-4 pt-4 border-t border-gray-100">
+                <p className="text-center font-medium">Want priority access?</p>
+                <p className="text-center text-sm text-gray-600">Share with other NRIs who might need our help.</p>
+                <div className="flex items-center space-x-2 rounded-md border p-2">
+                  <input
+                    type="text"
+                    value={referralLink}
+                    readOnly
+                    className="flex-1 bg-transparent text-sm outline-none p-2"
+                  />
+                  <Button size="sm" variant="ghost" onClick={copyReferralLink} className="h-10 w-10 p-2">
+                    {referralCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <div className="flex justify-center space-x-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex items-center space-x-1 h-12 px-4 bg-transparent"
+                    onClick={() => {
+                      window.open(
+                        `https://wa.me/?text=I just joined the Times NRI waitlist for senior care services in India. As an NRI, I found this service really promising for managing parent care from abroad: ${referralLink}`,
+                        "_blank",
+                      )
+                    }}
+                  >
+                    <Share2 className="h-4 w-4" />
+                    <span>Share</span>
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <Button className="mt-4 bg-primary h-12 px-6" onClick={handleSuccessClose}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
 }
