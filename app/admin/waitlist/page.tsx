@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { toast } from "@/hooks/use-toast"
 import {
   Search,
@@ -22,28 +21,8 @@ import {
   UserCheck,
   ExternalLink,
   RefreshCw,
-  AlertCircle,
-  Database,
-  Mail,
-  MapPin,
-  Heart,
-  User,
 } from "lucide-react"
-
-interface WaitlistSubmission {
-  id: number
-  email: string
-  name?: string
-  source?: string
-  location?: string
-  parent_location?: string
-  care_needs?: string
-  care_plan?: string
-  care_plan_interest?: string
-  waitlist_number?: number
-  referred_by?: string
-  created_at: string
-}
+import type { WaitlistSubmission } from "@/lib/db"
 
 interface WaitlistStats {
   total: number
@@ -57,90 +36,48 @@ export default function WaitlistAdminPage() {
   const [filteredSubmissions, setFilteredSubmissions] = useState<WaitlistSubmission[]>([])
   const [stats, setStats] = useState<WaitlistStats>({ total: 0, lastWeek: 0, totalReferrals: 0, uniqueReferrers: 0 })
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedSubmission, setSelectedSubmission] = useState<WaitlistSubmission | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState<number | null>(null)
-  const [debugInfo, setDebugInfo] = useState<any>(null)
 
   const fetchData = async () => {
-    console.log("=== FETCHING WAITLIST DATA ===")
     try {
       setLoading(true)
-      setError(null)
-
-      console.log("📡 Making API request to /api/waitlist")
-      const response = await fetch("/api/waitlist", {
-        method: "GET",
-        headers: {
-          "Cache-Control": "no-cache",
-        },
-      })
-
-      console.log("📡 Response status:", response.status)
-      console.log("📡 Response headers:", Object.fromEntries(response.headers.entries()))
-
+      const response = await fetch("/api/waitlist")
       const data = await response.json()
-      console.log("📊 API Response:", data)
 
       if (data.success) {
-        console.log("✅ API call successful")
-        console.log("📊 Submissions received:", data.submissions?.length || 0)
-        console.log("📊 Stats received:", data.stats)
-
-        const submissions = data.submissions || []
-        setSubmissions(submissions)
-        setFilteredSubmissions(submissions)
+        setSubmissions(data.submissions || [])
+        setFilteredSubmissions(data.submissions || [])
 
         // Calculate referral stats
-        const referrals = submissions.filter((s: WaitlistSubmission) => s.referred_by)
+        const referrals = data.submissions?.filter((s: WaitlistSubmission) => s.referred_by) || []
         const uniqueReferrers = new Set(referrals.map((s: WaitlistSubmission) => s.referred_by)).size
 
-        const calculatedStats = {
-          total: data.stats?.total || submissions.length,
+        setStats({
+          total: data.stats?.total || data.submissions?.length || 0,
           lastWeek: data.stats?.lastWeek || 0,
           totalReferrals: referrals.length,
           uniqueReferrers,
-        }
-
-        setStats(calculatedStats)
-        console.log("📊 Final stats:", calculatedStats)
-
-        // Store debug info
-        setDebugInfo({
-          apiResponse: data,
-          submissionsCount: submissions.length,
-          referralsCount: referrals.length,
-          timestamp: new Date().toISOString(),
         })
-
-        if (submissions.length === 0) {
-          console.log("⚠️ No submissions found - this might indicate a problem")
-        } else {
-          console.log("✅ Successfully loaded submissions")
-          console.log("📝 Sample submission:", submissions[0])
-        }
       } else {
-        console.error("❌ API call failed:", data.error)
-        setError(data.error || "Failed to load waitlist data")
-        setDebugInfo({
-          error: data.error,
-          apiResponse: data,
-          timestamp: new Date().toISOString(),
+        console.error("Failed to fetch waitlist data:", data.error)
+        toast({
+          title: "Error",
+          description: "Failed to load waitlist data",
+          variant: "destructive",
         })
       }
     } catch (error) {
-      console.error("❌ Network error:", error)
-      const errorMessage = error instanceof Error ? error.message : "Network error occurred"
-      setError(errorMessage)
-      setDebugInfo({
-        networkError: errorMessage,
-        timestamp: new Date().toISOString(),
+      console.error("Error fetching waitlist data:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load waitlist data",
+        variant: "destructive",
       })
     } finally {
       setLoading(false)
-      console.log("=== FETCH COMPLETE ===")
     }
   }
 
@@ -169,17 +106,15 @@ export default function WaitlistAdminPage() {
   }, [searchTerm, submissions])
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this entry? This action cannot be undone.")) return
+    if (!confirm("Are you sure you want to delete this entry?")) return
 
     setIsDeleting(id)
     try {
-      console.log(`🗑️ Deleting submission ${id}`)
       const response = await fetch(`/api/waitlist/${id}`, {
         method: "DELETE",
       })
 
       const result = await response.json()
-      console.log("🗑️ Delete response:", result)
 
       if (result.success) {
         toast({
@@ -195,7 +130,7 @@ export default function WaitlistAdminPage() {
         })
       }
     } catch (error) {
-      console.error("❌ Error deleting entry:", error)
+      console.error("Error deleting entry:", error)
       toast({
         title: "Error",
         description: "Failed to delete entry",
@@ -207,7 +142,6 @@ export default function WaitlistAdminPage() {
   }
 
   const exportToCSV = () => {
-    console.log("📥 Exporting to CSV")
     const headers = [
       "ID",
       "Name",
@@ -248,7 +182,6 @@ export default function WaitlistAdminPage() {
     a.download = `waitlist-${new Date().toISOString().split("T")[0]}.csv`
     a.click()
     window.URL.revokeObjectURL(url)
-    console.log("✅ CSV export complete")
   }
 
   const formatDate = (dateString: string | Date) => {
@@ -256,8 +189,6 @@ export default function WaitlistAdminPage() {
       year: "numeric",
       month: "short",
       day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
     })
   }
 
@@ -270,69 +201,8 @@ export default function WaitlistAdminPage() {
     return (
       <div className="container mx-auto py-8">
         <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p className="text-lg font-medium">Loading waitlist data...</p>
-            <p className="text-sm text-muted-foreground">This may take a moment</p>
-          </div>
+          <RefreshCw className="h-8 w-8 animate-spin" />
         </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="container mx-auto py-8 space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Waitlist Management</h1>
-          <Button onClick={fetchData} variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Retry
-          </Button>
-        </div>
-
-        <Alert className="border-red-200 bg-red-50">
-          <AlertCircle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-800">
-            <div className="space-y-2">
-              <p>
-                <strong>Error loading waitlist data:</strong> {error}
-              </p>
-              <div className="text-xs">
-                <p>
-                  <strong>Troubleshooting steps:</strong>
-                </p>
-                <ul className="list-disc list-inside space-y-1 mt-1">
-                  <li>Check if the database is properly configured</li>
-                  <li>Verify DATABASE_URL environment variable is set</li>
-                  <li>
-                    Test the API directly:{" "}
-                    <a href="/api/waitlist" target="_blank" className="underline text-blue-600" rel="noreferrer">
-                      /api/waitlist
-                    </a>
-                  </li>
-                  <li>Check server logs for detailed error information</li>
-                </ul>
-              </div>
-            </div>
-          </AlertDescription>
-        </Alert>
-
-        {debugInfo && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Database className="h-5 w-5" />
-                Debug Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <pre className="text-xs bg-gray-100 p-4 rounded overflow-x-auto">
-                {JSON.stringify(debugInfo, null, 2)}
-              </pre>
-            </CardContent>
-          </Card>
-        )}
       </div>
     )
   }
@@ -345,16 +215,10 @@ export default function WaitlistAdminPage() {
           <h1 className="text-3xl font-bold">Waitlist Management</h1>
           <p className="text-muted-foreground">Manage and track waitlist submissions</p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => window.open("/api/waitlist", "_blank")} variant="outline" size="sm">
-            <Database className="h-4 w-4 mr-2" />
-            View API
-          </Button>
-          <Button onClick={fetchData} variant="outline" size="sm">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-        </div>
+        <Button onClick={fetchData} variant="outline" size="sm">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh
+        </Button>
       </div>
 
       {/* Stats Cards */}
@@ -415,28 +279,11 @@ export default function WaitlistAdminPage() {
             className="pl-10"
           />
         </div>
-        <div className="flex gap-2">
-          <Button onClick={exportToCSV} variant="outline" disabled={filteredSubmissions.length === 0}>
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV ({filteredSubmissions.length})
-          </Button>
-        </div>
+        <Button onClick={exportToCSV} variant="outline">
+          <Download className="h-4 w-4 mr-2" />
+          Export CSV
+        </Button>
       </div>
-
-      {/* Debug Info (only show if there are issues) */}
-      {debugInfo && submissions.length === 0 && (
-        <Alert className="border-yellow-200 bg-yellow-50">
-          <AlertCircle className="h-4 w-4 text-yellow-600" />
-          <AlertDescription className="text-yellow-800">
-            <details>
-              <summary className="cursor-pointer font-medium">Debug Information (Click to expand)</summary>
-              <pre className="text-xs mt-2 bg-white/50 p-2 rounded overflow-x-auto">
-                {JSON.stringify(debugInfo, null, 2)}
-              </pre>
-            </details>
-          </AlertDescription>
-        </Alert>
-      )}
 
       {/* Table */}
       <Card>
@@ -444,139 +291,120 @@ export default function WaitlistAdminPage() {
           <CardTitle>All Waitlist Entries ({filteredSubmissions.length})</CardTitle>
           <CardDescription>
             {searchTerm && `Showing ${filteredSubmissions.length} of ${submissions.length} entries`}
-            {!searchTerm && submissions.length > 0 && `Total: ${submissions.length} entries`}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {filteredSubmissions.length === 0 ? (
-            <div className="text-center py-12">
-              <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">
-                {submissions.length === 0 ? "No waitlist entries found" : "No matching entries"}
-              </h3>
-              <p className="text-muted-foreground mb-4">
-                {submissions.length === 0
-                  ? "There are no waitlist submissions in the database yet."
-                  : "Try adjusting your search terms to find entries."}
-              </p>
-              {submissions.length === 0 && (
-                <div className="space-y-2">
-                  <Button onClick={() => window.open("/api/waitlist", "_blank")} variant="outline">
-                    <Database className="h-4 w-4 mr-2" />
-                    Check API Response
-                  </Button>
-                  <p className="text-xs text-muted-foreground">
-                    Click above to see the raw API response and debug any issues
-                  </p>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-16">ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Source</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Parent Location</TableHead>
-                    <TableHead>Care Needs</TableHead>
-                    <TableHead>Care Plan</TableHead>
-                    <TableHead>Interest</TableHead>
-                    <TableHead>Referrer</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="w-24">Actions</TableHead>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-16">ID</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Source</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Parent Location</TableHead>
+                  <TableHead>Care Needs</TableHead>
+                  <TableHead>Care Plan</TableHead>
+                  <TableHead>Interest</TableHead>
+                  <TableHead>Referrer</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead className="w-24">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredSubmissions.map((submission) => (
+                  <TableRow key={submission.id}>
+                    <TableCell className="font-mono text-sm">#{submission.id}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        {submission.name || "Not provided"}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-sm">{submission.email}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{submission.source || "unknown"}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <span className="text-sm">{submission.location || "Not specified"}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <span className="text-sm">{submission.parent_location || "Not specified"}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">{submission.care_needs || "Not specified"}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">{truncateText(submission.care_plan || "Not selected")}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm text-muted-foreground">
+                        {truncateText(submission.care_plan_interest || "Not specified")}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {submission.referred_by ? (
+                        <div className="flex items-center gap-1">
+                          <UserCheck className="h-3 w-3 text-green-600" />
+                          <Badge variant="outline" className="text-green-700 border-green-200 bg-green-50">
+                            {truncateText(submission.referred_by, 15)}
+                          </Badge>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Direct signup</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-sm">{formatDate(submission.created_at)}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+                          <DialogTrigger asChild>
+                            <Button variant="ghost" size="sm" onClick={() => setSelectedSubmission(submission)}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </DialogTrigger>
+                        </Dialog>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(submission.id)}
+                          disabled={isDeleting === submission.id}
+                        >
+                          {isDeleting === submission.id ? (
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          )}
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredSubmissions.map((submission) => (
-                    <TableRow key={submission.id}>
-                      <TableCell className="font-mono text-sm">#{submission.id}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-muted-foreground" />
-                          {submission.name || "Not provided"}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Mail className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-mono text-sm">{submission.email}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{submission.source || "unknown"}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <MapPin className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-sm">{submission.location || "Not specified"}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Heart className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-sm">{submission.parent_location || "Not specified"}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm">{truncateText(submission.care_needs || "Not specified")}</span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm">{truncateText(submission.care_plan || "Not selected")}</span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm text-muted-foreground">
-                          {truncateText(submission.care_plan_interest || "Not specified")}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        {submission.referred_by ? (
-                          <div className="flex items-center gap-1">
-                            <UserCheck className="h-3 w-3 text-green-600" />
-                            <Badge variant="outline" className="text-green-700 border-green-200 bg-green-50">
-                              {truncateText(submission.referred_by, 15)}
-                            </Badge>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">Direct signup</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-sm">{formatDate(submission.created_at)}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-                            <DialogTrigger asChild>
-                              <Button variant="ghost" size="sm" onClick={() => setSelectedSubmission(submission)}>
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            </DialogTrigger>
-                          </Dialog>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(submission.id)}
-                            disabled={isDeleting === submission.id}
-                          >
-                            {isDeleting === submission.id ? (
-                              <RefreshCw className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            )}
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {filteredSubmissions.length === 0 && (
+            <div className="text-center py-8">
+              <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium">No entries found</h3>
+              <p className="text-muted-foreground">
+                {searchTerm ? "Try adjusting your search terms" : "No waitlist submissions yet"}
+              </p>
             </div>
           )}
         </CardContent>
@@ -640,20 +468,18 @@ export default function WaitlistAdminPage() {
                         {selectedSubmission.parent_location || "Not specified"}
                       </p>
                     </div>
-                  </div>
-
-                  <div>
-                    <Label className="text-sm font-medium">Care Needs</Label>
-                    <p className="text-sm text-muted-foreground mt-1 p-3 bg-muted rounded-md">
-                      {selectedSubmission.care_needs || "Not specified"}
-                    </p>
-                  </div>
-
-                  <div>
-                    <Label className="text-sm font-medium">Care Plan Selected</Label>
-                    <p className="text-sm text-muted-foreground mt-1 p-3 bg-muted rounded-md">
-                      {selectedSubmission.care_plan || "Not selected"}
-                    </p>
+                    <div>
+                      <Label className="text-sm font-medium">Care Needs</Label>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {selectedSubmission.care_needs || "Not specified"}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Care Plan Interest</Label>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {selectedSubmission.care_plan || "Not selected"}
+                      </p>
+                    </div>
                   </div>
 
                   {selectedSubmission.care_plan_interest && (

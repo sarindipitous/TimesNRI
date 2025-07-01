@@ -3,52 +3,45 @@ import { neon } from "@neondatabase/serverless"
 
 const sql = neon(process.env.DATABASE_URL!)
 
-export const dynamic = "force-dynamic"
-
 export async function GET() {
-  console.log("=== DASHBOARD DATA API REQUEST ===")
-
   try {
-    console.log("🔍 Testing database connection...")
+    console.log("Dashboard API: Starting data fetch...")
 
     // Test database connection first
     const testResult = await sql`SELECT 1 as test`
-    console.log("✅ Database connection test:", testResult)
+    console.log("Database connection test:", testResult)
 
     // Get total waitlist count
-    console.log("📊 Fetching total waitlist count...")
     const totalResult = await sql`
       SELECT COUNT(*) as count 
       FROM waitlist_submissions
     `
-    console.log("📊 Total count query result:", totalResult)
+    console.log("Total count query result:", totalResult)
     const total = Number.parseInt(totalResult[0]?.count || "0")
 
     // Get this week's count
     const weekAgo = new Date()
     weekAgo.setDate(weekAgo.getDate() - 7)
-    console.log("📅 Week ago date:", weekAgo.toISOString())
+    console.log("Week ago date:", weekAgo.toISOString())
 
     const thisWeekResult = await sql`
       SELECT COUNT(*) as count 
       FROM waitlist_submissions 
       WHERE created_at >= ${weekAgo.toISOString()}
     `
-    console.log("📊 This week query result:", thisWeekResult)
+    console.log("This week query result:", thisWeekResult)
     const thisWeek = Number.parseInt(thisWeekResult[0]?.count || "0")
 
     // Get count with referrals
-    console.log("🔗 Fetching referral count...")
     const referralsResult = await sql`
       SELECT COUNT(*) as count 
       FROM waitlist_submissions 
       WHERE referred_by IS NOT NULL AND referred_by != ''
     `
-    console.log("🔗 Referrals query result:", referralsResult)
+    console.log("Referrals query result:", referralsResult)
     const withReferrals = Number.parseInt(referralsResult[0]?.count || "0")
 
     // Get recent submissions (last 10)
-    console.log("📝 Fetching recent submissions...")
     const recentResult = await sql`
       SELECT 
         id,
@@ -67,7 +60,7 @@ export async function GET() {
       ORDER BY created_at DESC 
       LIMIT 10
     `
-    console.log("📝 Recent submissions count:", recentResult.length)
+    console.log("Recent submissions count:", recentResult.length)
 
     const recentSubmissions = recentResult.map((row) => ({
       id: row.id,
@@ -93,17 +86,16 @@ export async function GET() {
       recentSubmissions,
     }
 
-    console.log("✅ Dashboard API: Final response", {
+    console.log("Dashboard API: Final response", {
       total,
       thisWeek,
       withReferrals,
       recentCount: recentSubmissions.length,
     })
 
-    console.log("=== DASHBOARD DATA API SUCCESS ===")
     return NextResponse.json(response)
   } catch (error) {
-    console.error("❌ Dashboard API Error:", error)
+    console.error("Dashboard API Error:", error)
 
     // Return error response so we can debug
     return NextResponse.json(
