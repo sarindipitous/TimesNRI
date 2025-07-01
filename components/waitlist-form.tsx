@@ -66,18 +66,17 @@ export function WaitlistForm({
 
     console.log("URL params:", { ref, planParam })
 
+    // FIXED: Only set referral if it exists in URL, don't use localStorage fallback
     if (ref) {
       console.log("Setting referredBy to:", ref)
       setReferredBy(ref)
-      // Store in localStorage as backup
-      localStorage.setItem("referredBy", ref)
+      // Store in localStorage for this session only
+      localStorage.setItem("timesnri_referral", ref)
     } else {
-      // Check localStorage as fallback
-      const storedRef = localStorage.getItem("referredBy")
-      if (storedRef) {
-        console.log("Using stored referral:", storedRef)
-        setReferredBy(storedRef)
-      }
+      // FIXED: Clear any stale referral data when no ref parameter
+      console.log("No referral parameter found, clearing any stored referral")
+      setReferredBy(null)
+      localStorage.removeItem("timesnri_referral")
     }
 
     // Set plan based on preSelectedPlan prop first, then URL parameter
@@ -186,7 +185,7 @@ export function WaitlistForm({
         }
       }
 
-      // Add referral information
+      // Add referral information ONLY if it exists
       if (referredBy) {
         console.log("Adding referredBy to form data:", referredBy)
         formData.append("referredBy", referredBy)
@@ -223,7 +222,7 @@ export function WaitlistForm({
         setStep(1)
 
         // Clear referral from localStorage after successful submission
-        localStorage.removeItem("referredBy")
+        localStorage.removeItem("timesnri_referral")
 
         // Show waitlist number if available
         if (result.waitlistNumber) {
