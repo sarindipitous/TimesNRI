@@ -12,11 +12,19 @@ export default function WaitlistPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
+  const [referredBy, setReferredBy] = useState<string | null>(null)
 
   useEffect(() => {
     const plan = searchParams.get("plan")
+    const ref = searchParams.get("ref")
+
     if (plan) {
       setSelectedPlan(plan)
+    }
+
+    if (ref) {
+      setReferredBy(ref)
+      console.log("Referral parameter captured:", ref) // Debug log
     }
   }, [searchParams])
 
@@ -53,6 +61,13 @@ export default function WaitlistPage() {
                   </p>
                 </div>
               )}
+              {referredBy && (
+                <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                  <p className="text-green-700 font-medium">
+                    Referred by: <span className="font-bold">{referredBy}</span>
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Waitlist form card */}
@@ -69,6 +84,7 @@ export default function WaitlistPage() {
                     handleClose()
                   }
                 }}
+                referredBy={referredBy}
               />
             </div>
 
