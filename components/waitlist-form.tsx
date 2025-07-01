@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -21,6 +20,7 @@ interface WaitlistFormProps {
   onOpenChange?: (open: boolean) => void
   standalone?: boolean
   preSelectedPlan?: string
+  referredBy?: string | null
 }
 
 export function WaitlistForm({
@@ -34,6 +34,7 @@ export function WaitlistForm({
   onOpenChange,
   standalone = false,
   preSelectedPlan,
+  referredBy = null,
 }: WaitlistFormProps) {
   const [email, setEmail] = useState("")
   const [name, setName] = useState("")
@@ -50,7 +51,6 @@ export function WaitlistForm({
   const [formError, setFormError] = useState("")
   const formRef = useRef<HTMLFormElement>(null)
   const [carePlanInterest, setCarePlanInterest] = useState("")
-  const [referredBy, setReferredBy] = useState<string | null>(null)
 
   // Basic email validation function for client-side
   const isValidEmail = (email: string): boolean => {
@@ -66,17 +66,12 @@ export function WaitlistForm({
 
     console.log("URL params:", { ref, planParam })
 
-    // FIXED: Only set referral if it exists in URL, don't use localStorage fallback
-    if (ref) {
-      console.log("Setting referredBy to:", ref)
-      setReferredBy(ref)
-      // Store in localStorage for this session only
-      localStorage.setItem("timesnri_referral", ref)
-    } else {
-      // FIXED: Clear any stale referral data when no ref parameter
-      console.log("No referral parameter found, clearing any stored referral")
-      setReferredBy(null)
-      localStorage.removeItem("timesnri_referral")
+    // Only handle URL referral if no referredBy prop is passed
+    if (!referredBy) {
+      if (ref) {
+        console.log("Setting referredBy from URL to:", ref)
+        setReferredBy(ref)
+      }
     }
 
     // Set plan based on preSelectedPlan prop first, then URL parameter
@@ -90,7 +85,7 @@ export function WaitlistForm({
       }
       setCarePlan(planMap[planParam] || "")
     }
-  }, [preSelectedPlan])
+  }, [preSelectedPlan, referredBy])
 
   const triggerConfetti = async () => {
     // Only run in the browser
@@ -185,10 +180,11 @@ export function WaitlistForm({
         }
       }
 
-      // Add referral information ONLY if it exists
-      if (referredBy) {
-        console.log("Adding referredBy to form data:", referredBy)
-        formData.append("referredBy", referredBy)
+      // Add referral information if passed as prop or from URL
+      const finalReferredBy = referredBy || (referredBy === null ? null : referredBy)
+      if (finalReferredBy) {
+        console.log("Adding referredBy to form data:", finalReferredBy)
+        formData.append("referredBy", finalReferredBy)
       }
 
       console.log("Submitting form with data:", {

@@ -12,11 +12,19 @@ export default function WaitlistPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
+  const [referredBy, setReferredBy] = useState<string | null>(null)
 
   useEffect(() => {
     const plan = searchParams.get("plan")
+    const ref = searchParams.get("ref")
+
     if (plan) {
       setSelectedPlan(plan)
+    }
+
+    // Store referral parameter in state
+    if (ref) {
+      setReferredBy(ref)
     }
   }, [searchParams])
 
@@ -69,6 +77,7 @@ export default function WaitlistPage() {
                     handleClose()
                   }
                 }}
+                referredBy={referredBy}
               />
             </div>
 
