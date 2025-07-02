@@ -2,13 +2,14 @@ export function CityMap() {
   const cities = [
     { name: "Delhi NCR", status: "coming-soon" },
     { name: "Mumbai", status: "coming-soon" },
+    { name: "Chennai", status: "coming-soon" },
+    { name: "Kolkata", status: "coming-soon" },
     { name: "Bangalore", status: "coming-soon" },
     { name: "Hyderabad", status: "coming-soon" },
     { name: "Pune", status: "coming-soon" },
-    { name: "Chennai", status: "coming-soon" },
-    { name: "Kolkata", status: "coming-soon" },
     { name: "Ahmedabad", status: "coming-soon" },
-    { name: "Jaipur", status: "coming-soon" },
+    { name: "Surat", status: "coming-soon" },
+    { name: "Chandigarh", status: "coming-soon" },
   ]
 
   return (

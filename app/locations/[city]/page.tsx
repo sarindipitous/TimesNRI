@@ -5,7 +5,7 @@ import { Footer } from "@/components/footer"
 import { CityDetail } from "@/components/city-detail"
 import { getCanonicalUrl } from "@/utils/url-utils"
 
-// Define our cities data - update all to coming-soon
+// Define our cities data - all coming-soon
 const cities = [
   {
     id: "delhi-ncr",
@@ -24,6 +24,23 @@ const cities = [
       "We're preparing to launch our services in Mumbai, covering the entire Mumbai Metropolitan Region including Thane, Navi Mumbai, and surrounding areas.",
     longDescription:
       "Our Mumbai launch will provide exceptional senior care services throughout the Mumbai Metropolitan Region. We're establishing partnerships with leading medical facilities and specialists across Mumbai, Thane, and Navi Mumbai to ensure comprehensive care coverage when we go live.",
+  },
+  {
+    id: "chennai",
+    name: "Chennai",
+    status: "coming-soon",
+    description: "Our Chennai services will cover the entire city, including OMR, ECR, and surrounding areas.",
+    longDescription:
+      "Times NRI is preparing to launch comprehensive senior care services throughout Chennai, the cultural capital of South India. We are establishing partnerships with leading healthcare providers and specialists across the city, including areas like OMR, ECR, and T. Nagar. Our local coordinators understand Chennai's unique healthcare landscape and will provide timely and efficient support to your loved ones.",
+  },
+  {
+    id: "kolkata",
+    name: "Kolkata",
+    status: "coming-soon",
+    description:
+      "Our Kolkata services will cover the entire city, including Salt Lake, New Town, and surrounding areas.",
+    longDescription:
+      "Our Kolkata team is preparing to launch exceptional senior care services throughout the City of Joy. We are establishing relationships with top healthcare providers across the city, including Salt Lake, New Town, and Park Street areas. Our local coordinators will be familiar with Kolkata's healthcare ecosystem and will efficiently manage all aspects of senior care, from routine check-ups to emergency response.",
   },
   {
     id: "bangalore",
@@ -47,10 +64,35 @@ const cities = [
     id: "pune",
     name: "Pune",
     status: "coming-soon",
-    description:
-      "We're preparing to launch our services in Pune, covering the entire city, including Hinjewadi, Kharadi, and surrounding areas.",
+    description: "Our Pune services will cover the entire city, including Hinjewadi, Kharadi, and surrounding areas.",
     longDescription:
       "Times NRI's Pune team is preparing to launch comprehensive senior care services throughout this cultural and educational hub. We are building strong relationships with leading healthcare providers and specialists across the city, including areas like Hinjewadi, Kharadi, and Koregaon Park. Our local coordinators understand Pune's unique healthcare landscape and will provide timely and efficient support to your loved ones.",
+  },
+  {
+    id: "ahmedabad",
+    name: "Ahmedabad",
+    status: "coming-soon",
+    description:
+      "Our Ahmedabad services will cover the entire city, including Satellite, Vastrapur, and surrounding areas.",
+    longDescription:
+      "Times NRI is preparing to launch comprehensive senior care services throughout Ahmedabad, Gujarat's commercial capital. We are establishing partnerships with leading healthcare providers and specialists across the city, including areas like Satellite, Vastrapur, and Bopal. Our local coordinators understand Ahmedabad's healthcare landscape and will provide culturally sensitive and efficient support to your loved ones.",
+  },
+  {
+    id: "surat",
+    name: "Surat",
+    status: "coming-soon",
+    description: "Our Surat services will cover the entire city, including Adajan, Vesu, and surrounding areas.",
+    longDescription:
+      "Our Surat team is preparing to launch exceptional senior care services throughout this diamond city. We are establishing relationships with top healthcare providers across the city, including Adajan, Vesu, and Pal areas. Our local coordinators will be familiar with Surat's healthcare ecosystem and will efficiently manage all aspects of senior care, from routine check-ups to emergency response.",
+  },
+  {
+    id: "chandigarh",
+    name: "Chandigarh",
+    status: "coming-soon",
+    description:
+      "Our Chandigarh services will cover the tricity area, including Mohali, Panchkula, and surrounding regions.",
+    longDescription:
+      "Times NRI is preparing to launch comprehensive senior care services throughout the beautiful tricity area of Chandigarh. We are establishing partnerships with leading healthcare providers and specialists across Chandigarh, Mohali, and Panchkula. Our local coordinators understand the unique healthcare landscape of this planned city and will provide timely and efficient support to your loved ones.",
   },
 ]
 

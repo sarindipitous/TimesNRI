@@ -373,13 +373,14 @@ export function WaitlistForm({
                       <SelectContent>
                         <SelectItem value="delhi">Delhi NCR</SelectItem>
                         <SelectItem value="mumbai">Mumbai</SelectItem>
+                        <SelectItem value="chennai">Chennai</SelectItem>
+                        <SelectItem value="kolkata">Kolkata</SelectItem>
                         <SelectItem value="bangalore">Bangalore</SelectItem>
                         <SelectItem value="hyderabad">Hyderabad</SelectItem>
                         <SelectItem value="pune">Pune</SelectItem>
-                        <SelectItem value="chennai">Chennai</SelectItem>
-                        <SelectItem value="kolkata">Kolkata</SelectItem>
                         <SelectItem value="ahmedabad">Ahmedabad</SelectItem>
-                        <SelectItem value="jaipur">Jaipur</SelectItem>
+                        <SelectItem value="surat">Surat</SelectItem>
+                        <SelectItem value="chandigarh">Chandigarh</SelectItem>
                         <SelectItem value="other">Other</SelectItem>
                       </SelectContent>
                     </Select>
@@ -693,13 +694,14 @@ export function WaitlistForm({
                           <SelectContent>
                             <SelectItem value="delhi">Delhi NCR</SelectItem>
                             <SelectItem value="mumbai">Mumbai</SelectItem>
+                            <SelectItem value="chennai">Chennai</SelectItem>
+                            <SelectItem value="kolkata">Kolkata</SelectItem>
                             <SelectItem value="bangalore">Bangalore</SelectItem>
                             <SelectItem value="hyderabad">Hyderabad</SelectItem>
                             <SelectItem value="pune">Pune</SelectItem>
-                            <SelectItem value="chennai">Chennai</SelectItem>
-                            <SelectItem value="kolkata">Kolkata</SelectItem>
                             <SelectItem value="ahmedabad">Ahmedabad</SelectItem>
-                            <SelectItem value="jaipur">Jaipur</SelectItem>
+                            <SelectItem value="surat">Surat</SelectItem>
+                            <SelectItem value="chandigarh">Chandigarh</SelectItem>
                             <SelectItem value="other">Other</SelectItem>
                           </SelectContent>
                         </Select>

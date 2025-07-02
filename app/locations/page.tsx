@@ -8,14 +8,14 @@ import { MapPin, CheckCircle, Clock } from "lucide-react"
 export const metadata: Metadata = {
   title: "Our Service Locations - Times NRI Senior Care & Wellness",
   description:
-    "We're launching soon in major Indian cities including Delhi NCR, Mumbai, Bangalore, Hyderabad, Pune, Chennai, and Kolkata. Join our waitlist to be notified when we go live.",
+    "We're launching soon in major Indian cities including Delhi NCR, Mumbai, Chennai, Kolkata, Bangalore, Hyderabad, Pune, Ahmedabad, Surat, and Chandigarh. Join our waitlist to be notified when we go live.",
   alternates: {
     canonical: getCanonicalUrl("/locations"),
   },
   openGraph: {
     title: "Our Service Locations - Times NRI Senior Care & Wellness",
     description:
-      "We're launching soon in major Indian cities including Delhi NCR, Mumbai, Bangalore, Hyderabad, Pune, Chennai, and Kolkata. Join our waitlist to be notified when we go live.",
+      "We're launching soon in major Indian cities including Delhi NCR, Mumbai, Chennai, Kolkata, Bangalore, Hyderabad, Pune, Ahmedabad, Surat, and Chandigarh. Join our waitlist to be notified when we go live.",
     url: getCanonicalUrl("/locations"),
     siteName: "Times NRI",
     type: "website",
@@ -27,36 +27,16 @@ const cities = [
   {
     id: "delhi-ncr",
     name: "Delhi NCR",
-    status: "active",
+    status: "coming-soon",
     description:
-      "Our services in Delhi NCR cover the entire National Capital Region, including Delhi, Gurgaon, Noida, Faridabad, and Ghaziabad.",
+      "We're preparing to launch our services in Delhi NCR, covering the entire National Capital Region including Delhi, Gurgaon, Noida, Faridabad, and Ghaziabad.",
   },
   {
     id: "mumbai",
     name: "Mumbai",
-    status: "active",
+    status: "coming-soon",
     description:
-      "Our Mumbai services cover the entire Mumbai Metropolitan Region, including Thane, Navi Mumbai, and surrounding areas.",
-  },
-  {
-    id: "bangalore",
-    name: "Bangalore",
-    status: "active",
-    description:
-      "Our Bangalore services cover the entire city, including Electronic City, Whitefield, and surrounding areas.",
-  },
-  {
-    id: "hyderabad",
-    name: "Hyderabad",
-    status: "active",
-    description:
-      "Our Hyderabad services cover the entire city, including Secunderabad, Cyberabad, and surrounding areas.",
-  },
-  {
-    id: "pune",
-    name: "Pune",
-    status: "active",
-    description: "Our Pune services cover the entire city, including Hinjewadi, Kharadi, and surrounding areas.",
+      "We're preparing to launch our services in Mumbai, covering the entire Mumbai Metropolitan Region including Thane, Navi Mumbai, and surrounding areas.",
   },
   {
     id: "chennai",
@@ -70,6 +50,46 @@ const cities = [
     status: "coming-soon",
     description:
       "Our Kolkata services will cover the entire city, including Salt Lake, New Town, and surrounding areas.",
+  },
+  {
+    id: "bangalore",
+    name: "Bangalore",
+    status: "coming-soon",
+    description:
+      "We're preparing to launch our services in Bangalore, covering the entire city, including Electronic City, Whitefield, and surrounding areas.",
+  },
+  {
+    id: "hyderabad",
+    name: "Hyderabad",
+    status: "coming-soon",
+    description:
+      "We're preparing to launch our services in Hyderabad, covering the entire city, including Secunderabad, Cyberabad, and surrounding areas.",
+  },
+  {
+    id: "pune",
+    name: "Pune",
+    status: "coming-soon",
+    description: "Our Pune services will cover the entire city, including Hinjewadi, Kharadi, and surrounding areas.",
+  },
+  {
+    id: "ahmedabad",
+    name: "Ahmedabad",
+    status: "coming-soon",
+    description:
+      "Our Ahmedabad services will cover the entire city, including Satellite, Vastrapur, and surrounding areas.",
+  },
+  {
+    id: "surat",
+    name: "Surat",
+    status: "coming-soon",
+    description: "Our Surat services will cover the entire city, including Adajan, Vesu, and surrounding areas.",
+  },
+  {
+    id: "chandigarh",
+    name: "Chandigarh",
+    status: "coming-soon",
+    description:
+      "Our Chandigarh services will cover the tricity area, including Mohali, Panchkula, and surrounding regions.",
   },
 ]
 
