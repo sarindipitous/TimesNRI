@@ -50,7 +50,8 @@ export function WaitlistForm({
   const [formError, setFormError] = useState("")
   const formRef = useRef<HTMLFormElement>(null)
   const [carePlanInterest, setCarePlanInterest] = useState("")
-  const [referredBy, setReferredBy] = useState<string>("")
+  // Fixed: Use string | null for clearer state management
+  const [referredBy, setReferredBy] = useState<string | null>(null)
 
   // Basic email validation function for client-side
   const isValidEmail = (email: string): boolean => {
@@ -64,15 +65,16 @@ export function WaitlistForm({
     const ref = urlParams.get("ref")
     const planParam = urlParams.get("plan")
 
-    console.log("URL params:", { ref, planParam })
+    console.log("URL params detected:", { ref, planParam, currentUrl: window.location.href })
 
-    // Set referral parameter - always set it (empty string if no referral)
-    if (ref) {
-      console.log("Setting referredBy to:", ref)
-      setReferredBy(ref)
+    // Set referral parameter with proper validation
+    if (ref && ref.trim()) {
+      const cleanRef = ref.trim()
+      console.log("Setting referredBy to:", cleanRef)
+      setReferredBy(cleanRef)
     } else {
-      console.log("No referral parameter found")
-      setReferredBy("")
+      console.log("No valid referral parameter found")
+      setReferredBy(null)
     }
 
     // Set plan based on preSelectedPlan prop first, then URL parameter
@@ -181,10 +183,12 @@ export function WaitlistForm({
         }
       }
 
-      // ALWAYS add referral information - even if empty
+      // Fixed: Simplified referral handling - use state value directly
       if (referredBy) {
         console.log("Adding referredBy to form data:", referredBy)
         formData.append("referredBy", referredBy)
+      } else {
+        console.log("No referral to add to form data")
       }
 
       console.log("Submitting form with data:", {
