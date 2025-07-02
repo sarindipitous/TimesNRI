@@ -50,7 +50,7 @@ export function WaitlistForm({
   const [formError, setFormError] = useState("")
   const formRef = useRef<HTMLFormElement>(null)
   const [carePlanInterest, setCarePlanInterest] = useState("")
-  const [referredBy, setReferredBy] = useState<string | null>(null)
+  const [referredBy, setReferredBy] = useState<string>("")
 
   // Basic email validation function for client-side
   const isValidEmail = (email: string): boolean => {
@@ -66,17 +66,13 @@ export function WaitlistForm({
 
     console.log("URL params:", { ref, planParam })
 
-    // FIXED: Only set referral if it exists in URL, don't use localStorage fallback
+    // Set referral parameter - always set it (empty string if no referral)
     if (ref) {
       console.log("Setting referredBy to:", ref)
       setReferredBy(ref)
-      // Store in localStorage for this session only
-      localStorage.setItem("timesnri_referral", ref)
     } else {
-      // FIXED: Clear any stale referral data when no ref parameter
-      console.log("No referral parameter found, clearing any stored referral")
-      setReferredBy(null)
-      localStorage.removeItem("timesnri_referral")
+      console.log("No referral parameter found")
+      setReferredBy("")
     }
 
     // Set plan based on preSelectedPlan prop first, then URL parameter
@@ -185,7 +181,7 @@ export function WaitlistForm({
         }
       }
 
-      // Add referral information ONLY if it exists
+      // ALWAYS add referral information - even if empty
       if (referredBy) {
         console.log("Adding referredBy to form data:", referredBy)
         formData.append("referredBy", referredBy)
@@ -220,9 +216,6 @@ export function WaitlistForm({
         setCarePlan("")
         setCarePlanInterest("")
         setStep(1)
-
-        // Clear referral from localStorage after successful submission
-        localStorage.removeItem("timesnri_referral")
 
         // Show waitlist number if available
         if (result.waitlistNumber) {
@@ -298,6 +291,21 @@ export function WaitlistForm({
                 required
                 className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12"
               />
+
+              {/* Referral field - only show if there's a referral */}
+              {referredBy && (
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Referred by</label>
+                  <Input
+                    type="text"
+                    name="referredBy"
+                    value={referredBy}
+                    readOnly
+                    className="w-full border-gray-300 bg-gray-50 text-gray-600 h-12"
+                  />
+                </div>
+              )}
+
               {formError && <p className="text-sm text-red-500">{formError}</p>}
               {formMessage && <p className="text-sm text-green-500">{formMessage}</p>}
               <Button
@@ -347,6 +355,20 @@ export function WaitlistForm({
                         <SelectItem value="other">Other</SelectItem>
                       </SelectContent>
                     </Select>
+
+                    {/* Referral field - only show if there's a referral */}
+                    {referredBy && (
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">Referred by</label>
+                        <Input
+                          type="text"
+                          name="referredBy"
+                          value={referredBy}
+                          readOnly
+                          className="w-full border-gray-300 bg-gray-50 text-gray-600 h-12"
+                        />
+                      </div>
+                    )}
                   </div>
                   {formError && <p className="text-sm text-red-500">{formError}</p>}
                   <Button
@@ -619,6 +641,21 @@ export function WaitlistForm({
                     required
                     className="w-full border-gray-300 focus:border-accent focus:ring-accent h-12"
                   />
+
+                  {/* Referral field - only show if there's a referral */}
+                  {referredBy && (
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">Referred by</label>
+                      <Input
+                        type="text"
+                        name="referredBy"
+                        value={referredBy}
+                        readOnly
+                        className="w-full border-gray-300 bg-gray-50 text-gray-600 h-12"
+                      />
+                    </div>
+                  )}
+
                   {formError && <p className="text-sm text-red-500">{formError}</p>}
                   {formMessage && <p className="text-sm text-green-500">{formMessage}</p>}
                   <Button
@@ -668,6 +705,20 @@ export function WaitlistForm({
                             <SelectItem value="other">Other</SelectItem>
                           </SelectContent>
                         </Select>
+
+                        {/* Referral field - only show if there's a referral */}
+                        {referredBy && (
+                          <div className="space-y-2">
+                            <label className="block text-sm font-medium text-gray-700">Referred by</label>
+                            <Input
+                              type="text"
+                              name="referredBy"
+                              value={referredBy}
+                              readOnly
+                              className="w-full border-gray-300 bg-gray-50 text-gray-600 h-12"
+                            />
+                          </div>
+                        )}
                       </div>
                       {formError && <p className="text-sm text-red-500">{formError}</p>}
                       <Button
