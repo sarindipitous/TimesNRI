@@ -83,7 +83,7 @@ export async function getAllWaitlistSubmissions(limit = 1000, offset = 0) {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-//  CREATE helpers - ATOMIC OPERATION WITH REFERRAL SUPPORT
+//  CREATE helpers - ATOMIC OPERATION
 // ──────────────────────────────────────────────────────────────────────────────
 export async function addToWaitlist(
   email: string,
@@ -94,7 +94,6 @@ export async function addToWaitlist(
   care_needs?: string,
   care_plan?: string,
   care_plan_interest?: string,
-  referred_by?: string,
 ): Promise<WaitlistSubmission | null> {
   if (!hasDb) return noDb(null, "addToWaitlist")
 
@@ -108,10 +107,9 @@ export async function addToWaitlist(
       care_needs,
       care_plan,
       care_plan_interest,
-      referred_by,
     })
 
-    // Use a single INSERT with all data including referred_by
+    // Use a single INSERT with all data to avoid partial entries
     const result = await sql`
       INSERT INTO waitlist_submissions (
         email, 
@@ -121,8 +119,7 @@ export async function addToWaitlist(
         parent_location, 
         care_needs, 
         care_plan, 
-        care_plan_interest,
-        referred_by
+        care_plan_interest
       ) 
       VALUES (
         ${email}, 
@@ -132,8 +129,7 @@ export async function addToWaitlist(
         ${parent_location || null}, 
         ${care_needs || null}, 
         ${care_plan || null}, 
-        ${care_plan_interest || null},
-        ${referred_by || null}
+        ${care_plan_interest || null}
       )
       ON CONFLICT (email) DO UPDATE SET
         source = COALESCE(EXCLUDED.source, waitlist_submissions.source),
@@ -142,8 +138,7 @@ export async function addToWaitlist(
         parent_location = COALESCE(EXCLUDED.parent_location, waitlist_submissions.parent_location),
         care_needs = COALESCE(EXCLUDED.care_needs, waitlist_submissions.care_needs),
         care_plan = COALESCE(EXCLUDED.care_plan, waitlist_submissions.care_plan),
-        care_plan_interest = COALESCE(EXCLUDED.care_plan_interest, waitlist_submissions.care_plan_interest),
-        referred_by = COALESCE(EXCLUDED.referred_by, waitlist_submissions.referred_by)
+        care_plan_interest = COALESCE(EXCLUDED.care_plan_interest, waitlist_submissions.care_plan_interest)
       RETURNING *
     `
 
@@ -230,7 +225,7 @@ export async function getWaitlistStats() {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-//  UPDATE helpers - ROBUST UPDATE WITH FALLBACK INCLUDING REFERRED_BY
+//  UPDATE helpers - ROBUST UPDATE WITH FALLBACK
 // ──────────────────────────────────────────────────────────────────────────────
 export async function updateWaitlistSubmission(
   id: number,
@@ -238,7 +233,7 @@ export async function updateWaitlistSubmission(
 ): Promise<WaitlistSubmission | null> {
   if (!hasDb) return noDb(null, "updateWaitlistSubmission")
 
-  const entries = Object.entries(data).filter(([k]) => k !== "id" && k !== "created_at")
+  const entries = Object.entries(data).filter(([k]) => k !== "id" && k !== "created_at" && k !== "referred_by")
   if (!entries.length) return null
 
   try {
@@ -254,7 +249,7 @@ export async function updateWaitlistSubmission(
       console.log("Attempting fallback update without new columns...")
       try {
         // Filter out the new columns that might not exist
-        const fallbackEntries = entries.filter(([k]) => !["care_plan", "care_plan_interest", "referred_by"].includes(k))
+        const fallbackEntries = entries.filter(([k]) => !["care_plan", "care_plan_interest"].includes(k))
 
         if (fallbackEntries.length === 0) {
           console.log("No valid columns to update in fallback")
@@ -372,7 +367,7 @@ export async function filterWaitlistByParentLocation(parentLocation: string, lim
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-//  REFERRALS helpers - ENHANCED WITH REFERRED_BY QUERIES
+//  REFERRALS helpers
 // ──────────────────────────────────────────────────────────────────────────────
 export async function getReferralsByReferrerId(referrerId: number) {
   if (!hasDb) return noDb([], "getReferralsByReferrerId")
@@ -397,40 +392,5 @@ export async function getDetailedReferralsByReferrerId(referrerId: number) {
   } catch (error) {
     console.error("Error fetching detailed referrals:", error)
     return []
-  }
-}
-
-// New function to get all submissions referred by a specific email
-export async function getSubmissionsReferredBy(referrerEmail: string) {
-  if (!hasDb) return noDb([], "getSubmissionsReferredBy")
-  try {
-    return (await sql`
-      SELECT * FROM waitlist_submissions 
-      WHERE referred_by = ${referrerEmail}
-      ORDER BY created_at DESC`) as WaitlistSubmission[]
-  } catch (error) {
-    console.error("Error fetching submissions referred by:", error)
-    return []
-  }
-}
-
-// New function to get referral stats for a specific email
-export async function getReferralStats(referrerEmail: string) {
-  if (!hasDb) return noDb({ total: 0, thisWeek: 0 }, "getReferralStats")
-  try {
-    const res = await sql`
-      SELECT
-        COUNT(*) AS total,
-        COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '7 days') AS this_week
-      FROM waitlist_submissions 
-      WHERE referred_by = ${referrerEmail}`
-
-    return {
-      total: Number(res[0]?.total || 0),
-      thisWeek: Number(res[0]?.this_week || 0),
-    }
-  } catch (error) {
-    console.error("Error fetching referral stats:", error)
-    return { total: 0, thisWeek: 0 }
   }
 }

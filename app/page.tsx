@@ -210,50 +210,22 @@ export default function Home() {
   const prefersReducedMotion = useReducedMotion()
   const isMobile = useMediaQuery("(max-width: 768px)")
 
-  // CRITICAL: Extract and persist referral parameter
-  const [referralParam, setReferralParam] = useState<string | null>(null)
-
+  // Check if user came from compare page with a plan selection
   useEffect(() => {
-    const ref = searchParams.get("ref")
     const plan = searchParams.get("plan")
-
-    console.log("🔍 Homepage URL params:", { ref, plan, url: window.location.href })
-
-    // Store referral in state AND localStorage for persistence
-    if (ref && ref.trim()) {
-      const cleanRef = ref.trim()
-      console.log("✅ Setting referral:", cleanRef)
-      setReferralParam(cleanRef)
-      // Store in localStorage so it persists across navigation
-      localStorage.setItem("timesnri_referral", cleanRef)
-    } else {
-      // Check if we have a stored referral
-      const storedRef = localStorage.getItem("timesnri_referral")
-      if (storedRef) {
-        console.log("📦 Using stored referral:", storedRef)
-        setReferralParam(storedRef)
-      }
-    }
-
-    // Handle plan redirect
     if (plan) {
-      console.log("🎯 Redirecting to waitlist with plan:", plan)
-      const redirectUrl = `/waitlist?plan=${plan}${ref ? `&ref=${encodeURIComponent(ref)}` : ""}`
-      window.location.href = redirectUrl
+      // Redirect to waitlist page with the selected plan
+      window.location.href = `/waitlist?plan=${plan}`
     }
   }, [searchParams])
 
-  // Build waitlist URL with referral parameter
+  // Get referral parameter for hero CTA
+  const referralParam = searchParams.get("ref")
   const getWaitlistUrl = () => {
-    const baseUrl = "/waitlist"
-    const params = new URLSearchParams()
-
     if (referralParam) {
-      params.set("ref", referralParam)
-      console.log("🔗 Building waitlist URL with referral:", referralParam)
+      return `/waitlist?ref=${encodeURIComponent(referralParam)}`
     }
-
-    return params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl
+    return "/waitlist"
   }
 
   // Define variants here inside the component to use hooks properly
@@ -290,7 +262,7 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
-      <Header referralParam={referralParam} />
+      <Header />
 
       {/* Hero Section */}
       <motion.section
@@ -383,9 +355,6 @@ export default function Home() {
                     <Button
                       size="lg"
                       className="bg-accent hover:bg-accent/90 text-white transition-all duration-300 py-7 px-8 text-lg font-semibold"
-                      onClick={() => {
-                        console.log("🚀 Hero CTA clicked, navigating to:", getWaitlistUrl())
-                      }}
                     >
                       Join Our Waitlist{" "}
                       <motion.span initial={{ x: 0 }} whileHover={{ x: 5 }} transition={{ duration: 0.3 }}>
@@ -577,7 +546,7 @@ export default function Home() {
       {/* Care Plans Section */}
       <section id="pricing" className="bg-secondary py-16 md:py-24 border-t border-gray-100">
         <div className="container px-4 md:px-6">
-          <PricingSection referralParam={referralParam} />
+          <PricingSection />
         </div>
       </section>
 
@@ -668,9 +637,6 @@ export default function Home() {
                     <Button
                       size="lg"
                       className="bg-accent hover:bg-accent/90 text-white transition-all duration-300 py-6 px-8 text-lg font-semibold"
-                      onClick={() => {
-                        console.log("🚀 Founder CTA clicked, navigating to:", getWaitlistUrl())
-                      }}
                     >
                       Join Our Waitlist
                       <ArrowRight className="ml-2 h-5 w-5" />
@@ -719,7 +685,7 @@ export default function Home() {
       </AnimatedSection>
 
       <Footer />
-      <MobileWaitlistButton referralParam={referralParam} />
+      <MobileWaitlistButton />
     </div>
   )
 }

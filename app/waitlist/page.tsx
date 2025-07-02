@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { WaitlistForm } from "@/components/waitlist-form"
 import { Header } from "@/components/header"
@@ -8,36 +8,15 @@ import { Footer } from "@/components/footer"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 
-function WaitlistPageContent() {
+export default function WaitlistPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
-  const [referralParam, setReferralParam] = useState<string | null>(null)
 
   useEffect(() => {
     const plan = searchParams.get("plan")
-    const ref = searchParams.get("ref")
-
-    console.log("🎯 Waitlist page loaded with params:", { plan, ref, url: window.location.href })
-
     if (plan) {
       setSelectedPlan(plan)
-    }
-
-    // Handle referral parameter
-    if (ref && ref.trim()) {
-      const cleanRef = ref.trim()
-      console.log("✅ Waitlist page setting referral:", cleanRef)
-      setReferralParam(cleanRef)
-      // Store in localStorage for persistence
-      localStorage.setItem("timesnri_referral", cleanRef)
-    } else {
-      // Check localStorage for stored referral
-      const storedRef = localStorage.getItem("timesnri_referral")
-      if (storedRef) {
-        console.log("📦 Waitlist page using stored referral:", storedRef)
-        setReferralParam(storedRef)
-      }
     }
   }, [searchParams])
 
@@ -47,7 +26,7 @@ function WaitlistPageContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header referralParam={referralParam} />
+      <Header />
 
       <main className="pt-20 pb-16">
         <div className="container mx-auto px-4 md:px-6">
@@ -74,13 +53,6 @@ function WaitlistPageContent() {
                   </p>
                 </div>
               )}
-              {referralParam && (
-                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg inline-block">
-                  <p className="text-sm text-green-700">
-                    🎉 You were referred by: <span className="font-mono font-medium">{referralParam}</span>
-                  </p>
-                </div>
-              )}
             </div>
 
             {/* Waitlist form card */}
@@ -97,8 +69,6 @@ function WaitlistPageContent() {
                     handleClose()
                   }
                 }}
-                standalone={true}
-                preSelectedPlan={selectedPlan || undefined}
               />
             </div>
 
@@ -134,22 +104,5 @@ function WaitlistPageContent() {
 
       <Footer />
     </div>
-  )
-}
-
-export default function WaitlistPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading waitlist form...</p>
-          </div>
-        </div>
-      }
-    >
-      <WaitlistPageContent />
-    </Suspense>
   )
 }

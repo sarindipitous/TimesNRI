@@ -62,10 +62,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { email, name, source, location, parent_location, care_needs, care_plan, care_plan_interest, referred_by } =
-      body
-
-    console.log("API route received data:", body)
+    const { email, name, source, location, parent_location, care_needs, care_plan, care_plan_interest } = body
 
     if (!email) {
       return NextResponse.json({ success: false, error: "Email is required" }, { status: 400 })
@@ -73,12 +70,11 @@ export async function POST(request: NextRequest) {
 
     const result = await sql`
       INSERT INTO waitlist_submissions (
-        email, source, name, location, parent_location, care_needs, care_plan, care_plan_interest, referred_by
+        email, source, name, location, parent_location, care_needs, care_plan, care_plan_interest
       ) 
       VALUES (
         ${email}, ${source || null}, ${name || null}, ${location || null}, 
-        ${parent_location || null}, ${care_needs || null}, ${care_plan || null}, 
-        ${care_plan_interest || null}, ${referred_by || null}
+        ${parent_location || null}, ${care_needs || null}, ${care_plan || null}, ${care_plan_interest || null}
       )
       ON CONFLICT (email) DO UPDATE SET
         source = COALESCE(EXCLUDED.source, waitlist_submissions.source),
@@ -87,12 +83,9 @@ export async function POST(request: NextRequest) {
         parent_location = COALESCE(EXCLUDED.parent_location, waitlist_submissions.parent_location),
         care_needs = COALESCE(EXCLUDED.care_needs, waitlist_submissions.care_needs),
         care_plan = COALESCE(EXCLUDED.care_plan, waitlist_submissions.care_plan),
-        care_plan_interest = COALESCE(EXCLUDED.care_plan_interest, waitlist_submissions.care_plan_interest),
-        referred_by = COALESCE(EXCLUDED.referred_by, waitlist_submissions.referred_by)
+        care_plan_interest = COALESCE(EXCLUDED.care_plan_interest, waitlist_submissions.care_plan_interest)
       RETURNING *
     `
-
-    console.log("Database insert result:", result[0])
 
     return NextResponse.json({
       success: true,

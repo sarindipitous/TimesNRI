@@ -30,23 +30,11 @@ export async function submitToWaitlist(formData: FormData) {
     const carePlan = (formData.get("carePlan") as string) || undefined
     const carePlanInterest = (formData.get("carePlanInterest") as string) || undefined
 
-    console.log("submitToWaitlist received data:", {
-      email,
-      source,
-      name,
-      location,
-      parentLocation,
-      careNeeds,
-      referredBy,
-      carePlan,
-      carePlanInterest,
-    })
-
     if (!email || !isValidEmail(email)) {
       return { success: false, message: "Please provide a valid email address." }
     }
 
-    /* upsert submission with referred_by field */
+    /* upsert submission */
     const submission = await addToWaitlist(
       email,
       source,
@@ -56,26 +44,18 @@ export async function submitToWaitlist(formData: FormData) {
       careNeeds,
       carePlan,
       carePlanInterest,
-      referredBy, // Now passing referred_by directly to be saved in the table
     )
 
     if (!submission) {
       return { success: false, message: "Failed to add to waitlist. Please try again." }
     }
 
-    console.log("Waitlist submission created:", submission)
-
-    /* link referral in separate referral tables (for additional tracking) */
+    /* link referral */
     if (referredBy) {
-      console.log(`Processing referral from: ${referredBy}`)
       const referrer = await getWaitlistSubmissionByEmail(referredBy)
       if (referrer) {
-        console.log(`Found referrer:`, referrer)
         await addReferral(referrer.id, email)
         await addDetailedReferral(referrer.id, email, submission.id)
-        console.log(`Added referral tracking for referrer ID: ${referrer.id}`)
-      } else {
-        console.log(`Referrer not found in waitlist: ${referredBy}`)
       }
     }
 
@@ -133,7 +113,6 @@ export async function updateWaitlistEntry(formData: FormData) {
     const careNeeds = formData.get("careNeeds") as string
     const carePlan = formData.get("carePlan") as string
     const carePlanInterest = formData.get("carePlanInterest") as string
-    const referredBy = formData.get("referredBy") as string
 
     if (!id || Number.isNaN(id)) return { success: false, message: "Invalid ID." }
     if (!email || !isValidEmail(email)) return { success: false, message: "Invalid email." }
@@ -146,7 +125,6 @@ export async function updateWaitlistEntry(formData: FormData) {
       care_needs: careNeeds,
       care_plan: carePlan,
       care_plan_interest: carePlanInterest,
-      referred_by: referredBy,
     })
 
     return updated

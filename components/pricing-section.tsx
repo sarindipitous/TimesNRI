@@ -10,7 +10,6 @@ import Link from "next/link"
 
 interface PricingProps {
   className?: string
-  referralParam?: string | null
 }
 
 const plans = [
@@ -74,26 +73,10 @@ const plans = [
   },
 ]
 
-export function PricingSection({ className, referralParam }: PricingProps) {
+export function PricingSection({ className }: PricingProps) {
   const [isWaitlistOpen, setIsWaitlistOpen] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState("")
   const [isComparisonOpen, setIsComparisonOpen] = useState(false)
-
-  const buildWaitlistUrl = (plan: string) => {
-    const baseUrl = "/waitlist"
-    const params = new URLSearchParams()
-
-    params.set("plan", plan)
-    if (referralParam) {
-      params.set("ref", referralParam)
-    }
-
-    return `${baseUrl}?${params.toString()}`
-  }
-
-  const handlePlanClick = (planName: string) => {
-    console.log(`💳 ${planName} plan clicked with referral:`, referralParam)
-  }
 
   return (
     <section id="pricing" className={cn("container py-24", className)}>
@@ -165,20 +148,25 @@ export function PricingSection({ className, referralParam }: PricingProps) {
 
             <CardFooter>
               {plan.inviteOnly ? (
-                <Link href={buildWaitlistUrl("honour")}>
-                  <Button className={`w-full ${plan.buttonColor} text-white`} onClick={() => handlePlanClick("Honour")}>
-                    Request Invitation
-                  </Button>
-                </Link>
+                <Button
+                  className={`w-full ${plan.buttonColor} text-white`}
+                  onClick={() => {
+                    setSelectedPlan("Honour: $500/month (By Invitation Only)")
+                    setIsWaitlistOpen(true)
+                  }}
+                >
+                  Request Invitation
+                </Button>
               ) : (
-                <Link href={buildWaitlistUrl(plan.id)}>
-                  <Button
-                    className={`w-full ${plan.buttonColor} text-white`}
-                    onClick={() => handlePlanClick(plan.name)}
-                  >
-                    Choose {plan.name}
-                  </Button>
-                </Link>
+                <Button
+                  className={`w-full ${plan.buttonColor} text-white`}
+                  onClick={() => {
+                    setSelectedPlan(`${plan.name}: ${plan.price}/month`)
+                    setIsWaitlistOpen(true)
+                  }}
+                >
+                  Choose {plan.name}
+                </Button>
               )}
             </CardFooter>
           </Card>
