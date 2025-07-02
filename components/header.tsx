@@ -34,7 +34,11 @@ function getDisplayName(id: string): string {
   }
 }
 
-export function Header() {
+interface HeaderProps {
+  referralParam?: string | null
+}
+
+export function Header({ referralParam }: HeaderProps) {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
@@ -93,6 +97,18 @@ export function Header() {
     setIsMobileMenuOpen(false)
   }
 
+  const getWaitlistUrl = () => {
+    const baseUrl = "/waitlist"
+    if (referralParam) {
+      return `${baseUrl}?ref=${encodeURIComponent(referralParam)}`
+    }
+    return baseUrl
+  }
+
+  const handleWaitlistClick = () => {
+    console.log("🔗 Header waitlist clicked with referral:", referralParam)
+  }
+
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
@@ -124,8 +140,13 @@ export function Header() {
 
           {/* Desktop CTA */}
           <div className="hidden lg:flex items-center gap-4">
-            <Link href="/waitlist">
-              <Button className="bg-accent hover:bg-accent/90 text-white font-semibold px-6 py-2">Join Waitlist</Button>
+            <Link href={getWaitlistUrl()}>
+              <Button
+                className="bg-accent hover:bg-accent/90 text-white font-semibold px-6 py-2"
+                onClick={handleWaitlistClick}
+              >
+                Join Waitlist
+              </Button>
             </Link>
           </div>
 
@@ -160,9 +181,12 @@ export function Header() {
                   </div>
                 </nav>
                 <div className="p-6 border-t">
-                  <Link href="/waitlist">
+                  <Link href={getWaitlistUrl()}>
                     <Button
-                      onClick={() => setIsMobileMenuOpen(false)}
+                      onClick={() => {
+                        handleWaitlistClick()
+                        setIsMobileMenuOpen(false)
+                      }}
                       className="w-full bg-accent hover:bg-accent/90 text-white font-semibold py-3"
                     >
                       Join Waitlist

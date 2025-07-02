@@ -6,10 +6,13 @@ import { useMobile } from "@/hooks/use-mobile"
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import Link from "next/link"
 
-export function FloatingCTA() {
+interface FloatingCTAProps {
+  referralParam?: string | null
+}
+
+export function FloatingCTA({ referralParam }: FloatingCTAProps) {
   const [isVisible, setIsVisible] = useState(false)
   const [isPulsing, setPulsing] = useState(false)
-  const [referralParam, setReferralParam] = useState<string | null>(null)
   const isMobile = useMobile()
   const prefersReducedMotion = useReducedMotion()
 
@@ -34,20 +37,12 @@ export function FloatingCTA() {
     }
   }, [isVisible])
 
-  useEffect(() => {
-    // Capture referral parameter from URL
-    const urlParams = new URLSearchParams(window.location.search)
-    const ref = urlParams.get("ref")
-    if (ref) {
-      setReferralParam(ref)
-    }
-  }, [])
-
   const getWaitlistUrl = () => {
+    const baseUrl = "/waitlist"
     if (referralParam) {
-      return `/waitlist?ref=${encodeURIComponent(referralParam)}`
+      return `${baseUrl}?ref=${encodeURIComponent(referralParam)}`
     }
-    return "/waitlist"
+    return baseUrl
   }
 
   return (

@@ -5,9 +5,12 @@ import { Button } from "@/components/ui/button"
 import { ArrowRight } from "lucide-react"
 import Link from "next/link"
 
-export function MobileWaitlistButton() {
+interface MobileWaitlistButtonProps {
+  referralParam?: string | null
+}
+
+export function MobileWaitlistButton({ referralParam }: MobileWaitlistButtonProps) {
   const [isVisible, setIsVisible] = useState(false)
-  const [referralParam, setReferralParam] = useState<string | null>(null)
 
   useEffect(() => {
     const toggleVisibility = () => {
@@ -23,20 +26,16 @@ export function MobileWaitlistButton() {
     return () => window.removeEventListener("scroll", toggleVisibility)
   }, [])
 
-  useEffect(() => {
-    // Capture referral parameter from URL
-    const urlParams = new URLSearchParams(window.location.search)
-    const ref = urlParams.get("ref")
-    if (ref) {
-      setReferralParam(ref)
-    }
-  }, [])
-
   const getWaitlistUrl = () => {
+    const baseUrl = "/waitlist"
     if (referralParam) {
-      return `/waitlist?ref=${encodeURIComponent(referralParam)}`
+      return `${baseUrl}?ref=${encodeURIComponent(referralParam)}`
     }
-    return "/waitlist"
+    return baseUrl
+  }
+
+  const handleClick = () => {
+    console.log("📱 Mobile CTA clicked with referral:", referralParam)
   }
 
   if (!isVisible) {
@@ -49,6 +48,7 @@ export function MobileWaitlistButton() {
         <Button
           size="lg"
           className="w-full bg-accent hover:bg-accent/90 text-white shadow-lg py-4 text-base font-semibold"
+          onClick={handleClick}
         >
           Join Our Waitlist
           <ArrowRight className="ml-2 h-5 w-5" />
