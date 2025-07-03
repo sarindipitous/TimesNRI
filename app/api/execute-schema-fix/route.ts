@@ -1,19 +1,18 @@
 import { NextResponse } from "next/server"
-import { sql } from "@vercel/postgres"
+import { sql, hasDb } from "@/lib/db"
 
 export const dynamic = "force-dynamic"
 
 export async function POST() {
+  if (!hasDb) {
+    return NextResponse.json({
+      success: false,
+      error: "Database not available - DATABASE_URL not configured",
+    })
+  }
+
   try {
     console.log("🔧 Starting campaign schema fix via API...")
-
-    // Check if DATABASE_URL is available
-    if (!process.env.DATABASE_URL) {
-      return NextResponse.json({
-        success: false,
-        error: "DATABASE_URL environment variable is not set",
-      })
-    }
 
     const results = []
 
@@ -34,19 +33,25 @@ export async function POST() {
 
     // Step 2: Add updated_at column if missing
     console.log("🔧 Adding updated_at column if missing...")
-    const hasUpdatedAt = currentSchema.rows.some((row) => row.column_name === "updated_at")
+    const columnCheck = await sql`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'email_campaigns' AND column_name = 'updated_at'
+    `
 
-    if (!hasUpdatedAt) {
+    if (columnCheck.length === 0) {
       await sql`
         ALTER TABLE email_campaigns 
-        ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       `
+      console.log("✅ Added updated_at column")
       results.push({
         step: "Add updated_at column",
         status: "added",
         message: "Added updated_at column to email_campaigns table",
       })
     } else {
+      console.log("✅ updated_at column already exists")
       results.push({
         step: "Add updated_at column",
         status: "skipped",
