@@ -105,7 +105,7 @@ export async function createCampaign(data: {
   }
 }
 
-// Update campaign - FIXED to work without updated_at column
+// Update campaign - FIXED SQL query construction
 export async function updateCampaign(id: number, data: Partial<EmailCampaign>): Promise<EmailCampaign | null> {
   if (!hasDb) return noDb(null, "updateCampaign")
 
@@ -115,26 +115,30 @@ export async function updateCampaign(id: number, data: Partial<EmailCampaign>): 
 
     if (filteredData.length === 0) return null
 
-    // Build the SET clause manually without updated_at
-    const setParts = filteredData.map(([key, value]) => {
-      if (key === "target_criteria" || key === "selected_recipients") {
-        return sql`${sql.identifier([key])} = ${JSON.stringify(value)}`
-      }
-      return sql`${sql.identifier([key])} = ${value}`
-    })
+    // Build update object for direct SQL construction
+    const updateFields: Record<string, any> = {}
 
-    // Combine all SET parts
-    let setClause = setParts[0]
-    for (let i = 1; i < setParts.length; i++) {
-      setClause = sql`${setClause}, ${setParts[i]}`
+    for (const [key, value] of filteredData) {
+      if (key === "target_criteria" || key === "selected_recipients") {
+        updateFields[key] = JSON.stringify(value)
+      } else {
+        updateFields[key] = value
+      }
     }
 
+    // Construct the SQL query properly
+    const setClause = Object.keys(updateFields)
+      .map((key) => `${key} = $${key}`)
+      .join(", ")
+
+    // Use raw SQL with proper parameter binding
     const result = await sql`
       UPDATE email_campaigns 
-      SET ${setClause}
+      SET ${sql.unsafe(setClause)}
       WHERE id = ${id}
       RETURNING *
-    `
+    `.values(updateFields)
+
     return (result[0] as EmailCampaign) || null
   } catch (error) {
     console.error("Error updating campaign:", error)
