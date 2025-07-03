@@ -8,27 +8,15 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const campaignId = Number.parseInt(params.id)
 
     if (isNaN(campaignId)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Invalid campaign ID",
-        },
-        { status: 400 },
-      )
+      return NextResponse.json({ success: false, error: "Invalid campaign ID" }, { status: 400 })
     }
 
     console.log(`[API] Sending campaign ${campaignId}`)
 
     const result = await sendCampaign(campaignId)
 
-    console.log(`[API] Campaign ${campaignId} result:`, result)
-
-    if (result.success) {
-      return NextResponse.json({
-        success: true,
-        message: result.message,
-      })
-    } else {
+    if (!result.success) {
+      console.log(`[API] Campaign ${campaignId} send failed: ${result.message}`)
       return NextResponse.json(
         {
           success: false,
@@ -37,8 +25,15 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         { status: 400 },
       )
     }
+
+    console.log(`[API] Campaign ${campaignId} sent successfully: ${result.message}`)
+
+    return NextResponse.json({
+      success: true,
+      message: result.message,
+    })
   } catch (error) {
-    console.error("[API] Error in send campaign:", error)
+    console.error("Error sending campaign:", error)
     return NextResponse.json(
       {
         success: false,

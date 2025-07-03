@@ -1,32 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getAllCampaigns, createCampaign } from "@/lib/email-campaigns-fixed"
-import { getAllWaitlistSubmissions } from "@/lib/db"
 
 export const dynamic = "force-dynamic"
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url)
-    const action = searchParams.get("action")
-
-    if (action === "recipients") {
-      // Get all waitlist emails for recipient selection
-      const submissions = await getAllWaitlistSubmissions(1000, 0)
-      const recipients = submissions.map((sub) => ({
-        email: sub.email,
-        name: sub.name || "",
-        location: sub.location || sub.parent_location || "",
-        care_plan: sub.care_plan || "",
-        created_at: sub.created_at,
-      }))
-
-      return NextResponse.json({
-        success: true,
-        recipients,
-      })
-    }
-
-    // Default: get all campaigns
+    console.log("[API] Fetching all campaigns")
     const campaigns = await getAllCampaigns()
 
     return NextResponse.json({
@@ -34,7 +13,7 @@ export async function GET(request: NextRequest) {
       campaigns,
     })
   } catch (error) {
-    console.error("Error in campaigns API:", error)
+    console.error("Error fetching campaigns:", error)
     return NextResponse.json(
       {
         success: false,
@@ -48,45 +27,39 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log("[API] Creating new campaign")
     const body = await request.json()
-    const { name, subject, from_name, from_email, html_content, target_type, target_criteria, selected_recipients } =
-      body
-
-    console.log("[API] Creating campaign:", { name, subject, target_type, selected_recipients })
 
     // Validate required fields
-    if (!name || !subject || !from_name || !from_email || !html_content) {
+    const requiredFields = ["name", "subject", "from_name", "from_email", "html_content", "target_type"]
+    const missingFields = requiredFields.filter((field) => !body[field])
+
+    if (missingFields.length > 0) {
       return NextResponse.json(
         {
           success: false,
-          error: "Missing required fields: name, subject, from_name, from_email, and html_content are required",
+          error: `Missing required fields: ${missingFields.join(", ")}`,
         },
         { status: 400 },
       )
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(from_email)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Invalid email format for from_email",
-        },
-        { status: 400 },
-      )
-    }
+    console.log("[API] Campaign data:", {
+      name: body.name,
+      subject: body.subject,
+      target_type: body.target_type,
+      selected_recipients_count: body.selected_recipients?.length || 0,
+    })
 
-    // Create campaign
     const campaign = await createCampaign({
-      name,
-      subject,
-      from_name,
-      from_email,
-      html_content,
-      target_type: target_type || "all",
-      target_criteria,
-      selected_recipients,
+      name: body.name,
+      subject: body.subject,
+      from_name: body.from_name,
+      from_email: body.from_email,
+      html_content: body.html_content,
+      target_type: body.target_type,
+      target_criteria: body.target_criteria || {},
+      selected_recipients: body.selected_recipients || [],
     })
 
     if (!campaign) {
@@ -99,7 +72,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log("[API] Campaign created successfully:", campaign.id)
+    console.log(`[API] Campaign created successfully with ID: ${campaign.id}`)
 
     return NextResponse.json({
       success: true,

@@ -4,174 +4,222 @@ import { sql } from "@/lib/db"
 export const dynamic = "force-dynamic"
 
 export async function POST() {
-  const safetyChecks = {
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV,
-    checks: [] as any[],
-    overall_safe: true,
-    critical_issues: [] as string[],
-    warnings: [] as string[],
-  }
+  const safetyChecks = []
+  let overallSafe = true
 
-  // Check 1: Verify we're not accidentally sending to real users
+  // Check 1: No campaigns with real email addresses in test mode
   try {
-    const realUserCount = await sql`
-      SELECT COUNT(*) as count FROM waitlist_submissions 
-      WHERE email NOT LIKE '%test%' 
-      AND email NOT LIKE '%@resend.dev' 
-      AND email NOT LIKE '%@example.com'
+    const testCampaigns = await sql`
+      SELECT id, name, selected_recipients, target_type
+      FROM email_campaigns 
+      WHERE name ILIKE '%test%' OR name ILIKE '%qa%'
     `
 
-    const realUsers = Number(realUserCount[0]?.count || 0)
+    const realEmailsInTest = []
+    for (const campaign of testCampaigns) {
+      if (campaign.target_type === "selected" && campaign.selected_recipients) {
+        const recipients = Array.isArray(campaign.selected_recipients)
+          ? campaign.selected_recipients
+          : JSON.parse(campaign.selected_recipients as string)
 
-    safetyChecks.checks.push({
-      name: "Real User Data Check",
-      status: "PASS",
-      details: { real_users_in_db: realUsers },
-      safe: true,
-    })
+        const realEmails = recipients.filter(
+          (email: string) =>
+            !email.includes("test") &&
+            !email.includes("example") &&
+            !email.includes("resend.dev") &&
+            !email.includes("qa"),
+        )
 
-    if (realUsers > 0) {
-      safetyChecks.warnings.push(
-        `${realUsers} real user emails in database - ensure test campaigns use test emails only`,
-      )
+        if (realEmails.length > 0) {
+          realEmailsInTest.push({
+            campaign_id: campaign.id,
+            campaign_name: campaign.name,
+            real_emails: realEmails,
+          })
+        }
+      }
     }
-  } catch (error) {
-    safetyChecks.checks.push({
-      name: "Real User Data Check",
-      status: "ERROR",
-      error: error instanceof Error ? error.message : "Unknown error",
-      safe: false,
+
+    safetyChecks.push({
+      check: "Test Campaigns Email Safety",
+      passed: realEmailsInTest.length === 0,
+      details:
+        realEmailsInTest.length === 0
+          ? "No real emails found in test campaigns"
+          : `Found ${realEmailsInTest.length} test campaigns with real emails`,
+      data: realEmailsInTest,
     })
-    safetyChecks.critical_issues.push("Cannot verify user data safety")
+
+    if (realEmailsInTest.length > 0) overallSafe = false
+  } catch (error) {
+    safetyChecks.push({
+      check: "Test Campaigns Email Safety",
+      passed: false,
+      details: `Error checking test campaigns: ${error instanceof Error ? error.message : "Unknown error"}`,
+    })
+    overallSafe = false
   }
 
-  // Check 2: Verify email service configuration
+  // Check 2: No campaigns in sending status that shouldn't be
   try {
-    const emailServices = {
-      resend: !!process.env.RESEND_API_KEY,
-      sendgrid: !!process.env.SENDGRID_API_KEY,
-      mailgun: !!process.env.MAILGUN_API_KEY,
-    }
-
-    const configuredServices = Object.entries(emailServices).filter(([_, configured]) => configured)
-
-    safetyChecks.checks.push({
-      name: "Email Service Configuration",
-      status: configuredServices.length > 0 ? "PASS" : "FAIL",
-      details: { configured_services: configuredServices.map(([name]) => name) },
-      safe: configuredServices.length > 0,
-    })
-
-    if (configuredServices.length === 0) {
-      safetyChecks.critical_issues.push("No email services configured - campaigns will fail")
-    }
-  } catch (error) {
-    safetyChecks.checks.push({
-      name: "Email Service Configuration",
-      status: "ERROR",
-      error: error instanceof Error ? error.message : "Unknown error",
-      safe: false,
-    })
-  }
-
-  // Check 3: Database connection and table integrity
-  try {
-    const tables = await sql`
-      SELECT table_name FROM information_schema.tables 
-      WHERE table_schema = 'public' 
-      AND table_name IN ('email_campaigns', 'email_campaign_logs', 'waitlist_submissions')
+    const sendingCampaigns = await sql`
+      SELECT id, name, status, total_recipients, started_at
+      FROM email_campaigns 
+      WHERE status = 'sending' AND started_at < NOW() - INTERVAL '1 hour'
     `
 
-    const requiredTables = ["email_campaigns", "email_campaign_logs", "waitlist_submissions"]
-    const existingTables = tables.map((t: any) => t.table_name)
-    const missingTables = requiredTables.filter((table) => !existingTables.includes(table))
-
-    safetyChecks.checks.push({
-      name: "Database Table Integrity",
-      status: missingTables.length === 0 ? "PASS" : "FAIL",
-      details: { existing_tables: existingTables, missing_tables: missingTables },
-      safe: missingTables.length === 0,
+    safetyChecks.push({
+      check: "Stuck Sending Campaigns",
+      passed: sendingCampaigns.length === 0,
+      details:
+        sendingCampaigns.length === 0
+          ? "No campaigns stuck in sending status"
+          : `Found ${sendingCampaigns.length} campaigns stuck in sending status`,
+      data: sendingCampaigns,
     })
 
-    if (missingTables.length > 0) {
-      safetyChecks.critical_issues.push(`Missing required tables: ${missingTables.join(", ")}`)
-    }
+    if (sendingCampaigns.length > 0) overallSafe = false
   } catch (error) {
-    safetyChecks.checks.push({
-      name: "Database Table Integrity",
-      status: "ERROR",
-      error: error instanceof Error ? error.message : "Unknown error",
-      safe: false,
+    safetyChecks.push({
+      check: "Stuck Sending Campaigns",
+      passed: false,
+      details: `Error checking sending campaigns: ${error instanceof Error ? error.message : "Unknown error"}`,
     })
-    safetyChecks.critical_issues.push("Cannot verify database integrity")
+    overallSafe = false
   }
 
-  // Check 4: Verify no campaigns are currently sending
-  try {
-    const activeCampaigns = await sql`
-      SELECT id, name, status FROM email_campaigns 
-      WHERE status IN ('sending', 'scheduled')
-    `
-
-    safetyChecks.checks.push({
-      name: "Active Campaign Check",
-      status: activeCampaigns.length === 0 ? "PASS" : "WARNING",
-      details: { active_campaigns: activeCampaigns },
-      safe: true,
-    })
-
-    if (activeCampaigns.length > 0) {
-      safetyChecks.warnings.push(`${activeCampaigns.length} campaigns currently active - deployment may affect them`)
-    }
-  } catch (error) {
-    safetyChecks.checks.push({
-      name: "Active Campaign Check",
-      status: "ERROR",
-      error: error instanceof Error ? error.message : "Unknown error",
-      safe: false,
-    })
+  // Check 3: Email service configuration
+  const emailServices = {
+    resend: !!process.env.RESEND_API_KEY,
+    sendgrid: !!process.env.SENDGRID_API_KEY,
+    mailgun: !!process.env.MAILGUN_API_KEY,
   }
 
-  // Check 5: Environment validation
-  const isProduction = process.env.NODE_ENV === "production"
-  const hasQAMode = process.env.QA_MODE === "true"
+  const configuredServices = Object.entries(emailServices).filter(([_, configured]) => configured)
 
-  safetyChecks.checks.push({
-    name: "Environment Safety",
-    status: isProduction && !hasQAMode ? "WARNING" : "PASS",
-    details: {
-      environment: process.env.NODE_ENV,
-      qa_mode: hasQAMode,
-      is_production: isProduction,
-    },
-    safe: true,
+  safetyChecks.push({
+    check: "Email Service Configuration",
+    passed: configuredServices.length > 0,
+    details:
+      configuredServices.length > 0
+        ? `${configuredServices.length} email services configured: ${configuredServices.map(([name]) => name).join(", ")}`
+        : "No email services configured",
+    data: emailServices,
   })
 
-  if (isProduction && !hasQAMode) {
-    safetyChecks.warnings.push("Deploying to production without QA_MODE=true - ensure thorough testing")
+  if (configuredServices.length === 0) overallSafe = false
+
+  // Check 4: Database schema integrity
+  try {
+    const campaignColumns = await sql`
+      SELECT column_name FROM information_schema.columns 
+      WHERE table_name = 'email_campaigns'
+      ORDER BY ordinal_position
+    `
+
+    const logColumns = await sql`
+      SELECT column_name FROM information_schema.columns 
+      WHERE table_name = 'email_campaign_logs'
+      ORDER BY ordinal_position
+    `
+
+    const requiredCampaignColumns = ["id", "name", "subject", "html_content", "status", "created_at", "updated_at"]
+    const requiredLogColumns = ["id", "campaign_id", "recipient_email", "status", "created_at"]
+
+    const campaignColumnNames = campaignColumns.map((col: any) => col.column_name)
+    const logColumnNames = logColumns.map((col: any) => col.column_name)
+
+    const missingCampaignColumns = requiredCampaignColumns.filter((col) => !campaignColumnNames.includes(col))
+    const missingLogColumns = requiredLogColumns.filter((col) => !logColumnNames.includes(col))
+
+    const schemaValid = missingCampaignColumns.length === 0 && missingLogColumns.length === 0
+
+    safetyChecks.push({
+      check: "Database Schema Integrity",
+      passed: schemaValid,
+      details: schemaValid
+        ? "All required database columns present"
+        : `Missing columns - Campaigns: ${missingCampaignColumns.join(", ")}, Logs: ${missingLogColumns.join(", ")}`,
+      data: {
+        campaign_columns: campaignColumnNames.length,
+        log_columns: logColumnNames.length,
+        missing_campaign_columns: missingCampaignColumns,
+        missing_log_columns: missingLogColumns,
+      },
+    })
+
+    if (!schemaValid) overallSafe = false
+  } catch (error) {
+    safetyChecks.push({
+      check: "Database Schema Integrity",
+      passed: false,
+      details: `Error checking database schema: ${error instanceof Error ? error.message : "Unknown error"}`,
+    })
+    overallSafe = false
   }
 
-  // Overall safety assessment
-  const failedChecks = safetyChecks.checks.filter((check) => !check.safe)
-  safetyChecks.overall_safe = failedChecks.length === 0 && safetyChecks.critical_issues.length === 0
+  // Check 5: Recent error rates
+  try {
+    const recentLogs = await sql`
+      SELECT 
+        status,
+        COUNT(*) as count
+      FROM email_campaign_logs 
+      WHERE created_at > NOW() - INTERVAL '24 hours'
+      GROUP BY status
+    `
 
-  // Generate recommendations
-  const recommendations = []
-  if (safetyChecks.critical_issues.length > 0) {
-    recommendations.push("🚨 CRITICAL: Do not deploy - resolve critical issues first")
+    const totalRecent = recentLogs.reduce((sum: number, log: any) => sum + Number(log.count), 0)
+    const failedRecent = recentLogs.find((log: any) => log.status === "failed")?.count || 0
+    const errorRate = totalRecent > 0 ? (Number(failedRecent) / totalRecent) * 100 : 0
+
+    safetyChecks.push({
+      check: "Recent Error Rates",
+      passed: errorRate < 10, // Less than 10% error rate
+      details:
+        totalRecent > 0
+          ? `Error rate: ${errorRate.toFixed(1)}% (${failedRecent}/${totalRecent} emails in last 24h)`
+          : "No recent email activity",
+      data: {
+        total_recent: totalRecent,
+        failed_recent: Number(failedRecent),
+        error_rate_percent: errorRate,
+        status_breakdown: recentLogs,
+      },
+    })
+
+    if (errorRate >= 10) overallSafe = false
+  } catch (error) {
+    safetyChecks.push({
+      check: "Recent Error Rates",
+      passed: false,
+      details: `Error checking recent error rates: ${error instanceof Error ? error.message : "Unknown error"}`,
+    })
   }
-  if (safetyChecks.warnings.length > 0) {
-    recommendations.push("⚠️  Review warnings before deployment")
-  }
-  if (safetyChecks.overall_safe) {
-    recommendations.push("✅ Safety checks passed - deployment approved from safety perspective")
+
+  const report = {
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || "development",
+    overall_safe: overallSafe,
+    deployment_approved: overallSafe,
+    total_checks: safetyChecks.length,
+    passed_checks: safetyChecks.filter((check) => check.passed).length,
+    failed_checks: safetyChecks.filter((check) => !check.passed).length,
+    safety_checks: safetyChecks,
+    recommendations: overallSafe
+      ? ["System appears safe for production deployment"]
+      : [
+          "CRITICAL: Safety checks failed - DO NOT deploy to production",
+          "Review failed checks and resolve issues before deployment",
+          "Consider running rollback procedures if already deployed",
+        ],
   }
 
   return NextResponse.json({
-    success: safetyChecks.overall_safe,
-    deployment_safe: safetyChecks.overall_safe && safetyChecks.critical_issues.length === 0,
-    safety_report: safetyChecks,
-    recommendations,
+    success: overallSafe,
+    safety_report: report,
+    message: overallSafe
+      ? "All safety checks passed - safe for production"
+      : "Safety checks failed - deployment not recommended",
   })
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { sql } from "@/lib/db"
 
 export const dynamic = "force-dynamic"
 
@@ -8,57 +9,110 @@ export async function POST() {
     steps: [
       {
         step: 1,
-        action: "Backup Current State",
-        description: "Create backup of current email_campaigns and email_campaign_logs tables",
+        action: "Backup Current Data",
         sql: `
-          CREATE TABLE email_campaigns_backup_${Date.now()} AS SELECT * FROM email_campaigns;
-          CREATE TABLE email_campaign_logs_backup_${Date.now()} AS SELECT * FROM email_campaign_logs;
+          -- Create backup tables
+          CREATE TABLE email_campaigns_backup AS SELECT * FROM email_campaigns;
+          CREATE TABLE email_campaign_logs_backup AS SELECT * FROM email_campaign_logs;
         `,
+        description: "Create backup of current campaign data",
         risk: "LOW",
-        reversible: true,
       },
       {
         step: 2,
-        action: "Revert to Original Library",
-        description: "Switch back to lib/email-campaigns.ts from lib/email-campaigns-fixed.ts",
-        files_to_restore: [
-          "lib/email-campaigns.ts",
-          "app/api/campaigns/route.ts",
-          "app/api/campaigns/[id]/route.ts",
-          "app/api/campaigns/[id]/send/route.ts",
-        ],
-        risk: "MEDIUM",
-        reversible: true,
+        action: "Stop All Active Campaigns",
+        sql: `
+          UPDATE email_campaigns 
+          SET status = 'paused' 
+          WHERE status IN ('sending', 'scheduled');
+        `,
+        description: "Pause any campaigns that are currently sending",
+        risk: "LOW",
       },
       {
         step: 3,
-        action: "Database Schema Rollback",
-        description: "Revert database schema changes if needed",
+        action: "Revert to Previous Schema",
         sql: `
-          -- Only if schema changes cause issues
-          -- This would need to be customized based on original schema
+          -- This would restore the previous table structure
+          -- Only execute if you have the previous schema backed up
+          DROP TABLE IF EXISTS email_campaigns CASCADE;
+          DROP TABLE IF EXISTS email_campaign_logs CASCADE;
+          -- Restore from backup (implementation depends on your backup strategy)
         `,
+        description: "Restore previous database schema",
         risk: "HIGH",
-        reversible: false,
-        warning: "Only execute if new schema is causing critical issues",
+      },
+      {
+        step: 4,
+        action: "Restore Previous Code",
+        description: "Deploy previous version of email campaign code",
+        risk: "MEDIUM",
+      },
+      {
+        step: 5,
+        action: "Verify System Health",
+        sql: `
+          SELECT COUNT(*) as campaign_count FROM email_campaigns;
+          SELECT COUNT(*) as log_count FROM email_campaign_logs;
+        `,
+        description: "Verify system is working with previous version",
+        risk: "LOW",
       },
     ],
-    validation_after_rollback: [
-      "Test campaign creation",
-      "Test campaign listing",
-      "Verify no data loss",
-      "Check existing campaigns still work",
+    estimated_downtime: "5-10 minutes",
+    prerequisites: [
+      "Database backup completed",
+      "Previous code version available",
+      "Admin access to deployment system",
     ],
     emergency_contacts: [
-      "CTO: Immediate notification required",
-      "DevOps: Database rollback assistance",
-      "QA Lead: Validation of rollback success",
+      "CTO: Immediate escalation for critical issues",
+      "DevOps: Database and deployment issues",
+      "QA Lead: Verification of rollback success",
     ],
   }
 
   return NextResponse.json({
     success: true,
     rollback_plan: rollbackPlan,
-    message: "Rollback plan generated - execute only if QA validation fails",
+    message: "Rollback plan generated - execute only if critical issues occur",
   })
+}
+
+export async function GET() {
+  try {
+    // Check current system status
+    const campaignCount = await sql`SELECT COUNT(*) as count FROM email_campaigns`
+    const logCount = await sql`SELECT COUNT(*) as count FROM email_campaign_logs`
+    const activeCampaigns = await sql`
+      SELECT COUNT(*) as count FROM email_campaigns 
+      WHERE status IN ('sending', 'scheduled')
+    `
+
+    const systemStatus = {
+      timestamp: new Date().toISOString(),
+      database_accessible: true,
+      total_campaigns: Number(campaignCount[0]?.count || 0),
+      total_logs: Number(logCount[0]?.count || 0),
+      active_campaigns: Number(activeCampaigns[0]?.count || 0),
+      rollback_needed: false,
+    }
+
+    return NextResponse.json({
+      success: true,
+      system_status: systemStatus,
+      message: "System status check completed",
+    })
+  } catch (error) {
+    return NextResponse.json({
+      success: false,
+      system_status: {
+        timestamp: new Date().toISOString(),
+        database_accessible: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        rollback_needed: true,
+      },
+      message: "System status check failed - consider rollback",
+    })
+  }
 }
