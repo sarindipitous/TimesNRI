@@ -1,62 +1,20 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getAllCampaigns, createCampaign } from "@/lib/email-campaigns-fixed"
-import { sql, hasDb } from "@/lib/db"
 
 export const dynamic = "force-dynamic"
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url)
-    const action = searchParams.get("action")
-
-    if (action === "recipients") {
-      console.log("[API] Fetching recipients for campaign creation")
-
-      if (!hasDb) {
-        return NextResponse.json({
-          success: false,
-          error: "Database not available",
-          recipients: [],
-        })
-      }
-
-      try {
-        const result = await sql`
-          SELECT email, name, location, care_plan_interest as care_plan, created_at 
-          FROM waitlist_submissions 
-          ORDER BY created_at DESC
-        `
-
-        console.log(`[API] Found ${result.length} recipients`)
-
-        return NextResponse.json({
-          success: true,
-          recipients: result.map((r: any) => ({
-            email: r.email,
-            name: r.name || "",
-            location: r.location || "",
-            care_plan: r.care_plan || "",
-            created_at: r.created_at,
-          })),
-        })
-      } catch (error) {
-        console.error("[API] Error fetching recipients:", error)
-        return NextResponse.json({
-          success: false,
-          error: "Failed to fetch recipients",
-          recipients: [],
-        })
-      }
-    }
-
-    // Default: get all campaigns
+    console.log("[API] Fetching all campaigns")
     const campaigns = await getAllCampaigns()
+    console.log(`[API] Found ${campaigns.length} campaigns`)
+
     return NextResponse.json({
       success: true,
       campaigns,
     })
   } catch (error) {
-    console.error("Error in campaigns GET:", error)
+    console.error("Error fetching campaigns:", error)
     return NextResponse.json(
       {
         success: false,
@@ -70,36 +28,38 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log("[API] Creating new campaign")
     const body = await request.json()
 
-    console.log("[API] Creating campaign:", {
-      name: body.name,
-      target_type: body.target_type,
-      selected_recipients_count: Array.isArray(body.selected_recipients) ? body.selected_recipients.length : 0,
-    })
-
     // Validate required fields
-    if (!body.name || !body.subject || !body.html_content) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Missing required fields: name, subject, and html_content are required",
-        },
-        { status: 400 },
-      )
+    const requiredFields = ["name", "subject", "html_content", "target_type"]
+    for (const field of requiredFields) {
+      if (!body[field]) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Missing required field: ${field}`,
+          },
+          { status: 400 },
+        )
+      }
     }
 
-    // Create campaign
-    const campaign = await createCampaign({
+    // Set defaults
+    const campaignData = {
       name: body.name,
       subject: body.subject,
       from_name: body.from_name || "Times NRI Team",
       from_email: body.from_email || "noreply@timesnri.com",
       html_content: body.html_content,
-      target_type: body.target_type || "all",
-      target_criteria: body.target_criteria,
-      selected_recipients: body.selected_recipients,
-    })
+      target_type: body.target_type,
+      target_criteria: body.target_criteria || {},
+      selected_recipients: body.selected_recipients || [],
+    }
+
+    console.log("[API] Campaign data:", campaignData)
+
+    const campaign = await createCampaign(campaignData)
 
     if (!campaign) {
       return NextResponse.json(
@@ -116,7 +76,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       campaign,
-      message: "Campaign created successfully",
     })
   } catch (error) {
     console.error("Error creating campaign:", error)

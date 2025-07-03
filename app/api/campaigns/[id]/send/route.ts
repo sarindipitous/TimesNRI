@@ -13,6 +13,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     console.log(`[API] Starting send for campaign ${campaignId}`)
 
+    // This will now send ONE EMAIL PER API CALL with proper rate limiting
     const result = await sendCampaign(campaignId)
 
     if (result.success) {

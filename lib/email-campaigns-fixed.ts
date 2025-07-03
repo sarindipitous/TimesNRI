@@ -101,7 +101,7 @@ export async function createCampaign(data: {
   }
 }
 
-// ROBUST UPDATE FUNCTION - No more complex logic
+// Update campaign
 export async function updateCampaign(id: number, updates: Partial<EmailCampaign>): Promise<EmailCampaign | null> {
   if (!hasDb) return noDb(null, "updateCampaign")
 
@@ -241,90 +241,157 @@ export async function getCampaignRecipients(campaign: EmailCampaign): Promise<Ar
   }
 }
 
-// COMPLETELY REWRITTEN: Reliable single email sending
-async function sendSingleEmailReliable(payload: {
+// FIXED: Single email sending with proper rate limiting for Resend
+async function sendSingleEmailViaResend(payload: {
   to: string
-  from: string
   subject: string
   html: string
-}): Promise<{ success: boolean; service?: string; error?: string; external_id?: string }> {
-  // Try Resend first (most reliable)
-  if (process.env.RESEND_API_KEY) {
-    try {
-      console.log(`[EMAIL] Sending via Resend to ${payload.to}`)
-
-      const response = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: "Times NRI Team <noreply@timesnri.com>",
-          to: [payload.to],
-          subject: payload.subject,
-          html: payload.html,
-        }),
-      })
-
-      const responseData = await response.json()
-
-      if (response.ok) {
-        console.log(`[EMAIL] ✅ Resend success for ${payload.to}`)
-        return {
-          success: true,
-          service: "Resend",
-          external_id: responseData.id,
-        }
-      } else {
-        console.log(`[EMAIL] ❌ Resend failed for ${payload.to}:`, responseData)
-        return {
-          success: false,
-          service: "Resend",
-          error: responseData.message || "Resend API error",
-        }
-      }
-    } catch (error) {
-      console.log(`[EMAIL] ❌ Resend exception for ${payload.to}:`, error)
-      // Continue to next service
-    }
+}): Promise<{ success: boolean; error?: string; external_id?: string }> {
+  if (!process.env.RESEND_API_KEY) {
+    return { success: false, error: "Resend API key not configured" }
   }
 
-  // Try SendGrid as fallback
-  if (process.env.SENDGRID_API_KEY) {
-    try {
-      console.log(`[EMAIL] Trying SendGrid for ${payload.to}`)
+  try {
+    console.log(`[RESEND] Sending to ${payload.to}`)
 
-      const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.SENDGRID_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          personalizations: [{ to: [{ email: payload.to }], subject: payload.subject }],
-          from: { email: "noreply@timesnri.com", name: "Times NRI Team" },
-          content: [{ type: "text/html", value: payload.html }],
-        }),
-      })
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "Times NRI Team <noreply@timesnri.com>",
+        to: [payload.to], // Single recipient per request
+        subject: payload.subject,
+        html: payload.html,
+      }),
+    })
 
-      if (response.ok) {
-        console.log(`[EMAIL] ✅ SendGrid success for ${payload.to}`)
-        return { success: true, service: "SendGrid" }
-      } else {
-        const errorText = await response.text()
-        console.log(`[EMAIL] ❌ SendGrid failed for ${payload.to}:`, errorText)
-        return { success: false, service: "SendGrid", error: "SendGrid API error" }
+    const responseData = await response.json()
+
+    if (response.ok) {
+      console.log(`[RESEND] ✅ Success for ${payload.to}, ID: ${responseData.id}`)
+      return {
+        success: true,
+        external_id: responseData.id,
       }
-    } catch (error) {
-      console.log(`[EMAIL] ❌ SendGrid exception for ${payload.to}:`, error)
+    } else {
+      console.log(`[RESEND] ❌ Failed for ${payload.to}:`, responseData)
+      return {
+        success: false,
+        error: responseData.message || `HTTP ${response.status}`,
+      }
+    }
+  } catch (error) {
+    console.log(`[RESEND] ❌ Exception for ${payload.to}:`, error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Network error",
     }
   }
-
-  return { success: false, error: "No email service available or all services failed" }
 }
 
-// COMPLETELY REWRITTEN: Robust campaign sending with proper error handling
+// Fallback: SendGrid single email
+async function sendSingleEmailViaSendGrid(payload: {
+  to: string
+  subject: string
+  html: string
+}): Promise<{ success: boolean; error?: string }> {
+  if (!process.env.SENDGRID_API_KEY) {
+    return { success: false, error: "SendGrid API key not configured" }
+  }
+
+  try {
+    console.log(`[SENDGRID] Sending to ${payload.to}`)
+
+    const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.SENDGRID_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        personalizations: [
+          {
+            to: [{ email: payload.to }],
+            subject: payload.subject,
+          },
+        ],
+        from: { email: "noreply@timesnri.com", name: "Times NRI Team" },
+        content: [{ type: "text/html", value: payload.html }],
+      }),
+    })
+
+    if (response.ok) {
+      console.log(`[SENDGRID] ✅ Success for ${payload.to}`)
+      return { success: true }
+    } else {
+      const errorText = await response.text()
+      console.log(`[SENDGRID] ❌ Failed for ${payload.to}:`, errorText)
+      return { success: false, error: `SendGrid error: ${response.status}` }
+    }
+  } catch (error) {
+    console.log(`[SENDGRID] ❌ Exception for ${payload.to}:`, error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Network error",
+    }
+  }
+}
+
+// ROBUST: Single email with retry logic
+async function sendSingleEmailWithRetry(
+  payload: {
+    to: string
+    subject: string
+    html: string
+  },
+  maxRetries = 3,
+): Promise<{ success: boolean; service?: string; error?: string; external_id?: string }> {
+  // Try Resend first (with retries)
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    console.log(`[EMAIL] Attempt ${attempt}/${maxRetries} via Resend for ${payload.to}`)
+
+    const result = await sendSingleEmailViaResend(payload)
+
+    if (result.success) {
+      return {
+        success: true,
+        service: "Resend",
+        external_id: result.external_id,
+      }
+    }
+
+    // If rate limited, wait longer before retry
+    if (result.error?.includes("rate") || result.error?.includes("429")) {
+      console.log(`[EMAIL] Rate limited, waiting ${attempt * 2} seconds...`)
+      await new Promise((resolve) => setTimeout(resolve, attempt * 2000))
+    } else if (attempt < maxRetries) {
+      // For other errors, wait 1 second before retry
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+    }
+  }
+
+  // If Resend fails, try SendGrid once
+  console.log(`[EMAIL] Resend failed, trying SendGrid for ${payload.to}`)
+  const sendGridResult = await sendSingleEmailViaSendGrid(payload)
+
+  if (sendGridResult.success) {
+    return {
+      success: true,
+      service: "SendGrid",
+    }
+  }
+
+  // All services failed
+  return {
+    success: false,
+    error: `All services failed. Last error: ${sendGridResult.error}`,
+  }
+}
+
+// COMPLETELY REWRITTEN: Reliable campaign sending - ONE EMAIL PER API CALL
 export async function sendCampaign(campaignId: number): Promise<{ success: boolean; message: string }> {
   if (!hasDb) return noDb({ success: false, message: "Database not available" }, "sendCampaign")
 
@@ -373,7 +440,7 @@ export async function sendCampaign(campaignId: number): Promise<{ success: boole
 
     console.log(`[SEND CAMPAIGN] Created ${recipients.length} log entries`)
 
-    // Send emails one by one with proper error handling
+    // Send emails ONE BY ONE with proper delays
     let sentCount = 0
     let failedCount = 0
 
@@ -383,16 +450,15 @@ export async function sendCampaign(campaignId: number): Promise<{ success: boole
       try {
         console.log(`[SEND CAMPAIGN] Processing ${i + 1}/${recipients.length}: ${recipient.email}`)
 
-        // Prepare email content
+        // Prepare email content with template variables
         let htmlContent = campaign.html_content
         htmlContent = htmlContent.replace(/\{\{name\}\}/g, recipient.name || "Valued Member")
         htmlContent = htmlContent.replace(/\{\{email\}\}/g, recipient.email)
         htmlContent = htmlContent.replace(/\{\{subject\}\}/g, campaign.subject)
 
-        // Send email
-        const result = await sendSingleEmailReliable({
+        // Send single email with retry logic
+        const result = await sendSingleEmailWithRetry({
           to: recipient.email,
-          from: `${campaign.from_name} <${campaign.from_email}>`,
           subject: campaign.subject,
           html: htmlContent,
         })
@@ -400,7 +466,7 @@ export async function sendCampaign(campaignId: number): Promise<{ success: boole
         if (result.success) {
           sentCount++
 
-          // Update log
+          // Update log to sent
           await sql`
             UPDATE email_campaign_logs 
             SET status = 'sent', sent_at = CURRENT_TIMESTAMP, 
@@ -408,11 +474,11 @@ export async function sendCampaign(campaignId: number): Promise<{ success: boole
             WHERE campaign_id = ${campaignId} AND recipient_email = ${recipient.email}
           `
 
-          console.log(`[SEND CAMPAIGN] ✅ ${i + 1}/${recipients.length} sent successfully`)
+          console.log(`[SEND CAMPAIGN] ✅ ${i + 1}/${recipients.length} sent via ${result.service}`)
         } else {
           failedCount++
 
-          // Update log
+          // Update log to failed
           await sql`
             UPDATE email_campaign_logs 
             SET status = 'failed', error_message = ${result.error || "Unknown error"}
@@ -422,7 +488,7 @@ export async function sendCampaign(campaignId: number): Promise<{ success: boole
           console.log(`[SEND CAMPAIGN] ❌ ${i + 1}/${recipients.length} failed: ${result.error}`)
         }
 
-        // Update campaign progress every 5 emails
+        // Update campaign progress every 5 emails or at the end
         if ((i + 1) % 5 === 0 || i === recipients.length - 1) {
           await updateCampaign(campaignId, {
             sent_count: sentCount,
@@ -431,18 +497,20 @@ export async function sendCampaign(campaignId: number): Promise<{ success: boole
           console.log(`[SEND CAMPAIGN] Progress: ${sentCount} sent, ${failedCount} failed`)
         }
 
-        // Rate limiting - wait between emails to avoid hitting limits
+        // CRITICAL: Rate limiting delay between emails
+        // Resend allows 2 emails per second, so we wait 1 second between sends
         if (i < recipients.length - 1) {
-          await new Promise((resolve) => setTimeout(resolve, 1000)) // 1 second delay
+          console.log(`[SEND CAMPAIGN] Waiting 1 second before next email...`)
+          await new Promise((resolve) => setTimeout(resolve, 1000))
         }
       } catch (emailError) {
         failedCount++
-        console.error(`[SEND CAMPAIGN] Error sending to ${recipient.email}:`, emailError)
+        console.error(`[SEND CAMPAIGN] Critical error sending to ${recipient.email}:`, emailError)
 
-        // Update log
+        // Update log to failed
         await sql`
           UPDATE email_campaign_logs 
-          SET status = 'failed', error_message = ${emailError instanceof Error ? emailError.message : "Unknown error"}
+          SET status = 'failed', error_message = ${emailError instanceof Error ? emailError.message : "Critical error"}
           WHERE campaign_id = ${campaignId} AND recipient_email = ${recipient.email}
         `
       }
@@ -457,15 +525,15 @@ export async function sendCampaign(campaignId: number): Promise<{ success: boole
       completed_at: new Date(),
     })
 
-    const message = `Campaign completed. ${sentCount} sent, ${failedCount} failed out of ${recipients.length} total.`
-    console.log(`[SEND CAMPAIGN] ${message}`)
+    const message = `Campaign completed successfully! ${sentCount} emails sent, ${failedCount} failed out of ${recipients.length} total recipients.`
+    console.log(`[SEND CAMPAIGN] FINAL: ${message}`)
 
     return {
       success: sentCount > 0,
       message,
     }
   } catch (error) {
-    console.error("[SEND CAMPAIGN] Critical error:", error)
+    console.error("[SEND CAMPAIGN] Critical campaign error:", error)
 
     // Reset campaign status on critical error
     try {
@@ -481,7 +549,7 @@ export async function sendCampaign(campaignId: number): Promise<{ success: boole
 
     return {
       success: false,
-      message: `Campaign failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      message: `Campaign failed with critical error: ${error instanceof Error ? error.message : "Unknown error"}`,
     }
   }
 }
