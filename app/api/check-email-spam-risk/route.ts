@@ -1,9 +1,9 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { sql, hasDb } from "@/lib/db"
 
 export const dynamic = "force-dynamic"
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   if (!hasDb) {
     return NextResponse.json({
       success: false,
@@ -12,119 +12,116 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    console.log("🔍 Checking for potential email spam risk...")
+    const analysis = {
+      timestamp: new Date().toISOString(),
+      summary: {
+        totalCampaigns: 0,
+        totalEmailsSent: 0,
+        highRiskCampaigns: 0,
+        campaignsWithLogs: 0,
+      },
+      campaignAnalysis: [] as any[],
+      overallRisk: {
+        level: "SAFE",
+        recommendation: "No spam risk detected",
+      },
+    }
 
-    // Check 1: Look for campaigns that might have sent emails despite errors
-    const campaignsWithErrors = await sql`
-      SELECT 
-        id, name, status, total_recipients, sent_count, failed_count,
-        created_at, started_at, completed_at
+    // Check all campaigns
+    const campaigns = await sql`
+      SELECT id, name, status, total_recipients, sent_count, failed_count, created_at, started_at, completed_at
       FROM email_campaigns 
-      WHERE status IN ('sending', 'sent') 
       ORDER BY created_at DESC
     `
 
-    // Check 2: Look for campaign logs that indicate emails were sent
+    analysis.summary.totalCampaigns = campaigns.length
+
+    // Check campaign logs for actual emails sent
     const emailLogs = await sql`
-      SELECT 
-        campaign_id, 
-        COUNT(*) as total_logs,
-        COUNT(*) FILTER (WHERE status = 'sent') as sent_emails,
-        COUNT(*) FILTER (WHERE status = 'failed') as failed_emails,
-        COUNT(*) FILTER (WHERE status = 'pending') as pending_emails
+      SELECT campaign_id, COUNT(*) as log_count, 
+             COUNT(*) FILTER (WHERE status = 'sent') as sent_count,
+             COUNT(*) FILTER (WHERE status = 'failed') as failed_count
       FROM email_campaign_logs 
       GROUP BY campaign_id
-      ORDER BY campaign_id DESC
     `
 
-    // Check 3: Cross-reference campaigns with their logs
-    const riskAnalysis = []
+    const logsByCampaign = new Map()
+    emailLogs.forEach((log: any) => {
+      logsByCampaign.set(log.campaign_id, {
+        logCount: Number(log.log_count),
+        sentCount: Number(log.sent_count),
+        failedCount: Number(log.failed_count),
+      })
+    })
 
-    for (const campaign of campaignsWithErrors) {
-      const logs = emailLogs.find((log: any) => log.campaign_id === campaign.id)
+    // Analyze each campaign
+    for (const campaign of campaigns) {
+      const logs = logsByCampaign.get(campaign.id) || { logCount: 0, sentCount: 0, failedCount: 0 }
 
-      const analysis = {
+      const campaignAnalysis = {
         campaignId: campaign.id,
         campaignName: campaign.name,
         status: campaign.status,
-        totalRecipients: campaign.total_recipients || 0,
-        sentCount: campaign.sent_count || 0,
-        failedCount: campaign.failed_count || 0,
-        actualEmailsSent: logs ? Number(logs.sent_emails) : 0,
-        actualEmailsFailed: logs ? Number(logs.failed_emails) : 0,
-        actualEmailsPending: logs ? Number(logs.pending_emails) : 0,
-        createdAt: campaign.created_at,
-        startedAt: campaign.started_at,
-        completedAt: campaign.completed_at,
-        riskLevel: "LOW",
+        configuredRecipients: campaign.total_recipients || 0,
+        reportedEmailsSent: campaign.sent_count || 0,
+        actualEmailsSent: logs.sentCount,
+        hasLogs: logs.logCount > 0,
         concerns: [] as string[],
+        riskLevel: "SAFE",
       }
 
-      // Analyze risk factors
-      if (analysis.actualEmailsSent > 0) {
-        analysis.riskLevel = "HIGH"
-        analysis.concerns.push(`${analysis.actualEmailsSent} emails were actually sent`)
+      // Check for concerns
+      if (campaign.status === "sending" && !campaign.completed_at) {
+        campaignAnalysis.concerns.push("Campaign stuck in sending status")
+        campaignAnalysis.riskLevel = "MEDIUM"
       }
 
-      if (analysis.status === "sending" && !analysis.completedAt) {
-        analysis.riskLevel = analysis.riskLevel === "HIGH" ? "HIGH" : "MEDIUM"
-        analysis.concerns.push("Campaign stuck in 'sending' status")
+      if (campaign.status === "sent" && logs.sentCount === 0) {
+        campaignAnalysis.concerns.push("Marked as sent but no email logs found")
+        campaignAnalysis.riskLevel = "HIGH"
       }
 
-      if (analysis.sentCount !== analysis.actualEmailsSent) {
-        analysis.concerns.push(
-          `Mismatch: campaign shows ${analysis.sentCount} sent, logs show ${analysis.actualEmailsSent} sent`,
-        )
+      if (logs.sentCount > 0 && campaign.status === "draft") {
+        campaignAnalysis.concerns.push("Emails sent but campaign still in draft")
+        campaignAnalysis.riskLevel = "HIGH"
+        analysis.summary.highRiskCampaigns++
       }
 
-      riskAnalysis.push(analysis)
+      if (campaign.total_recipients > 50 && logs.sentCount > 50) {
+        campaignAnalysis.concerns.push("Large number of emails sent")
+        campaignAnalysis.riskLevel = "MEDIUM"
+      }
+
+      analysis.summary.totalEmailsSent += logs.sentCount
+      if (logs.logCount > 0) {
+        analysis.summary.campaignsWithLogs++
+      }
+
+      analysis.campaignAnalysis.push(campaignAnalysis)
     }
 
-    // Check 4: Recent email activity
-    const recentEmailActivity = await sql`
-      SELECT 
-        DATE(sent_at) as date,
-        COUNT(*) as emails_sent,
-        COUNT(DISTINCT campaign_id) as campaigns
-      FROM email_campaign_logs 
-      WHERE status = 'sent' 
-        AND sent_at >= NOW() - INTERVAL '7 days'
-      GROUP BY DATE(sent_at)
-      ORDER BY date DESC
-    `
-
-    // Overall risk assessment
-    const totalEmailsSent = riskAnalysis.reduce((sum, campaign) => sum + campaign.actualEmailsSent, 0)
-    const highRiskCampaigns = riskAnalysis.filter((c) => c.riskLevel === "HIGH")
-
-    const overallRisk = {
-      level: totalEmailsSent === 0 ? "SAFE" : totalEmailsSent < 10 ? "LOW" : "HIGH",
-      totalEmailsSent,
-      highRiskCampaigns: highRiskCampaigns.length,
-      recommendation:
-        totalEmailsSent === 0
-          ? "✅ No emails were sent despite the errors. Users were not spammed."
-          : `⚠️ ${totalEmailsSent} emails were sent. Review the campaigns to ensure no spam occurred.`,
+    // Determine overall risk
+    if (analysis.summary.highRiskCampaigns > 0) {
+      analysis.overallRisk.level = "HIGH"
+      analysis.overallRisk.recommendation = `${analysis.summary.highRiskCampaigns} campaigns have high spam risk. Review immediately.`
+    } else if (analysis.summary.totalEmailsSent > 100) {
+      analysis.overallRisk.level = "MEDIUM"
+      analysis.overallRisk.recommendation = `${analysis.summary.totalEmailsSent} total emails sent. Monitor for user complaints.`
+    } else if (analysis.summary.totalEmailsSent > 0) {
+      analysis.overallRisk.level = "LOW"
+      analysis.overallRisk.recommendation = `${analysis.summary.totalEmailsSent} emails sent. Low risk but monitor.`
     }
 
     return NextResponse.json({
       success: true,
-      overallRisk,
-      campaignAnalysis: riskAnalysis,
-      recentActivity: recentEmailActivity,
-      summary: {
-        totalCampaigns: campaignsWithErrors.length,
-        campaignsWithLogs: emailLogs.length,
-        totalEmailsSent,
-        highRiskCampaigns: highRiskCampaigns.length,
-      },
+      ...analysis,
     })
   } catch (error) {
-    console.error("Email spam risk check error:", error)
+    console.error("Spam risk check error:", error)
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to check email spam risk",
+        error: "Failed to check spam risk",
         details: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 },
