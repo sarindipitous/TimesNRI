@@ -88,14 +88,22 @@ export default function NewCampaignPage() {
 
   const fetchRecipients = async () => {
     try {
+      setLoading(true)
       const response = await fetch("/api/campaigns?action=recipients")
       const data = await response.json()
 
       if (data.success) {
         setRecipients(data.recipients)
+        console.log(`Loaded ${data.recipients.length} recipients`)
+      } else {
+        console.error("Failed to fetch recipients:", data.error)
+        setMessage({ type: "error", text: "Failed to load recipients" })
       }
     } catch (error) {
       console.error("Failed to fetch recipients:", error)
+      setMessage({ type: "error", text: "Failed to load recipients" })
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -427,7 +435,7 @@ export default function NewCampaignPage() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 mb-4">
                     <Checkbox
-                      checked={selectedRecipients.length === recipients.length}
+                      checked={selectedRecipients.length === recipients.length && recipients.length > 0}
                       onCheckedChange={(checked) => {
                         if (checked) {
                           setSelectedRecipients(recipients.map((r) => r.email))
@@ -438,41 +446,110 @@ export default function NewCampaignPage() {
                     />
                     <Label>Select All ({recipients.length})</Label>
                   </div>
+
+                  {recipients.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <p>Loading recipients...</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {recipients.map((recipient) => (
+                        <div
+                          key={recipient.email}
+                          className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Checkbox
+                              checked={selectedRecipients.includes(recipient.email)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedRecipients([...selectedRecipients, recipient.email])
+                                } else {
+                                  setSelectedRecipients(selectedRecipients.filter((email) => email !== recipient.email))
+                                }
+                              }}
+                            />
+                            <div>
+                              <div className="font-medium">{recipient.name || recipient.email}</div>
+                              <div className="text-sm text-gray-600">{recipient.email}</div>
+                            </div>
+                          </div>
+                          <div className="text-right text-sm text-gray-600">
+                            {recipient.location && <div>{recipient.location}</div>}
+                            {recipient.care_plan && <Badge variant="outline">{recipient.care_plan}</Badge>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {filteredRecipients.map((recipient) => (
-                  <div key={recipient.email} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      {formData.target_type === "selected" && (
-                        <Checkbox
-                          checked={selectedRecipients.includes(recipient.email)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedRecipients([...selectedRecipients, recipient.email])
-                            } else {
-                              setSelectedRecipients(selectedRecipients.filter((email) => email !== recipient.email))
-                            }
-                          }}
-                        />
-                      )}
-                      <div>
-                        <div className="font-medium">{recipient.name || recipient.email}</div>
-                        <div className="text-sm text-gray-600">{recipient.email}</div>
+              {formData.target_type === "all" && (
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {recipients.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <p>Loading recipients...</p>
+                    </div>
+                  ) : (
+                    recipients.map((recipient) => (
+                      <div key={recipient.email} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-4 h-4 bg-green-500 rounded-full flex-shrink-0"></div>
+                          <div>
+                            <div className="font-medium">{recipient.name || recipient.email}</div>
+                            <div className="text-sm text-gray-600">{recipient.email}</div>
+                          </div>
+                        </div>
+                        <div className="text-right text-sm text-gray-600">
+                          {recipient.location && <div>{recipient.location}</div>}
+                          {recipient.care_plan && <Badge variant="outline">{recipient.care_plan}</Badge>}
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-right text-sm text-gray-600">
-                      {recipient.location && <div>{recipient.location}</div>}
-                      {recipient.care_plan && <Badge variant="outline">{recipient.care_plan}</Badge>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {filteredRecipients.length === 0 && (
-                <div className="text-center py-8 text-gray-500">No recipients match your criteria</div>
+                    ))
+                  )}
+                </div>
               )}
+
+              {formData.target_type === "filtered" && (
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {filteredRecipients.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <p>No recipients match your criteria</p>
+                    </div>
+                  ) : (
+                    filteredRecipients.map((recipient) => (
+                      <div key={recipient.email} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-4 h-4 bg-blue-500 rounded-full flex-shrink-0"></div>
+                          <div>
+                            <div className="font-medium">{recipient.name || recipient.email}</div>
+                            <div className="text-sm text-gray-600">{recipient.email}</div>
+                          </div>
+                        </div>
+                        <div className="text-right text-sm text-gray-600">
+                          {recipient.location && <div>{recipient.location}</div>}
+                          {recipient.care_plan && <Badge variant="outline">{recipient.care_plan}</Badge>}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Users className="h-4 w-4" />
+                  <span>
+                    {formData.target_type === "selected"
+                      ? `${selectedRecipients.length} of ${recipients.length} recipients selected`
+                      : `${filteredRecipients.length} recipients will receive this campaign`}
+                  </span>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
