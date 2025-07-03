@@ -1,61 +1,22 @@
 import { type NextRequest, NextResponse } from "next/server"
-import {
-  getCampaignById,
-  updateCampaign,
-  deleteCampaign,
-  getCampaignLogs,
-  getCampaignStats,
-} from "@/lib/email-campaigns-fixed"
+import { getCampaignById, updateCampaign, deleteCampaign } from "@/lib/email-campaigns-fixed"
 
 export const dynamic = "force-dynamic"
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const campaignId = Number.parseInt(params.id)
-    const { searchParams } = new URL(request.url)
-    const action = searchParams.get("action")
 
     if (isNaN(campaignId)) {
       return NextResponse.json({ success: false, error: "Invalid campaign ID" }, { status: 400 })
     }
 
-    console.log(`[API] GET campaign ${campaignId}, action: ${action || "details"}`)
-
-    if (action === "logs") {
-      const limit = Number.parseInt(searchParams.get("limit") || "100")
-      const offset = Number.parseInt(searchParams.get("offset") || "0")
-      const logs = await getCampaignLogs(campaignId, limit, offset)
-
-      return NextResponse.json({
-        success: true,
-        logs,
-      })
-    }
-
-    if (action === "stats") {
-      const stats = await getCampaignStats(campaignId)
-
-      return NextResponse.json({
-        success: true,
-        stats,
-      })
-    }
-
-    // Default: get campaign details
+    console.log(`[API] Fetching campaign ${campaignId}`)
     const campaign = await getCampaignById(campaignId)
 
     if (!campaign) {
-      console.log(`[API] Campaign ${campaignId} not found`)
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Campaign not found",
-        },
-        { status: 404 },
-      )
+      return NextResponse.json({ success: false, error: "Campaign not found" }, { status: 404 })
     }
-
-    console.log(`[API] Campaign ${campaignId} found: ${campaign.name}`)
 
     return NextResponse.json({
       success: true,
@@ -85,28 +46,29 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const body = await request.json()
     console.log(`[API] Updating campaign ${campaignId}:`, Object.keys(body))
 
-    // Check if campaign exists first
+    // Get existing campaign to check status
     const existingCampaign = await getCampaignById(campaignId)
     if (!existingCampaign) {
       return NextResponse.json({ success: false, error: "Campaign not found" }, { status: 404 })
     }
 
-    // Only allow updates to draft campaigns for content changes
-    if (existingCampaign.status !== "draft" && (body.name || body.subject || body.html_content)) {
-      return NextResponse.json({ success: false, error: "Cannot edit content of non-draft campaigns" }, { status: 400 })
+    // Only allow editing of draft campaigns
+    if (existingCampaign.status !== "draft") {
+      return NextResponse.json({ success: false, error: "Only draft campaigns can be edited" }, { status: 400 })
     }
 
-    const campaign = await updateCampaign(campaignId, body)
+    // Update campaign
+    const updatedCampaign = await updateCampaign(campaignId, body)
 
-    if (!campaign) {
-      return NextResponse.json({ success: false, error: "Update failed" }, { status: 500 })
+    if (!updatedCampaign) {
+      return NextResponse.json({ success: false, error: "Failed to update campaign" }, { status: 500 })
     }
 
     console.log(`[API] Campaign ${campaignId} updated successfully`)
 
     return NextResponse.json({
       success: true,
-      campaign,
+      campaign: updatedCampaign,
       message: "Campaign updated successfully",
     })
   } catch (error) {
@@ -131,15 +93,11 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     }
 
     console.log(`[API] Deleting campaign ${campaignId}`)
+    const success = await deleteCampaign(campaignId)
 
-    const deleted = await deleteCampaign(campaignId)
-
-    if (!deleted) {
+    if (!success) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Campaign not found or cannot be deleted (only draft campaigns can be deleted)",
-        },
+        { success: false, error: "Failed to delete campaign or campaign not found" },
         { status: 404 },
       )
     }

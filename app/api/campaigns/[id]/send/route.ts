@@ -16,14 +16,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const result = await sendCampaign(campaignId)
 
     if (!result.success) {
-      console.log(`[API] Campaign ${campaignId} send failed: ${result.message}`)
-      return NextResponse.json(
-        {
-          success: false,
-          error: result.message,
-        },
-        { status: 400 },
-      )
+      return NextResponse.json({ success: false, error: result.message }, { status: 400 })
     }
 
     console.log(`[API] Campaign ${campaignId} sent successfully: ${result.message}`)
