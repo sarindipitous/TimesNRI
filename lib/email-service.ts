@@ -51,7 +51,7 @@ export async function sendWelcomeEmail(data: EmailData): Promise<boolean> {
     emailHtml = emailHtml.replace(/\{\{waitlist_number\}\}/g, data.waitlist_number?.toString() || "TBD")
     emailHtml = emailHtml.replace(/\{\{referral_link\}\}/g, data.referral_link || "#")
 
-    // Try different email services in order of preference
+    // Try different email services in order of preference (Resend first now)
     const result = await tryEmailServices({
       to: data.email,
       from: `${fromName} <${fromEmail}>`,
@@ -106,7 +106,7 @@ export async function sendWelcomeEmailWithDetails(data: EmailData): Promise<Emai
     emailHtml = emailHtml.replace(/\{\{waitlist_number\}\}/g, data.waitlist_number?.toString() || "TBD")
     emailHtml = emailHtml.replace(/\{\{referral_link\}\}/g, data.referral_link || "#")
 
-    // Try different email services in order of preference
+    // Try different email services in order of preference (Resend first now)
     const result = await tryEmailServices({
       to: data.email,
       from: `${fromName} <${fromEmail}>`,
@@ -134,17 +134,9 @@ interface EmailPayload {
 async function tryEmailServices(payload: EmailPayload): Promise<EmailResult> {
   const errors: string[] = []
 
-  // Try SendGrid first since you have it configured
-  if (process.env.SENDGRID_API_KEY) {
-    console.log("Trying SendGrid...")
-    const result = await sendViaSendGrid(payload)
-    if (result.success) return result
-    errors.push(`SendGrid: ${result.error}`)
-  }
-
-  // Try Resend as backup
+  // Try Resend FIRST (recommended solution)
   if (process.env.RESEND_API_KEY) {
-    console.log("Trying Resend...")
+    console.log("Trying Resend (recommended)...")
     const result = await sendViaResend(payload)
     if (result.success) return result
     errors.push(`Resend: ${result.error}`)
@@ -158,17 +150,154 @@ async function tryEmailServices(payload: EmailPayload): Promise<EmailResult> {
     errors.push(`Mailgun: ${result.error}`)
   }
 
+  // Try SendGrid as last resort (since it's not working well)
+  if (process.env.SENDGRID_API_KEY) {
+    console.log("Trying SendGrid (fallback)...")
+    const result = await sendViaSendGrid(payload)
+    if (result.success) return result
+    errors.push(`SendGrid: ${result.error}`)
+  }
+
   return {
     success: false,
     error: "All email services failed",
     details: {
       errors,
       availableServices: {
-        sendgrid: !!process.env.SENDGRID_API_KEY,
         resend: !!process.env.RESEND_API_KEY,
         mailgun: !!(process.env.MAILGUN_API_KEY && process.env.MAILGUN_DOMAIN),
+        sendgrid: !!process.env.SENDGRID_API_KEY,
       },
+      recommendation: "Set up Resend API key for best results",
     },
+  }
+}
+
+async function sendViaResend(payload: EmailPayload): Promise<EmailResult> {
+  try {
+    // Parse the from field to extract email and name
+    const fromMatch = payload.from.match(/^(.+?)\s*<(.+)>$/)
+    const fromEmail = fromMatch ? fromMatch[2].trim() : payload.from
+    const fromName = fromMatch ? fromMatch[1].trim() : ""
+
+    console.log("Resend payload details:", {
+      originalFrom: payload.from,
+      parsedFromEmail: fromEmail,
+      parsedFromName: fromName,
+      to: payload.to,
+      subject: payload.subject,
+      htmlLength: payload.html.length,
+    })
+
+    // For initial testing, you can use onboarding@resend.dev
+    // Later, set up your own domain
+    const resendPayload = {
+      from:
+        fromEmail.includes("@resend.dev") || fromEmail.includes("@yourdomain.com")
+          ? `${fromName} <${fromEmail}>`
+          : `${fromName} <onboarding@resend.dev>`, // Fallback to Resend's domain
+      to: [payload.to],
+      subject: payload.subject,
+      html: payload.html,
+    }
+
+    console.log("Sending to Resend API with payload:", JSON.stringify(resendPayload, null, 2))
+
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(resendPayload),
+    })
+
+    console.log("Resend response status:", response.status)
+    console.log("Resend response headers:", Object.fromEntries(response.headers.entries()))
+
+    const responseData = await response.json()
+    console.log("Resend response data:", responseData)
+
+    if (!response.ok) {
+      return {
+        success: false,
+        service: "Resend",
+        error: `HTTP ${response.status}: ${responseData.message || "Unknown error"}`,
+        details: {
+          status: response.status,
+          headers: Object.fromEntries(response.headers.entries()),
+          body: responseData,
+          payload: resendPayload,
+        },
+      }
+    }
+
+    console.log("Resend success! Email ID:", responseData.id)
+
+    return {
+      success: true,
+      service: "Resend",
+      details: {
+        emailId: responseData.id,
+        status: response.status,
+        headers: Object.fromEntries(response.headers.entries()),
+        fromEmailUsed: resendPayload.from,
+        responseData,
+      },
+    }
+  } catch (error) {
+    console.error("Resend network error:", error)
+    return {
+      success: false,
+      service: "Resend",
+      error: error instanceof Error ? error.message : "Network error",
+      details: {
+        error: error,
+        payload: payload,
+      },
+    }
+  }
+}
+
+async function sendViaMailgun(payload: EmailPayload): Promise<EmailResult> {
+  try {
+    const formData = new FormData()
+    formData.append("from", payload.from)
+    formData.append("to", payload.to)
+    formData.append("subject", payload.subject)
+    formData.append("html", payload.html)
+
+    const response = await fetch(`https://api.mailgun.net/v3/${process.env.MAILGUN_DOMAIN}/messages`, {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${Buffer.from(`api:${process.env.MAILGUN_API_KEY}`).toString("base64")}`,
+      },
+      body: formData,
+    })
+
+    const responseData = await response.json()
+
+    if (!response.ok) {
+      return {
+        success: false,
+        service: "Mailgun",
+        error: `HTTP ${response.status}: ${responseData.message || "Unknown error"}`,
+        details: responseData,
+      }
+    }
+
+    return {
+      success: true,
+      service: "Mailgun",
+      details: responseData,
+    }
+  } catch (error) {
+    return {
+      success: false,
+      service: "Mailgun",
+      error: error instanceof Error ? error.message : "Network error",
+      details: error,
+    }
   }
 }
 
@@ -275,90 +404,6 @@ async function sendViaSendGrid(payload: EmailPayload): Promise<EmailResult> {
         error: error,
         payload: payload,
       },
-    }
-  }
-}
-
-async function sendViaResend(payload: EmailPayload): Promise<EmailResult> {
-  try {
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: payload.from,
-        to: [payload.to],
-        subject: payload.subject,
-        html: payload.html,
-      }),
-    })
-
-    const responseData = await response.json()
-
-    if (!response.ok) {
-      return {
-        success: false,
-        service: "Resend",
-        error: `HTTP ${response.status}: ${responseData.message || "Unknown error"}`,
-        details: responseData,
-      }
-    }
-
-    return {
-      success: true,
-      service: "Resend",
-      details: responseData,
-    }
-  } catch (error) {
-    return {
-      success: false,
-      service: "Resend",
-      error: error instanceof Error ? error.message : "Network error",
-      details: error,
-    }
-  }
-}
-
-async function sendViaMailgun(payload: EmailPayload): Promise<EmailResult> {
-  try {
-    const formData = new FormData()
-    formData.append("from", payload.from)
-    formData.append("to", payload.to)
-    formData.append("subject", payload.subject)
-    formData.append("html", payload.html)
-
-    const response = await fetch(`https://api.mailgun.net/v3/${process.env.MAILGUN_DOMAIN}/messages`, {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${Buffer.from(`api:${process.env.MAILGUN_API_KEY}`).toString("base64")}`,
-      },
-      body: formData,
-    })
-
-    const responseData = await response.json()
-
-    if (!response.ok) {
-      return {
-        success: false,
-        service: "Mailgun",
-        error: `HTTP ${response.status}: ${responseData.message || "Unknown error"}`,
-        details: responseData,
-      }
-    }
-
-    return {
-      success: true,
-      service: "Mailgun",
-      details: responseData,
-    }
-  } catch (error) {
-    return {
-      success: false,
-      service: "Mailgun",
-      error: error instanceof Error ? error.message : "Network error",
-      details: error,
     }
   }
 }

@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, XCircle, AlertCircle, Mail, Settings, TestTube, Activity } from "lucide-react"
+import { CheckCircle, XCircle, AlertCircle, Mail, Settings, TestTube, Activity, Star } from "lucide-react"
 
 interface EmailConfig {
   welcome_email_enabled: string
@@ -44,6 +44,8 @@ export default function EmailConfigurationPage() {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
   const [testEmail, setTestEmail] = useState("")
   const [testLoading, setTestLoading] = useState(false)
+  const [resendTestEmail, setResendTestEmail] = useState("")
+  const [resendTestLoading, setResendTestLoading] = useState(false)
   const [directTestEmail, setDirectTestEmail] = useState("")
   const [directTestLoading, setDirectTestLoading] = useState(false)
   const [diagnostics, setDiagnostics] = useState<DiagnosticsResult | null>(null)
@@ -111,6 +113,34 @@ export default function EmailConfigurationPage() {
       setMessage({ type: "error", text: "Failed to send test email" })
     } finally {
       setTestLoading(false)
+    }
+  }
+
+  const sendResendTest = async () => {
+    if (!resendTestEmail) return
+
+    setResendTestLoading(true)
+    setMessage(null)
+    try {
+      const response = await fetch("/api/test-resend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ testEmail: resendTestEmail }),
+      })
+
+      const result = await response.json()
+      if (result.success) {
+        setMessage({
+          type: "success",
+          text: `Resend test sent successfully to ${resendTestEmail}! Email ID: ${result.details?.emailId || "N/A"}`,
+        })
+      } else {
+        setMessage({ type: "error", text: result.error || "Failed to send Resend test" })
+      }
+    } catch (error) {
+      setMessage({ type: "error", text: "Failed to send Resend test" })
+    } finally {
+      setResendTestLoading(false)
     }
   }
 
@@ -195,6 +225,15 @@ export default function EmailConfigurationPage() {
         <h1 className="text-3xl font-bold">Email Configuration</h1>
       </div>
 
+      {/* Resend Recommendation Banner */}
+      <Alert className="mb-6 border-blue-500 bg-blue-50">
+        <Star className="h-4 w-4 text-blue-600" />
+        <AlertDescription className="text-blue-700">
+          <strong>Recommended:</strong> Switch to Resend for better reliability and easier setup. Add your{" "}
+          <code>RESEND_API_KEY</code> environment variable to get started.
+        </AlertDescription>
+      </Alert>
+
       {message && (
         <Alert className={`mb-6 ${message.type === "error" ? "border-red-500" : "border-green-500"}`}>
           <AlertDescription className={message.type === "error" ? "text-red-700" : "text-green-700"}>
@@ -268,8 +307,11 @@ export default function EmailConfigurationPage() {
                     type="email"
                     value={config.welcome_email_from_email}
                     onChange={(e) => setConfig({ ...config, welcome_email_from_email: e.target.value })}
-                    placeholder="timesnri@timesinternet.in"
+                    placeholder="onboarding@resend.dev (for testing)"
                   />
+                  <p className="text-xs text-gray-500">
+                    Use onboarding@resend.dev for testing, or set up your own domain in Resend
+                  </p>
                 </div>
               </div>
 
@@ -309,7 +351,41 @@ export default function EmailConfigurationPage() {
         </TabsContent>
 
         <TabsContent value="test">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="border-blue-200 bg-blue-50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Star className="h-5 w-5 text-blue-600" />
+                  Resend Test (Recommended)
+                </CardTitle>
+                <CardDescription>Test the recommended Resend service</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="resend-test-email">Test Email Address</Label>
+                  <Input
+                    id="resend-test-email"
+                    type="email"
+                    value={resendTestEmail}
+                    onChange={(e) => setResendTestEmail(e.target.value)}
+                    placeholder="your-email@example.com"
+                  />
+                </div>
+                <Button onClick={sendResendTest} disabled={resendTestLoading || !resendTestEmail} className="w-full">
+                  {resendTestLoading ? "Sending..." : "Send Resend Test"}
+                </Button>
+                <div className="text-sm text-blue-700">
+                  <p className="font-medium">✅ Resend Benefits:</p>
+                  <ul className="list-disc list-inside space-y-1 mt-2">
+                    <li>3,000 emails/month free</li>
+                    <li>No domain setup required initially</li>
+                    <li>Better deliverability</li>
+                    <li>Cleaner API and error messages</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle>Test Welcome Email (Full System)</CardTitle>
@@ -326,7 +402,7 @@ export default function EmailConfigurationPage() {
                     placeholder="your-email@example.com"
                   />
                 </div>
-                <Button onClick={sendTestEmail} disabled={testLoading || !testEmail}>
+                <Button onClick={sendTestEmail} disabled={testLoading || !testEmail} className="w-full">
                   {testLoading ? "Sending..." : "Send Test Email"}
                 </Button>
                 <div className="text-sm text-gray-600">
@@ -346,7 +422,7 @@ export default function EmailConfigurationPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Direct SendGrid Test</CardTitle>
-                <CardDescription>Test SendGrid directly with a simple email</CardDescription>
+                <CardDescription>Test SendGrid directly (fallback option)</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -359,17 +435,20 @@ export default function EmailConfigurationPage() {
                     placeholder="your-email@example.com"
                   />
                 </div>
-                <Button onClick={sendDirectSendGridTest} disabled={directTestLoading || !directTestEmail}>
-                  {directTestLoading ? "Sending..." : "Send Direct SendGrid Test"}
+                <Button
+                  onClick={sendDirectSendGridTest}
+                  disabled={directTestLoading || !directTestEmail}
+                  className="w-full"
+                >
+                  {directTestLoading ? "Sending..." : "Send SendGrid Test"}
                 </Button>
                 <div className="text-sm text-gray-600">
-                  <p className="font-medium">Direct Test Features:</p>
+                  <p className="font-medium">SendGrid Issues:</p>
                   <ul className="list-disc list-inside space-y-1 mt-2">
-                    <li>Bypasses your email configuration</li>
-                    <li>Uses hardcoded simple HTML</li>
-                    <li>Tests SendGrid API directly</li>
-                    <li>Shows detailed error messages</li>
-                    <li>Returns SendGrid message ID</li>
+                    <li>Complex domain verification</li>
+                    <li>Sender authentication required</li>
+                    <li>Lower free tier (100 emails/day)</li>
+                    <li>More configuration steps</li>
                   </ul>
                 </div>
               </CardContent>
@@ -407,15 +486,43 @@ export default function EmailConfigurationPage() {
                     </div>
                   </div>
 
+                  {/* Resend Setup Instructions */}
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <h4 className="font-medium mb-2 text-blue-800">🚀 Quick Setup: Switch to Resend</h4>
+                    <ol className="text-sm text-blue-700 space-y-2">
+                      <li>
+                        <strong>1.</strong> Go to{" "}
+                        <a href="https://resend.com" target="_blank" rel="noopener noreferrer" className="underline">
+                          resend.com
+                        </a>{" "}
+                        and create a free account
+                      </li>
+                      <li>
+                        <strong>2.</strong> Generate an API key in your Resend dashboard
+                      </li>
+                      <li>
+                        <strong>3.</strong> Add{" "}
+                        <code className="bg-blue-100 px-1 rounded">RESEND_API_KEY=your_key_here</code> to your
+                        environment variables
+                      </li>
+                      <li>
+                        <strong>4.</strong> Set From Email to{" "}
+                        <code className="bg-blue-100 px-1 rounded">onboarding@resend.dev</code> for testing
+                      </li>
+                      <li>
+                        <strong>5.</strong> Test using the Resend Test button above
+                      </li>
+                    </ol>
+                  </div>
+
                   {diagnostics.details.troubleshooting.length > 0 && (
                     <div className="space-y-2">
                       <h4 className="font-medium flex items-center gap-2">
                         <AlertCircle className="h-4 w-4" />
-                        SendGrid Troubleshooting
+                        Current Issues
                       </h4>
-                      <div className="text-sm text-blue-600">
-                        <p className="font-medium">From Email: timesnri@timesinternet.in</p>
-                        <ol className="list-decimal list-inside space-y-1 mt-2">
+                      <div className="text-sm text-red-600">
+                        <ol className="list-decimal list-inside space-y-1">
                           {diagnostics.details.troubleshooting.map((tip, index) => (
                             <li key={index}>{tip}</li>
                           ))}
@@ -474,7 +581,10 @@ export default function EmailConfigurationPage() {
                       <div className="space-y-2">
                         {Object.entries(diagnostics.details.emailServices).map(([service, result]) => (
                           <div key={service} className="flex items-center justify-between">
-                            <span className="text-sm capitalize">{service}</span>
+                            <span className="text-sm capitalize flex items-center gap-2">
+                              {service}
+                              {service === "resend" && <Star className="h-3 w-3 text-blue-500" />}
+                            </span>
                             <div className="flex items-center gap-2">
                               {result.connected ? (
                                 <Badge variant="default" className="bg-green-100 text-green-800">
@@ -492,18 +602,6 @@ export default function EmailConfigurationPage() {
                           </div>
                         ))}
                       </div>
-                    </div>
-
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                      <h4 className="font-medium mb-2">💡 Troubleshooting Tips</h4>
-                      <ul className="text-sm space-y-1">
-                        <li>• Check SendGrid Activity Feed for delivery status</li>
-                        <li>• Verify sender identity in SendGrid dashboard</li>
-                        <li>• Check SendGrid reputation and domain authentication</li>
-                        <li>• Check recipient's spam/junk folder</li>
-                        <li>• Test with different email addresses (Gmail, Outlook, etc.)</li>
-                        <li>• Monitor email service logs and dashboards</li>
-                      </ul>
                     </div>
                   </div>
                 </div>
