@@ -1,5 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getCampaignById, updateCampaign, deleteCampaign } from "@/lib/email-campaigns-fixed"
+import {
+  getCampaignById,
+  updateCampaign,
+  deleteCampaign,
+  getCampaignLogs,
+  getCampaignStats,
+} from "@/lib/email-campaigns-fixed"
 
 export const dynamic = "force-dynamic"
 
@@ -11,7 +17,26 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ success: false, error: "Invalid campaign ID" }, { status: 400 })
     }
 
-    console.log(`[API] Fetching campaign ${campaignId}`)
+    const { searchParams } = new URL(request.url)
+    const action = searchParams.get("action")
+
+    if (action === "logs") {
+      const logs = await getCampaignLogs(campaignId)
+      return NextResponse.json({
+        success: true,
+        logs,
+      })
+    }
+
+    if (action === "stats") {
+      const stats = await getCampaignStats(campaignId)
+      return NextResponse.json({
+        success: true,
+        stats,
+      })
+    }
+
+    // Default: get campaign details
     const campaign = await getCampaignById(campaignId)
 
     if (!campaign) {
@@ -23,7 +48,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       campaign,
     })
   } catch (error) {
-    console.error("Error fetching campaign:", error)
+    console.error(`Error fetching campaign ${params.id}:`, error)
     return NextResponse.json(
       {
         success: false,
@@ -44,27 +69,14 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     const body = await request.json()
+
     console.log(`[API] Updating campaign ${campaignId}:`, Object.keys(body))
 
-    // Get existing campaign to check status
-    const existingCampaign = await getCampaignById(campaignId)
-    if (!existingCampaign) {
-      return NextResponse.json({ success: false, error: "Campaign not found" }, { status: 404 })
-    }
-
-    // Only allow editing of draft campaigns
-    if (existingCampaign.status !== "draft") {
-      return NextResponse.json({ success: false, error: "Only draft campaigns can be edited" }, { status: 400 })
-    }
-
-    // Update campaign
     const updatedCampaign = await updateCampaign(campaignId, body)
 
     if (!updatedCampaign) {
-      return NextResponse.json({ success: false, error: "Failed to update campaign" }, { status: 500 })
+      return NextResponse.json({ success: false, error: "Campaign not found or update failed" }, { status: 404 })
     }
-
-    console.log(`[API] Campaign ${campaignId} updated successfully`)
 
     return NextResponse.json({
       success: true,
@@ -72,7 +84,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       message: "Campaign updated successfully",
     })
   } catch (error) {
-    console.error("Error updating campaign:", error)
+    console.error(`Error updating campaign ${params.id}:`, error)
     return NextResponse.json(
       {
         success: false,
@@ -92,24 +104,21 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       return NextResponse.json({ success: false, error: "Invalid campaign ID" }, { status: 400 })
     }
 
-    console.log(`[API] Deleting campaign ${campaignId}`)
     const success = await deleteCampaign(campaignId)
 
     if (!success) {
       return NextResponse.json(
-        { success: false, error: "Failed to delete campaign or campaign not found" },
+        { success: false, error: "Campaign not found or cannot be deleted (only draft campaigns can be deleted)" },
         { status: 404 },
       )
     }
-
-    console.log(`[API] Campaign ${campaignId} deleted successfully`)
 
     return NextResponse.json({
       success: true,
       message: "Campaign deleted successfully",
     })
   } catch (error) {
-    console.error("Error deleting campaign:", error)
+    console.error(`Error deleting campaign ${params.id}:`, error)
     return NextResponse.json(
       {
         success: false,

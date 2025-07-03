@@ -11,22 +11,28 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ success: false, error: "Invalid campaign ID" }, { status: 400 })
     }
 
-    console.log(`[API] Sending campaign ${campaignId}`)
+    console.log(`[API] Starting send for campaign ${campaignId}`)
 
     const result = await sendCampaign(campaignId)
 
-    if (!result.success) {
-      return NextResponse.json({ success: false, error: result.message }, { status: 400 })
+    if (result.success) {
+      console.log(`[API] Campaign ${campaignId} completed: ${result.message}`)
+      return NextResponse.json({
+        success: true,
+        message: result.message,
+      })
+    } else {
+      console.log(`[API] Campaign ${campaignId} failed: ${result.message}`)
+      return NextResponse.json(
+        {
+          success: false,
+          error: result.message,
+        },
+        { status: 400 },
+      )
     }
-
-    console.log(`[API] Campaign ${campaignId} sent successfully: ${result.message}`)
-
-    return NextResponse.json({
-      success: true,
-      message: result.message,
-    })
   } catch (error) {
-    console.error("Error sending campaign:", error)
+    console.error(`[API] Error sending campaign ${params.id}:`, error)
     return NextResponse.json(
       {
         success: false,

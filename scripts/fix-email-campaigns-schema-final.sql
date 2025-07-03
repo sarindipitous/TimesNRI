@@ -1,4 +1,4 @@
--- Drop existing tables if they exist (with CASCADE to handle dependencies)
+-- Drop existing tables if they exist
 DROP TABLE IF EXISTS email_campaign_logs CASCADE;
 DROP TABLE IF EXISTS email_campaigns CASCADE;
 
@@ -10,18 +10,18 @@ CREATE TABLE email_campaigns (
     from_name VARCHAR(255) NOT NULL DEFAULT 'Times NRI Team',
     from_email VARCHAR(255) NOT NULL DEFAULT 'noreply@timesnri.com',
     html_content TEXT NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'scheduled', 'sending', 'sent', 'paused', 'failed')),
-    target_type VARCHAR(50) NOT NULL DEFAULT 'all' CHECK (target_type IN ('all', 'selected', 'filtered')),
+    status VARCHAR(20) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'scheduled', 'sending', 'sent', 'paused', 'failed')),
+    target_type VARCHAR(20) NOT NULL DEFAULT 'all' CHECK (target_type IN ('all', 'selected', 'filtered')),
     target_criteria JSONB DEFAULT '{}',
     selected_recipients JSONB DEFAULT '[]',
-    total_recipients INTEGER DEFAULT 0,
-    sent_count INTEGER DEFAULT 0,
-    failed_count INTEGER DEFAULT 0,
+    total_recipients INTEGER NOT NULL DEFAULT 0,
+    sent_count INTEGER NOT NULL DEFAULT 0,
+    failed_count INTEGER NOT NULL DEFAULT 0,
     scheduled_at TIMESTAMP WITH TIME ZONE,
     started_at TIMESTAMP WITH TIME ZONE,
     completed_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create email_campaign_logs table
@@ -30,12 +30,12 @@ CREATE TABLE email_campaign_logs (
     campaign_id INTEGER NOT NULL REFERENCES email_campaigns(id) ON DELETE CASCADE,
     recipient_email VARCHAR(255) NOT NULL,
     recipient_name VARCHAR(255),
-    status VARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'failed', 'bounced')),
+    status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'failed', 'bounced')),
     sent_at TIMESTAMP WITH TIME ZONE,
     error_message TEXT,
-    email_service VARCHAR(100),
+    email_service VARCHAR(50),
     external_id VARCHAR(255),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create indexes for better performance
@@ -45,7 +45,7 @@ CREATE INDEX idx_email_campaign_logs_campaign_id ON email_campaign_logs(campaign
 CREATE INDEX idx_email_campaign_logs_status ON email_campaign_logs(status);
 CREATE INDEX idx_email_campaign_logs_recipient_email ON email_campaign_logs(recipient_email);
 
--- Create trigger to automatically update updated_at timestamp
+-- Create trigger to automatically update updated_at
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -59,12 +59,12 @@ CREATE TRIGGER update_email_campaigns_updated_at
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
 
--- Insert some test data for development
-INSERT INTO email_campaigns (name, subject, html_content, target_type) VALUES 
-('Welcome Campaign', 'Welcome to Times NRI', '<h1>Welcome!</h1><p>Thank you for joining Times NRI.</p>', 'all'),
-('Update Notification', 'Important Update', '<h1>Update</h1><p>We have an important update to share.</p>', 'all');
+-- Grant permissions (adjust as needed for your setup)
+-- GRANT ALL PRIVILEGES ON email_campaigns TO your_app_user;
+-- GRANT ALL PRIVILEGES ON email_campaign_logs TO your_app_user;
+-- GRANT USAGE, SELECT ON SEQUENCE email_campaigns_id_seq TO your_app_user;
+-- GRANT USAGE, SELECT ON SEQUENCE email_campaign_logs_id_seq TO your_app_user;
 
--- Verify tables were created successfully
-SELECT 'email_campaigns' as table_name, COUNT(*) as row_count FROM email_campaigns
-UNION ALL
-SELECT 'email_campaign_logs' as table_name, COUNT(*) as row_count FROM email_campaign_logs;
+-- Verify tables were created
+SELECT 'email_campaigns table created' as status, count(*) as row_count FROM email_campaigns;
+SELECT 'email_campaign_logs table created' as status, count(*) as row_count FROM email_campaign_logs;

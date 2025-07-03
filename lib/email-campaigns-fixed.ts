@@ -34,22 +34,13 @@ export interface CampaignLog {
   created_at: Date
 }
 
-export interface BulkEmailResult {
-  success: boolean
-  service: string
-  sent_count: number
-  failed_count: number
-  details: any[]
-  errors: string[]
-}
-
 // Helper function for no database scenarios
 function noDb<T>(fallback: T, fnName: string): T {
   console.warn(`[email-campaigns] ${fnName} skipped – DATABASE_URL not set`)
   return fallback
 }
 
-// SIMPLIFIED: Get all campaigns
+// Get all campaigns
 export async function getAllCampaigns(): Promise<EmailCampaign[]> {
   if (!hasDb) return noDb([], "getAllCampaigns")
 
@@ -62,7 +53,7 @@ export async function getAllCampaigns(): Promise<EmailCampaign[]> {
   }
 }
 
-// SIMPLIFIED: Get campaign by ID
+// Get campaign by ID
 export async function getCampaignById(id: number): Promise<EmailCampaign | null> {
   if (!hasDb) return noDb(null, "getCampaignById")
 
@@ -75,7 +66,7 @@ export async function getCampaignById(id: number): Promise<EmailCampaign | null>
   }
 }
 
-// SIMPLIFIED: Create campaign
+// Create campaign
 export async function createCampaign(data: {
   name: string
   subject: string
@@ -92,12 +83,14 @@ export async function createCampaign(data: {
     const result = await sql`
       INSERT INTO email_campaigns (
         name, subject, from_name, from_email, html_content, 
-        target_type, target_criteria, selected_recipients
+        target_type, target_criteria, selected_recipients,
+        status, total_recipients, sent_count, failed_count
       ) VALUES (
         ${data.name}, ${data.subject}, ${data.from_name}, ${data.from_email}, 
         ${data.html_content}, ${data.target_type}, 
         ${JSON.stringify(data.target_criteria || {})}, 
-        ${JSON.stringify(data.selected_recipients || [])}
+        ${JSON.stringify(data.selected_recipients || [])},
+        'draft', 0, 0, 0
       )
       RETURNING *
     `
@@ -108,77 +101,39 @@ export async function createCampaign(data: {
   }
 }
 
-// COMPLETELY REWRITTEN: Simple update function
+// ROBUST UPDATE FUNCTION - No more complex logic
 export async function updateCampaign(id: number, updates: Partial<EmailCampaign>): Promise<EmailCampaign | null> {
   if (!hasDb) return noDb(null, "updateCampaign")
 
   try {
     console.log(`[UPDATE] Campaign ${id}:`, updates)
 
-    // Build dynamic update query
+    // Build update query dynamically
     const updateFields: string[] = []
     const values: any[] = []
     let paramIndex = 1
 
-    // Handle each possible update field
-    if (updates.status !== undefined) {
-      updateFields.push(`status = $${paramIndex}`)
-      values.push(updates.status)
-      paramIndex++
+    // Simple field mapping
+    const fieldMap: Record<string, any> = {
+      status: updates.status,
+      total_recipients: updates.total_recipients,
+      sent_count: updates.sent_count,
+      failed_count: updates.failed_count,
+      started_at: updates.started_at,
+      completed_at: updates.completed_at,
+      name: updates.name,
+      subject: updates.subject,
+      html_content: updates.html_content,
+      selected_recipients: updates.selected_recipients ? JSON.stringify(updates.selected_recipients) : undefined,
     }
 
-    if (updates.total_recipients !== undefined) {
-      updateFields.push(`total_recipients = $${paramIndex}`)
-      values.push(updates.total_recipients)
-      paramIndex++
-    }
-
-    if (updates.sent_count !== undefined) {
-      updateFields.push(`sent_count = $${paramIndex}`)
-      values.push(updates.sent_count)
-      paramIndex++
-    }
-
-    if (updates.failed_count !== undefined) {
-      updateFields.push(`failed_count = $${paramIndex}`)
-      values.push(updates.failed_count)
-      paramIndex++
-    }
-
-    if (updates.started_at !== undefined) {
-      updateFields.push(`started_at = $${paramIndex}`)
-      values.push(updates.started_at)
-      paramIndex++
-    }
-
-    if (updates.completed_at !== undefined) {
-      updateFields.push(`completed_at = $${paramIndex}`)
-      values.push(updates.completed_at)
-      paramIndex++
-    }
-
-    if (updates.name !== undefined) {
-      updateFields.push(`name = $${paramIndex}`)
-      values.push(updates.name)
-      paramIndex++
-    }
-
-    if (updates.subject !== undefined) {
-      updateFields.push(`subject = $${paramIndex}`)
-      values.push(updates.subject)
-      paramIndex++
-    }
-
-    if (updates.html_content !== undefined) {
-      updateFields.push(`html_content = $${paramIndex}`)
-      values.push(updates.html_content)
-      paramIndex++
-    }
-
-    if (updates.selected_recipients !== undefined) {
-      updateFields.push(`selected_recipients = $${paramIndex}`)
-      values.push(JSON.stringify(updates.selected_recipients))
-      paramIndex++
+    // Add fields that have values
+    for (const [field, value] of Object.entries(fieldMap)) {
+      if (value !== undefined) {
+        updateFields.push(`${field} = $${paramIndex}`)
+        values.push(value)
+        paramIndex++
+      }
     }
 
     if (updateFields.length === 0) {
@@ -186,10 +141,13 @@ export async function updateCampaign(id: number, updates: Partial<EmailCampaign>
       return await getCampaignById(id)
     }
 
+    // Always update the updated_at timestamp
+    updateFields.push(`updated_at = CURRENT_TIMESTAMP`)
+
     // Execute update
     const query = `
       UPDATE email_campaigns 
-      SET ${updateFields.join(", ")}, updated_at = CURRENT_TIMESTAMP
+      SET ${updateFields.join(", ")}
       WHERE id = $${paramIndex}
       RETURNING *
     `
@@ -204,7 +162,7 @@ export async function updateCampaign(id: number, updates: Partial<EmailCampaign>
   }
 }
 
-// SIMPLIFIED: Delete campaign
+// Delete campaign
 export async function deleteCampaign(id: number): Promise<boolean> {
   if (!hasDb) return noDb(false, "deleteCampaign")
 
@@ -217,7 +175,7 @@ export async function deleteCampaign(id: number): Promise<boolean> {
   }
 }
 
-// FIXED: Get campaign recipients with proper validation
+// Get campaign recipients
 export async function getCampaignRecipients(campaign: EmailCampaign): Promise<Array<{ email: string; name?: string }>> {
   if (!hasDb) return noDb([], "getCampaignRecipients")
 
@@ -260,7 +218,6 @@ export async function getCampaignRecipients(campaign: EmailCampaign): Promise<Ar
     }
 
     if (campaign.target_type === "filtered" && campaign.target_criteria) {
-      // Simplified filtering - can be expanded
       const criteria = campaign.target_criteria
       let whereClause = "WHERE 1=1"
       const params: any[] = []
@@ -284,209 +241,18 @@ export async function getCampaignRecipients(campaign: EmailCampaign): Promise<Ar
   }
 }
 
-// NEW: Bulk email sending using Resend API
-async function sendBulkEmailsViaResend(
-  recipients: Array<{ email: string; name?: string }>,
-  campaign: EmailCampaign,
-): Promise<BulkEmailResult> {
-  if (!process.env.RESEND_API_KEY) {
-    return {
-      success: false,
-      service: "Resend",
-      sent_count: 0,
-      failed_count: recipients.length,
-      details: [],
-      errors: ["Resend API key not configured"],
-    }
-  }
-
-  try {
-    console.log(`[BULK RESEND] Sending to ${recipients.length} recipients`)
-
-    // Resend supports up to 50 recipients per request
-    const BATCH_SIZE = 50
-    const batches = []
-
-    for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
-      batches.push(recipients.slice(i, i + BATCH_SIZE))
-    }
-
-    let totalSent = 0
-    let totalFailed = 0
-    const allDetails: any[] = []
-    const allErrors: string[] = []
-
-    for (const batch of batches) {
-      try {
-        // Process template for each recipient
-        const emailPromises = batch.map(async (recipient) => {
-          let htmlContent = campaign.html_content
-          htmlContent = htmlContent.replace(/\{\{name\}\}/g, recipient.name || "Valued Member")
-          htmlContent = htmlContent.replace(/\{\{email\}\}/g, recipient.email)
-          htmlContent = htmlContent.replace(/\{\{subject\}\}/g, campaign.subject)
-
-          return {
-            from: `${campaign.from_name} <noreply@timesnri.com>`,
-            to: [recipient.email],
-            subject: campaign.subject,
-            html: htmlContent,
-          }
-        })
-
-        const emailPayloads = await Promise.all(emailPromises)
-
-        // Send batch to Resend
-        const batchPromises = emailPayloads.map(async (payload) => {
-          const response = await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload),
-          })
-
-          const responseData = await response.json()
-
-          return {
-            email: payload.to[0],
-            success: response.ok,
-            response: responseData,
-            status: response.status,
-          }
-        })
-
-        const batchResults = await Promise.all(batchPromises)
-
-        // Process results
-        for (const result of batchResults) {
-          if (result.success) {
-            totalSent++
-            allDetails.push({
-              email: result.email,
-              status: "sent",
-              external_id: result.response.id,
-            })
-          } else {
-            totalFailed++
-            allDetails.push({
-              email: result.email,
-              status: "failed",
-              error: result.response.message || "Unknown error",
-            })
-            allErrors.push(`${result.email}: ${result.response.message || "Unknown error"}`)
-          }
-        }
-
-        // Small delay between batches
-        if (batches.length > 1) {
-          await new Promise((resolve) => setTimeout(resolve, 1000))
-        }
-      } catch (batchError) {
-        console.error("[BULK RESEND] Batch error:", batchError)
-        totalFailed += batch.length
-        allErrors.push(`Batch error: ${batchError instanceof Error ? batchError.message : "Unknown error"}`)
-      }
-    }
-
-    return {
-      success: totalSent > 0,
-      service: "Resend",
-      sent_count: totalSent,
-      failed_count: totalFailed,
-      details: allDetails,
-      errors: allErrors,
-    }
-  } catch (error) {
-    console.error("[BULK RESEND] Error:", error)
-    return {
-      success: false,
-      service: "Resend",
-      sent_count: 0,
-      failed_count: recipients.length,
-      details: [],
-      errors: [error instanceof Error ? error.message : "Unknown error"],
-    }
-  }
-}
-
-// NEW: Fallback individual email sending
-async function sendIndividualEmails(
-  recipients: Array<{ email: string; name?: string }>,
-  campaign: EmailCampaign,
-): Promise<BulkEmailResult> {
-  console.log(`[INDIVIDUAL] Sending to ${recipients.length} recipients individually`)
-
-  let sentCount = 0
-  let failedCount = 0
-  const details: any[] = []
-  const errors: string[] = []
-
-  for (const recipient of recipients) {
-    try {
-      let htmlContent = campaign.html_content
-      htmlContent = htmlContent.replace(/\{\{name\}\}/g, recipient.name || "Valued Member")
-      htmlContent = htmlContent.replace(/\{\{email\}\}/g, recipient.email)
-      htmlContent = htmlContent.replace(/\{\{subject\}\}/g, campaign.subject)
-
-      const result = await sendSingleEmail({
-        to: recipient.email,
-        from: `${campaign.from_name} <${campaign.from_email}>`,
-        subject: campaign.subject,
-        html: htmlContent,
-      })
-
-      if (result.success) {
-        sentCount++
-        details.push({
-          email: recipient.email,
-          status: "sent",
-          service: result.service,
-        })
-      } else {
-        failedCount++
-        details.push({
-          email: recipient.email,
-          status: "failed",
-          error: result.error,
-        })
-        errors.push(`${recipient.email}: ${result.error}`)
-      }
-
-      // Rate limiting delay
-      await new Promise((resolve) => setTimeout(resolve, 200))
-    } catch (error) {
-      failedCount++
-      const errorMsg = error instanceof Error ? error.message : "Unknown error"
-      details.push({
-        email: recipient.email,
-        status: "failed",
-        error: errorMsg,
-      })
-      errors.push(`${recipient.email}: ${errorMsg}`)
-    }
-  }
-
-  return {
-    success: sentCount > 0,
-    service: "Individual",
-    sent_count: sentCount,
-    failed_count: failedCount,
-    details,
-    errors,
-  }
-}
-
-// Helper: Send single email
-async function sendSingleEmail(payload: {
+// COMPLETELY REWRITTEN: Reliable single email sending
+async function sendSingleEmailReliable(payload: {
   to: string
   from: string
   subject: string
   html: string
-}): Promise<{ success: boolean; service?: string; error?: string }> {
-  // Try Resend first
+}): Promise<{ success: boolean; service?: string; error?: string; external_id?: string }> {
+  // Try Resend first (most reliable)
   if (process.env.RESEND_API_KEY) {
     try {
+      console.log(`[EMAIL] Sending via Resend to ${payload.to}`)
+
       const response = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -501,24 +267,34 @@ async function sendSingleEmail(payload: {
         }),
       })
 
-      if (response.ok) {
-        return { success: true, service: "Resend" }
-      }
+      const responseData = await response.json()
 
-      const errorData = await response.json()
-      return {
-        success: false,
-        service: "Resend",
-        error: errorData.message || "Unknown error",
+      if (response.ok) {
+        console.log(`[EMAIL] ✅ Resend success for ${payload.to}`)
+        return {
+          success: true,
+          service: "Resend",
+          external_id: responseData.id,
+        }
+      } else {
+        console.log(`[EMAIL] ❌ Resend failed for ${payload.to}:`, responseData)
+        return {
+          success: false,
+          service: "Resend",
+          error: responseData.message || "Resend API error",
+        }
       }
     } catch (error) {
-      // Fall through to next service
+      console.log(`[EMAIL] ❌ Resend exception for ${payload.to}:`, error)
+      // Continue to next service
     }
   }
 
   // Try SendGrid as fallback
   if (process.env.SENDGRID_API_KEY) {
     try {
+      console.log(`[EMAIL] Trying SendGrid for ${payload.to}`)
+
       const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
         method: "POST",
         headers: {
@@ -527,33 +303,38 @@ async function sendSingleEmail(payload: {
         },
         body: JSON.stringify({
           personalizations: [{ to: [{ email: payload.to }], subject: payload.subject }],
-          from: { email: "timesnri@timesinternet.in", name: "Times NRI Team" },
+          from: { email: "noreply@timesnri.com", name: "Times NRI Team" },
           content: [{ type: "text/html", value: payload.html }],
         }),
       })
 
       if (response.ok) {
+        console.log(`[EMAIL] ✅ SendGrid success for ${payload.to}`)
         return { success: true, service: "SendGrid" }
+      } else {
+        const errorText = await response.text()
+        console.log(`[EMAIL] ❌ SendGrid failed for ${payload.to}:`, errorText)
+        return { success: false, service: "SendGrid", error: "SendGrid API error" }
       }
-
-      return { success: false, service: "SendGrid", error: "SendGrid API error" }
     } catch (error) {
-      // Fall through
+      console.log(`[EMAIL] ❌ SendGrid exception for ${payload.to}:`, error)
     }
   }
 
-  return { success: false, error: "No email service available" }
+  return { success: false, error: "No email service available or all services failed" }
 }
 
-// COMPLETELY REWRITTEN: Send campaign with bulk support
+// COMPLETELY REWRITTEN: Robust campaign sending with proper error handling
 export async function sendCampaign(campaignId: number): Promise<{ success: boolean; message: string }> {
   if (!hasDb) return noDb({ success: false, message: "Database not available" }, "sendCampaign")
+
+  let campaign: EmailCampaign | null = null
 
   try {
     console.log(`[SEND CAMPAIGN] Starting campaign ${campaignId}`)
 
     // Get campaign
-    const campaign = await getCampaignById(campaignId)
+    campaign = await getCampaignById(campaignId)
     if (!campaign) {
       return { success: false, message: "Campaign not found" }
     }
@@ -575,7 +356,12 @@ export async function sendCampaign(campaignId: number): Promise<{ success: boole
       status: "sending",
       total_recipients: recipients.length,
       started_at: new Date(),
+      sent_count: 0,
+      failed_count: 0,
     })
+
+    // Clear any existing logs for this campaign
+    await sql`DELETE FROM email_campaign_logs WHERE campaign_id = ${campaignId}`
 
     // Create logs for all recipients
     for (const recipient of recipients) {
@@ -585,53 +371,110 @@ export async function sendCampaign(campaignId: number): Promise<{ success: boole
       `
     }
 
-    // Try bulk sending first, fallback to individual
-    let result: BulkEmailResult
+    console.log(`[SEND CAMPAIGN] Created ${recipients.length} log entries`)
 
-    if (recipients.length >= 10) {
-      console.log("[SEND CAMPAIGN] Using bulk sending")
-      result = await sendBulkEmailsViaResend(recipients, campaign)
-    } else {
-      console.log("[SEND CAMPAIGN] Using individual sending")
-      result = await sendIndividualEmails(recipients, campaign)
-    }
+    // Send emails one by one with proper error handling
+    let sentCount = 0
+    let failedCount = 0
 
-    // Update logs based on results
-    for (const detail of result.details) {
-      if (detail.status === "sent") {
+    for (let i = 0; i < recipients.length; i++) {
+      const recipient = recipients[i]
+
+      try {
+        console.log(`[SEND CAMPAIGN] Processing ${i + 1}/${recipients.length}: ${recipient.email}`)
+
+        // Prepare email content
+        let htmlContent = campaign.html_content
+        htmlContent = htmlContent.replace(/\{\{name\}\}/g, recipient.name || "Valued Member")
+        htmlContent = htmlContent.replace(/\{\{email\}\}/g, recipient.email)
+        htmlContent = htmlContent.replace(/\{\{subject\}\}/g, campaign.subject)
+
+        // Send email
+        const result = await sendSingleEmailReliable({
+          to: recipient.email,
+          from: `${campaign.from_name} <${campaign.from_email}>`,
+          subject: campaign.subject,
+          html: htmlContent,
+        })
+
+        if (result.success) {
+          sentCount++
+
+          // Update log
+          await sql`
+            UPDATE email_campaign_logs 
+            SET status = 'sent', sent_at = CURRENT_TIMESTAMP, 
+                email_service = ${result.service}, external_id = ${result.external_id || null}
+            WHERE campaign_id = ${campaignId} AND recipient_email = ${recipient.email}
+          `
+
+          console.log(`[SEND CAMPAIGN] ✅ ${i + 1}/${recipients.length} sent successfully`)
+        } else {
+          failedCount++
+
+          // Update log
+          await sql`
+            UPDATE email_campaign_logs 
+            SET status = 'failed', error_message = ${result.error || "Unknown error"}
+            WHERE campaign_id = ${campaignId} AND recipient_email = ${recipient.email}
+          `
+
+          console.log(`[SEND CAMPAIGN] ❌ ${i + 1}/${recipients.length} failed: ${result.error}`)
+        }
+
+        // Update campaign progress every 5 emails
+        if ((i + 1) % 5 === 0 || i === recipients.length - 1) {
+          await updateCampaign(campaignId, {
+            sent_count: sentCount,
+            failed_count: failedCount,
+          })
+          console.log(`[SEND CAMPAIGN] Progress: ${sentCount} sent, ${failedCount} failed`)
+        }
+
+        // Rate limiting - wait between emails to avoid hitting limits
+        if (i < recipients.length - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 1000)) // 1 second delay
+        }
+      } catch (emailError) {
+        failedCount++
+        console.error(`[SEND CAMPAIGN] Error sending to ${recipient.email}:`, emailError)
+
+        // Update log
         await sql`
           UPDATE email_campaign_logs 
-          SET status = 'sent', sent_at = CURRENT_TIMESTAMP, 
-              email_service = ${result.service}, external_id = ${detail.external_id || null}
-          WHERE campaign_id = ${campaignId} AND recipient_email = ${detail.email}
-        `
-      } else {
-        await sql`
-          UPDATE email_campaign_logs 
-          SET status = 'failed', error_message = ${detail.error || "Unknown error"}
-          WHERE campaign_id = ${campaignId} AND recipient_email = ${detail.email}
+          SET status = 'failed', error_message = ${emailError instanceof Error ? emailError.message : "Unknown error"}
+          WHERE campaign_id = ${campaignId} AND recipient_email = ${recipient.email}
         `
       }
     }
 
-    // Update campaign final status
+    // Final campaign update
+    const finalStatus = sentCount > 0 ? "sent" : "failed"
     await updateCampaign(campaignId, {
-      status: result.success ? "sent" : "failed",
-      sent_count: result.sent_count,
-      failed_count: result.failed_count,
+      status: finalStatus,
+      sent_count: sentCount,
+      failed_count: failedCount,
       completed_at: new Date(),
     })
 
-    const message = `Campaign completed. ${result.sent_count} sent, ${result.failed_count} failed.`
+    const message = `Campaign completed. ${sentCount} sent, ${failedCount} failed out of ${recipients.length} total.`
     console.log(`[SEND CAMPAIGN] ${message}`)
 
-    return { success: result.success, message }
+    return {
+      success: sentCount > 0,
+      message,
+    }
   } catch (error) {
-    console.error("[SEND CAMPAIGN] Error:", error)
+    console.error("[SEND CAMPAIGN] Critical error:", error)
 
-    // Reset campaign status on error
+    // Reset campaign status on critical error
     try {
-      await updateCampaign(campaignId, { status: "draft" })
+      if (campaign) {
+        await updateCampaign(campaignId, {
+          status: "failed",
+          completed_at: new Date(),
+        })
+      }
     } catch (resetError) {
       console.error("[SEND CAMPAIGN] Failed to reset status:", resetError)
     }
