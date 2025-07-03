@@ -1,5 +1,4 @@
 import { sql, hasDb } from "@/lib/db"
-import { sendWelcomeEmailWithDetails } from "@/lib/email-service"
 
 export interface EmailCampaign {
   id: number
@@ -211,11 +210,269 @@ export async function getCampaignRecipients(campaign: EmailCampaign): Promise<Ar
   }
 }
 
-// Send campaign
+// FIXED: Campaign-specific email sending function
+async function sendCampaignEmail(payload: {
+  to: string
+  from: string
+  subject: string
+  html: string
+}): Promise<{ success: boolean; service?: string; error?: string; details?: any }> {
+  const errors: string[] = []
+
+  console.log(`[CAMPAIGN EMAIL] Sending to: ${payload.to}`)
+  console.log(`[CAMPAIGN EMAIL] Subject: ${payload.subject}`)
+  console.log(`[CAMPAIGN EMAIL] From: ${payload.from}`)
+
+  // Try Resend FIRST (new recommended solution)
+  if (process.env.RESEND_API_KEY) {
+    console.log("Trying Resend for campaign email...")
+    const result = await sendCampaignViaResend(payload)
+    if (result.success) return result
+    errors.push(`Resend: ${result.error}`)
+  }
+
+  // Try Mailgun as backup
+  if (process.env.MAILGUN_API_KEY && process.env.MAILGUN_DOMAIN) {
+    console.log("Trying Mailgun for campaign email...")
+    const result = await sendCampaignViaMailgun(payload)
+    if (result.success) return result
+    errors.push(`Mailgun: ${result.error}`)
+  }
+
+  // Try SendGrid as last resort
+  if (process.env.SENDGRID_API_KEY) {
+    console.log("Trying SendGrid for campaign email...")
+    const result = await sendCampaignViaSendGrid(payload)
+    if (result.success) return result
+    errors.push(`SendGrid: ${result.error}`)
+  }
+
+  return {
+    success: false,
+    error: "All email services failed for campaign",
+    details: {
+      errors,
+      availableServices: {
+        resend: !!process.env.RESEND_API_KEY,
+        mailgun: !!(process.env.MAILGUN_API_KEY && process.env.MAILGUN_DOMAIN),
+        sendgrid: !!process.env.SENDGRID_API_KEY,
+      },
+    },
+  }
+}
+
+async function sendCampaignViaResend(payload: {
+  to: string
+  from: string
+  subject: string
+  html: string
+}): Promise<{ success: boolean; service?: string; error?: string; details?: any }> {
+  try {
+    // Parse the from field to extract email and name
+    const fromMatch = payload.from.match(/^(.+?)\s*<(.+)>$/)
+    const fromEmail = fromMatch ? fromMatch[2].trim() : payload.from
+    const fromName = fromMatch ? fromMatch[1].trim() : ""
+
+    console.log("Campaign Resend payload details:", {
+      originalFrom: payload.from,
+      parsedFromEmail: fromEmail,
+      parsedFromName: fromName,
+      to: payload.to,
+      subject: payload.subject,
+      htmlLength: payload.html.length,
+    })
+
+    // Use verified timesnri.com domain
+    let finalFromEmail = fromEmail
+    if (!fromEmail.includes("@timesnri.com")) {
+      finalFromEmail = "noreply@timesnri.com"
+      console.log(`Using verified domain: ${fromEmail} → ${finalFromEmail}`)
+    }
+
+    const resendPayload = {
+      from: `${fromName} <${finalFromEmail}>`,
+      to: [payload.to],
+      subject: payload.subject,
+      html: payload.html,
+    }
+
+    console.log("Sending campaign to Resend API:", JSON.stringify(resendPayload, null, 2))
+
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(resendPayload),
+    })
+
+    const responseData = await response.json()
+    console.log("Campaign Resend response:", responseData)
+
+    if (!response.ok) {
+      return {
+        success: false,
+        service: "Resend",
+        error: `HTTP ${response.status}: ${responseData.message || "Unknown error"}`,
+        details: responseData,
+      }
+    }
+
+    return {
+      success: true,
+      service: "Resend",
+      details: {
+        emailId: responseData.id,
+        status: response.status,
+        fromEmailUsed: resendPayload.from,
+        responseData,
+      },
+    }
+  } catch (error) {
+    console.error("Campaign Resend error:", error)
+    return {
+      success: false,
+      service: "Resend",
+      error: error instanceof Error ? error.message : "Network error",
+      details: error,
+    }
+  }
+}
+
+async function sendCampaignViaMailgun(payload: {
+  to: string
+  from: string
+  subject: string
+  html: string
+}): Promise<{ success: boolean; service?: string; error?: string; details?: any }> {
+  try {
+    const formData = new FormData()
+    formData.append("from", payload.from)
+    formData.append("to", payload.to)
+    formData.append("subject", payload.subject)
+    formData.append("html", payload.html)
+
+    const response = await fetch(`https://api.mailgun.net/v3/${process.env.MAILGUN_DOMAIN}/messages`, {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${Buffer.from(`api:${process.env.MAILGUN_API_KEY}`).toString("base64")}`,
+      },
+      body: formData,
+    })
+
+    const responseData = await response.json()
+
+    if (!response.ok) {
+      return {
+        success: false,
+        service: "Mailgun",
+        error: `HTTP ${response.status}: ${responseData.message || "Unknown error"}`,
+        details: responseData,
+      }
+    }
+
+    return {
+      success: true,
+      service: "Mailgun",
+      details: responseData,
+    }
+  } catch (error) {
+    return {
+      success: false,
+      service: "Mailgun",
+      error: error instanceof Error ? error.message : "Network error",
+      details: error,
+    }
+  }
+}
+
+async function sendCampaignViaSendGrid(payload: {
+  to: string
+  from: string
+  subject: string
+  html: string
+}): Promise<{ success: boolean; service?: string; error?: string; details?: any }> {
+  try {
+    const fromMatch = payload.from.match(/^(.+?)\s*<(.+)>$/)
+    const fromEmail = fromMatch ? fromMatch[2].trim() : payload.from
+    const fromName = fromMatch ? fromMatch[1].trim() : ""
+
+    const verifiedEmail = "timesnri@timesinternet.in"
+
+    const sendGridPayload = {
+      personalizations: [
+        {
+          to: [{ email: payload.to }],
+          subject: payload.subject,
+        },
+      ],
+      from: {
+        email: verifiedEmail,
+        name: fromName || "Times NRI Team",
+      },
+      content: [
+        {
+          type: "text/html",
+          value: payload.html,
+        },
+      ],
+    }
+
+    const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.SENDGRID_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(sendGridPayload),
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      let errorData
+      try {
+        errorData = JSON.parse(errorText)
+      } catch {
+        errorData = { message: errorText }
+      }
+
+      return {
+        success: false,
+        service: "SendGrid",
+        error: `HTTP ${response.status}: ${errorData.errors?.[0]?.message || errorData.message || "Unknown error"}`,
+        details: errorData,
+      }
+    }
+
+    const messageId = response.headers.get("x-message-id")
+
+    return {
+      success: true,
+      service: "SendGrid",
+      details: {
+        messageId,
+        status: response.status,
+        fromEmailUsed: verifiedEmail,
+      },
+    }
+  } catch (error) {
+    return {
+      success: false,
+      service: "SendGrid",
+      error: error instanceof Error ? error.message : "Network error",
+      details: error,
+    }
+  }
+}
+
+// FIXED: Send campaign with proper content and recipient targeting
 export async function sendCampaign(campaignId: number): Promise<{ success: boolean; message: string }> {
   if (!hasDb) return noDb({ success: false, message: "Database not available" }, "sendCampaign")
 
   try {
+    console.log(`[CAMPAIGN] Starting campaign ${campaignId}`)
+
     const campaign = await getCampaignById(campaignId)
     if (!campaign) {
       return { success: false, message: "Campaign not found" }
@@ -225,8 +482,16 @@ export async function sendCampaign(campaignId: number): Promise<{ success: boole
       return { success: false, message: "Campaign cannot be sent in current status" }
     }
 
-    // Get recipients
+    // Get recipients based on campaign targeting
     const recipients = await getCampaignRecipients(campaign)
+    console.log(`[CAMPAIGN] Found ${recipients.length} recipients for campaign ${campaignId}`)
+    console.log(`[CAMPAIGN] Target type: ${campaign.target_type}`)
+
+    if (campaign.target_type === "selected") {
+      console.log(`[CAMPAIGN] Selected recipients: ${JSON.stringify(campaign.selected_recipients)}`)
+      console.log(`[CAMPAIGN] Actual recipients: ${recipients.map((r) => r.email).join(", ")}`)
+    }
+
     if (recipients.length === 0) {
       return { success: false, message: "No recipients found for this campaign" }
     }
@@ -246,29 +511,31 @@ export async function sendCampaign(campaignId: number): Promise<{ success: boole
       `
     }
 
-    // Start sending emails (this could be moved to a background job)
+    // Send emails with ACTUAL campaign content
     let sentCount = 0
     let failedCount = 0
 
     for (const recipient of recipients) {
       try {
-        // Replace template variables in HTML content
+        console.log(`[CAMPAIGN] Sending to: ${recipient.email}`)
+
+        // Replace template variables in the CAMPAIGN HTML content
         let htmlContent = campaign.html_content
         htmlContent = htmlContent.replace(/\{\{name\}\}/g, recipient.name || "Valued Member")
         htmlContent = htmlContent.replace(/\{\{email\}\}/g, recipient.email)
+        htmlContent = htmlContent.replace(/\{\{subject\}\}/g, campaign.subject)
 
-        // Send email using the existing email service
-        const result = await sendWelcomeEmailWithDetails({
-          name: recipient.name,
-          email: recipient.email,
-          parent_location: "",
-          care_plan: "",
-          waitlist_number: 0,
-          referral_link: "",
+        // FIXED: Use campaign email sending function, not welcome email
+        const result = await sendCampaignEmail({
+          to: recipient.email,
+          from: `${campaign.from_name} <${campaign.from_email}>`,
+          subject: campaign.subject,
+          html: htmlContent,
         })
 
         if (result.success) {
           sentCount++
+          console.log(`[CAMPAIGN] ✅ Sent to ${recipient.email} via ${result.service}`)
           await sql`
             UPDATE email_campaign_logs 
             SET status = 'sent', sent_at = CURRENT_TIMESTAMP, email_service = ${result.service || "unknown"}
@@ -276,6 +543,7 @@ export async function sendCampaign(campaignId: number): Promise<{ success: boole
           `
         } else {
           failedCount++
+          console.log(`[CAMPAIGN] ❌ Failed to send to ${recipient.email}: ${result.error}`)
           await sql`
             UPDATE email_campaign_logs 
             SET status = 'failed', error_message = ${result.error || "Unknown error"}
@@ -284,6 +552,7 @@ export async function sendCampaign(campaignId: number): Promise<{ success: boole
         }
       } catch (error) {
         failedCount++
+        console.error(`[CAMPAIGN] Error sending to ${recipient.email}:`, error)
         await sql`
           UPDATE email_campaign_logs 
           SET status = 'failed', error_message = ${error instanceof Error ? error.message : "Unknown error"}
@@ -302,6 +571,8 @@ export async function sendCampaign(campaignId: number): Promise<{ success: boole
       failed_count: failedCount,
       completed_at: new Date(),
     })
+
+    console.log(`[CAMPAIGN] Completed campaign ${campaignId}: ${sentCount} sent, ${failedCount} failed`)
 
     return {
       success: true,
