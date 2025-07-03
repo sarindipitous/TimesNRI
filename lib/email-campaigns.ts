@@ -152,32 +152,82 @@ export async function deleteCampaign(id: number): Promise<boolean> {
   }
 }
 
-// Get campaign recipients based on target type
+// FIXED: Get campaign recipients with proper targeting logic
 export async function getCampaignRecipients(campaign: EmailCampaign): Promise<Array<{ email: string; name?: string }>> {
   if (!hasDb) return noDb([], "getCampaignRecipients")
 
   try {
+    console.log(`[TARGETING] Campaign ${campaign.id} - Type: ${campaign.target_type}`)
+
     if (campaign.target_type === "all") {
+      console.log(`[TARGETING] Selecting ALL waitlist members`)
       const result = await sql`
         SELECT email, name FROM waitlist_submissions 
         ORDER BY created_at DESC
       `
+      console.log(`[TARGETING] Found ${result.length} total waitlist members`)
       return result.map((r: any) => ({ email: r.email, name: r.name }))
     }
 
-    if (campaign.target_type === "selected" && campaign.selected_recipients) {
-      const emails = campaign.selected_recipients
-      if (emails.length === 0) return []
+    if (campaign.target_type === "selected") {
+      let selectedEmails = campaign.selected_recipients
+
+      console.log(`[TARGETING] Selected recipients raw:`, selectedEmails)
+
+      // CRITICAL FIX: Handle different data types for selected_recipients
+      if (typeof selectedEmails === "string") {
+        try {
+          selectedEmails = JSON.parse(selectedEmails)
+          console.log(`[TARGETING] Parsed from JSON string:`, selectedEmails)
+        } catch (e) {
+          console.error(`[TARGETING] Failed to parse selected_recipients as JSON:`, e)
+          return []
+        }
+      }
+
+      // Ensure it's an array
+      if (!Array.isArray(selectedEmails)) {
+        console.error(`[TARGETING] selected_recipients is not an array:`, selectedEmails)
+        return []
+      }
+
+      if (selectedEmails.length === 0) {
+        console.log(`[TARGETING] No recipients selected, returning empty array`)
+        return []
+      }
+
+      console.log(`[TARGETING] Filtering waitlist for ${selectedEmails.length} selected emails:`, selectedEmails)
 
       const result = await sql`
         SELECT email, name FROM waitlist_submissions 
-        WHERE email = ANY(${emails})
+        WHERE email = ANY(${selectedEmails})
       `
+
+      console.log(`[TARGETING] Found ${result.length} matching recipients in waitlist`)
+      console.log(
+        `[TARGETING] Matching emails:`,
+        result.map((r: any) => r.email),
+      )
+
+      // CRITICAL CHECK: Verify we're not accidentally selecting all users
+      const allWaitlistCount = await sql`SELECT COUNT(*) as count FROM waitlist_submissions`
+      const totalWaitlist = Number(allWaitlistCount[0].count)
+
+      if (result.length === totalWaitlist && selectedEmails.length < totalWaitlist) {
+        console.error(
+          `[TARGETING] CRITICAL ERROR: Selected ${selectedEmails.length} recipients but query returned ALL ${totalWaitlist} waitlist members!`,
+        )
+        console.error(`[TARGETING] This indicates a serious targeting bug!`)
+        // Return empty to prevent mass email
+        return []
+      }
+
       return result.map((r: any) => ({ email: r.email, name: r.name }))
     }
 
     if (campaign.target_type === "filtered" && campaign.target_criteria) {
-      // Add filtering logic based on criteria
+      console.log(`[TARGETING] Applying filter criteria:`, campaign.target_criteria)
+
       const criteria = campaign.target_criteria
       let query = sql`SELECT email, name FROM waitlist_submissions WHERE 1=1`
 
@@ -200,9 +250,11 @@ export async function getCampaignRecipients(campaign: EmailCampaign): Promise<Ar
       query = sql`${query} ORDER BY created_at DESC`
 
       const result = await query
+      console.log(`[TARGETING] Filtered query returned ${result.length} recipients`)
       return result.map((r: any) => ({ email: r.email, name: r.name }))
     }
 
+    console.log(`[TARGETING] No valid targeting configuration, returning empty array`)
     return []
   } catch (error) {
     console.error("Error getting campaign recipients:", error)
@@ -210,7 +262,7 @@ export async function getCampaignRecipients(campaign: EmailCampaign): Promise<Ar
   }
 }
 
-// FIXED: Campaign-specific email sending function
+// Campaign-specific email sending function
 async function sendCampaignEmail(payload: {
   to: string
   from: string
@@ -466,7 +518,7 @@ async function sendCampaignViaSendGrid(payload: {
   }
 }
 
-// FIXED: Send campaign with proper content and recipient targeting
+// FIXED: Send campaign with enhanced targeting verification
 export async function sendCampaign(campaignId: number): Promise<{ success: boolean; message: string }> {
   if (!hasDb) return noDb({ success: false, message: "Database not available" }, "sendCampaign")
 
@@ -482,14 +534,39 @@ export async function sendCampaign(campaignId: number): Promise<{ success: boole
       return { success: false, message: "Campaign cannot be sent in current status" }
     }
 
-    // Get recipients based on campaign targeting
+    // CRITICAL: Get recipients with enhanced logging
     const recipients = await getCampaignRecipients(campaign)
-    console.log(`[CAMPAIGN] Found ${recipients.length} recipients for campaign ${campaignId}`)
-    console.log(`[CAMPAIGN] Target type: ${campaign.target_type}`)
+    console.log(`[CAMPAIGN] Campaign ${campaignId} targeting analysis:`)
+    console.log(`[CAMPAIGN] - Target type: ${campaign.target_type}`)
+    console.log(`[CAMPAIGN] - Selected recipients: ${JSON.stringify(campaign.selected_recipients)}`)
+    console.log(`[CAMPAIGN] - Final recipient count: ${recipients.length}`)
+    console.log(`[CAMPAIGN] - Final recipient emails: ${recipients.map((r) => r.email).join(", ")}`)
 
+    // CRITICAL SAFETY CHECK: Prevent accidental mass emails
     if (campaign.target_type === "selected") {
-      console.log(`[CAMPAIGN] Selected recipients: ${JSON.stringify(campaign.selected_recipients)}`)
-      console.log(`[CAMPAIGN] Actual recipients: ${recipients.map((r) => r.email).join(", ")}`)
+      const selectedEmails = campaign.selected_recipients || []
+      const totalWaitlist = await sql`SELECT COUNT(*) as count FROM waitlist_submissions`
+      const totalWaitlistCount = Number(totalWaitlist[0].count)
+
+      if (recipients.length === totalWaitlistCount && selectedEmails.length < totalWaitlistCount) {
+        console.error(
+          `[CAMPAIGN] CRITICAL SAFETY STOP: Campaign ${campaignId} was configured for ${selectedEmails.length} selected recipients but would send to ALL ${totalWaitlistCount} waitlist members!`,
+        )
+        return {
+          success: false,
+          message: `SAFETY STOP: Campaign configured for ${selectedEmails.length} recipients but would send to ALL ${totalWaitlistCount} users. Campaign blocked to prevent mass email.`,
+        }
+      }
+
+      if (recipients.length > selectedEmails.length) {
+        console.error(
+          `[CAMPAIGN] CRITICAL SAFETY STOP: Campaign ${campaignId} configured for ${selectedEmails.length} recipients but would send to ${recipients.length} recipients!`,
+        )
+        return {
+          success: false,
+          message: `SAFETY STOP: Campaign configured for ${selectedEmails.length} recipients but would send to ${recipients.length}. Campaign blocked.`,
+        }
+      }
     }
 
     if (recipients.length === 0) {
@@ -525,7 +602,7 @@ export async function sendCampaign(campaignId: number): Promise<{ success: boole
         htmlContent = htmlContent.replace(/\{\{email\}\}/g, recipient.email)
         htmlContent = htmlContent.replace(/\{\{subject\}\}/g, campaign.subject)
 
-        // FIXED: Use campaign email sending function, not welcome email
+        // Use campaign email sending function, not welcome email
         const result = await sendCampaignEmail({
           to: recipient.email,
           from: `${campaign.from_name} <${campaign.from_email}>`,
