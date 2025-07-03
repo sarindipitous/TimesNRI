@@ -418,7 +418,7 @@ async function sendViaSendGrid(payload: EmailPayload): Promise<EmailResult> {
         error: `HTTP ${response.status}: ${errorData.errors?.[0]?.message || errorData.message || "Unknown error"}`,
         details: {
           status: response.status,
-          headers: Object.fromEntries(response.headers.headers()),
+          headers: Object.fromEntries(response.headers.entries()),
           body: errorData,
           payload: sendGridPayload,
           originalPayload: payload,

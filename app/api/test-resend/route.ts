@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
 
     console.log("Testing Resend with email:", testEmail)
 
-    // Simple test email payload
+    // Simple test email payload using verified domain
     const emailPayload = {
       from: "Times NRI Team <noreply@timesnri.com>",
       to: [testEmail],
