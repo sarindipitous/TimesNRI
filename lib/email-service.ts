@@ -189,13 +189,24 @@ async function sendViaResend(payload: EmailPayload): Promise<EmailResult> {
       htmlLength: payload.html.length,
     })
 
-    // For initial testing, you can use onboarding@resend.dev
-    // Later, set up your own domain
+    // PRODUCTION SAFE: Use verified timesnri.com domain, but fallback gracefully
+    let finalFromEmail = fromEmail
+
+    // Only modify if we have a verified domain and the current email isn't already using it
+    if (!fromEmail.includes("@timesnri.com")) {
+      // Check if we're using the old test domain
+      if (fromEmail.includes("@resend.dev") || fromEmail === "onboarding@resend.dev") {
+        finalFromEmail = "noreply@timesnri.com" // Use your verified domain
+        console.log(`Upgrading from test domain: ${fromEmail} → ${finalFromEmail}`)
+      } else {
+        // For any other domain, try to use it as-is first, then fallback
+        console.log(`Attempting to use configured domain: ${fromEmail}`)
+        finalFromEmail = fromEmail
+      }
+    }
+
     const resendPayload = {
-      from:
-        fromEmail.includes("@resend.dev") || fromEmail.includes("@yourdomain.com")
-          ? `${fromName} <${fromEmail}>`
-          : `${fromName} <onboarding@resend.dev>`, // Fallback to Resend's domain
+      from: `${fromName} <${finalFromEmail}>`,
       to: [payload.to],
       subject: payload.subject,
       html: payload.html,
@@ -219,6 +230,40 @@ async function sendViaResend(payload: EmailPayload): Promise<EmailResult> {
     console.log("Resend response data:", responseData)
 
     if (!response.ok) {
+      // If we get a 403 and we're not using the verified domain, try with verified domain
+      if (response.status === 403 && !finalFromEmail.includes("@timesnri.com")) {
+        console.log("403 error, retrying with verified domain...")
+        const retryPayload = {
+          ...resendPayload,
+          from: `${fromName} <noreply@timesnri.com>`,
+        }
+
+        const retryResponse = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(retryPayload),
+        })
+
+        if (retryResponse.ok) {
+          const retryData = await retryResponse.json()
+          console.log("Retry successful with verified domain!")
+          return {
+            success: true,
+            service: "Resend",
+            details: {
+              emailId: retryData.id,
+              status: retryResponse.status,
+              fromEmailUsed: retryPayload.from,
+              note: "Automatically switched to verified domain after 403 error",
+              responseData: retryData,
+            },
+          }
+        }
+      }
+
       return {
         success: false,
         service: "Resend",
@@ -373,7 +418,7 @@ async function sendViaSendGrid(payload: EmailPayload): Promise<EmailResult> {
         error: `HTTP ${response.status}: ${errorData.errors?.[0]?.message || errorData.message || "Unknown error"}`,
         details: {
           status: response.status,
-          headers: Object.fromEntries(response.headers.entries()),
+          headers: Object.fromEntries(response.headers.headers()),
           body: errorData,
           payload: sendGridPayload,
           originalPayload: payload,

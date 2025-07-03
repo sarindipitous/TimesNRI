@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
 
     // Simple test email payload
     const emailPayload = {
-      from: "Times NRI Team <onboarding@resend.dev>",
+      from: "Times NRI Team <noreply@timesnri.com>",
       to: [testEmail],
       subject: "🧪 Resend Test Email - Times NRI",
       html: `
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
             <ul style="list-style: none; padding: 0;">
                 <li style="margin: 8px 0;"><strong>Service:</strong> Resend</li>
                 <li style="margin: 8px 0;"><strong>Test Email:</strong> ${testEmail}</li>
-                <li style="margin: 8px 0;"><strong>From:</strong> onboarding@resend.dev</li>
+                <li style="margin: 8px 0;"><strong>From:</strong> noreply@timesnri.com</li>
                 <li style="margin: 8px 0;"><strong>Status:</strong> ✅ Delivered</li>
                 <li style="margin: 8px 0;"><strong>Time:</strong> ${new Date().toLocaleString()}</li>
             </ul>

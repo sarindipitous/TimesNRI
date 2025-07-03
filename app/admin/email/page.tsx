@@ -307,10 +307,10 @@ export default function EmailConfigurationPage() {
                     type="email"
                     value={config.welcome_email_from_email}
                     onChange={(e) => setConfig({ ...config, welcome_email_from_email: e.target.value })}
-                    placeholder="onboarding@resend.dev (for testing)"
+                    placeholder="noreply@timesnri.com"
                   />
-                  <p className="text-xs text-gray-500">
-                    Use onboarding@resend.dev for testing, or set up your own domain in Resend
+                  <p className="text-xs text-green-600">
+                    ✅ Your domain timesnri.com is verified! Use any email@timesnri.com address
                   </p>
                 </div>
               </div>
@@ -507,7 +507,7 @@ export default function EmailConfigurationPage() {
                       </li>
                       <li>
                         <strong>4.</strong> Set From Email to{" "}
-                        <code className="bg-blue-100 px-1 rounded">onboarding@resend.dev</code> for testing
+                        <code className="bg-blue-100 px-1 rounded">noreply@timesnri.com</code> (your verified domain)
                       </li>
                       <li>
                         <strong>5.</strong> Test using the Resend Test button above
