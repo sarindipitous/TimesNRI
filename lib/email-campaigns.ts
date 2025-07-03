@@ -121,11 +121,18 @@ export async function updateCampaign(id: number, data: Partial<EmailCampaign>): 
 
     if (updates.length === 0) return null
 
-    const setClause = updates.reduce((acc, curr) => sql`${acc}, ${curr}`)
+    // FIXED: Build the SET clause properly
+    let setClause = updates[0]
+    for (let i = 1; i < updates.length; i++) {
+      setClause = sql`${setClause}, ${updates[i]}`
+    }
+
+    // FIXED: Add updated_at manually instead of relying on database column
+    setClause = sql`${setClause}, updated_at = CURRENT_TIMESTAMP`
 
     const result = await sql`
       UPDATE email_campaigns 
-      SET ${setClause}, updated_at = CURRENT_TIMESTAMP
+      SET ${setClause}
       WHERE id = ${id}
       RETURNING *
     `
