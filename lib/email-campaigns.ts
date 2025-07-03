@@ -105,30 +105,29 @@ export async function createCampaign(data: {
   }
 }
 
-// Update campaign
+// Update campaign - FIXED to work without updated_at column
 export async function updateCampaign(id: number, data: Partial<EmailCampaign>): Promise<EmailCampaign | null> {
   if (!hasDb) return noDb(null, "updateCampaign")
 
   try {
-    const updates = Object.entries(data)
-      .filter(([key]) => !["id", "created_at"].includes(key))
-      .map(([key, value]) => {
-        if (key === "target_criteria" || key === "selected_recipients") {
-          return sql`${sql.identifier([key])} = ${JSON.stringify(value)}`
-        }
-        return sql`${sql.identifier([key])} = ${value}`
-      })
+    // Filter out fields that shouldn't be updated
+    const filteredData = Object.entries(data).filter(([key]) => !["id", "created_at", "updated_at"].includes(key))
 
-    if (updates.length === 0) return null
+    if (filteredData.length === 0) return null
 
-    // FIXED: Build the SET clause properly
-    let setClause = updates[0]
-    for (let i = 1; i < updates.length; i++) {
-      setClause = sql`${setClause}, ${updates[i]}`
+    // Build the SET clause manually without updated_at
+    const setParts = filteredData.map(([key, value]) => {
+      if (key === "target_criteria" || key === "selected_recipients") {
+        return sql`${sql.identifier([key])} = ${JSON.stringify(value)}`
+      }
+      return sql`${sql.identifier([key])} = ${value}`
+    })
+
+    // Combine all SET parts
+    let setClause = setParts[0]
+    for (let i = 1; i < setParts.length; i++) {
+      setClause = sql`${setClause}, ${setParts[i]}`
     }
-
-    // FIXED: Add updated_at manually instead of relying on database column
-    setClause = sql`${setClause}, updated_at = CURRENT_TIMESTAMP`
 
     const result = await sql`
       UPDATE email_campaigns 
