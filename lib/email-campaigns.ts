@@ -105,41 +105,105 @@ export async function createCampaign(data: {
   }
 }
 
-// Update campaign - FIXED SQL query construction
+// Update campaign - COMPLETELY REWRITTEN to fix SQL construction
 export async function updateCampaign(id: number, data: Partial<EmailCampaign>): Promise<EmailCampaign | null> {
   if (!hasDb) return noDb(null, "updateCampaign")
 
   try {
-    // Filter out fields that shouldn't be updated
-    const filteredData = Object.entries(data).filter(([key]) => !["id", "created_at", "updated_at"].includes(key))
+    console.log(`[UPDATE CAMPAIGN] Updating campaign ${id} with data:`, data)
 
-    if (filteredData.length === 0) return null
-
-    // Build update object for direct SQL construction
-    const updateFields: Record<string, any> = {}
-
-    for (const [key, value] of filteredData) {
-      if (key === "target_criteria" || key === "selected_recipients") {
-        updateFields[key] = JSON.stringify(value)
-      } else {
-        updateFields[key] = value
-      }
+    // Handle each possible field update explicitly
+    if (data.status && data.total_recipients !== undefined && data.started_at) {
+      // This is the "sending" status update
+      const result = await sql`
+        UPDATE email_campaigns 
+        SET status = ${data.status}, 
+            total_recipients = ${data.total_recipients}, 
+            started_at = ${data.started_at}
+        WHERE id = ${id}
+        RETURNING *
+      `
+      return (result[0] as EmailCampaign) || null
     }
 
-    // Construct the SQL query properly
-    const setClause = Object.keys(updateFields)
-      .map((key) => `${key} = $${key}`)
-      .join(", ")
+    if (data.status && data.sent_count !== undefined && data.failed_count !== undefined && data.completed_at) {
+      // This is the "sent" status update
+      const result = await sql`
+        UPDATE email_campaigns 
+        SET status = ${data.status}, 
+            sent_count = ${data.sent_count}, 
+            failed_count = ${data.failed_count}, 
+            completed_at = ${data.completed_at}
+        WHERE id = ${id}
+        RETURNING *
+      `
+      return (result[0] as EmailCampaign) || null
+    }
 
-    // Use raw SQL with proper parameter binding
-    const result = await sql`
-      UPDATE email_campaigns 
-      SET ${sql.unsafe(setClause)}
-      WHERE id = ${id}
-      RETURNING *
-    `.values(updateFields)
+    if (data.status === "draft") {
+      // This is the reset to draft status
+      const result = await sql`
+        UPDATE email_campaigns 
+        SET status = ${data.status}
+        WHERE id = ${id}
+        RETURNING *
+      `
+      return (result[0] as EmailCampaign) || null
+    }
 
-    return (result[0] as EmailCampaign) || null
+    // Handle other single field updates
+    if (data.name) {
+      const result = await sql`
+        UPDATE email_campaigns 
+        SET name = ${data.name}
+        WHERE id = ${id}
+        RETURNING *
+      `
+      return (result[0] as EmailCampaign) || null
+    }
+
+    if (data.subject) {
+      const result = await sql`
+        UPDATE email_campaigns 
+        SET subject = ${data.subject}
+        WHERE id = ${id}
+        RETURNING *
+      `
+      return (result[0] as EmailCampaign) || null
+    }
+
+    if (data.html_content) {
+      const result = await sql`
+        UPDATE email_campaigns 
+        SET html_content = ${data.html_content}
+        WHERE id = ${id}
+        RETURNING *
+      `
+      return (result[0] as EmailCampaign) || null
+    }
+
+    if (data.target_type) {
+      const result = await sql`
+        UPDATE email_campaigns 
+        SET target_type = ${data.target_type}
+        WHERE id = ${id}
+        RETURNING *
+      `
+      return (result[0] as EmailCampaign) || null
+    }
+
+    if (data.selected_recipients) {
+      const result = await sql`
+        UPDATE email_campaigns 
+        SET selected_recipients = ${JSON.stringify(data.selected_recipients)}
+        WHERE id = ${id}
+        RETURNING *
+      `
+      return (result[0] as EmailCampaign) || null
+    }
+
+    console.log(`[UPDATE CAMPAIGN] No matching update pattern for data:`, data)
+    return null
   } catch (error) {
     console.error("Error updating campaign:", error)
     return null
@@ -162,7 +226,7 @@ export async function deleteCampaign(id: number): Promise<boolean> {
   }
 }
 
-// FIXED: Get campaign recipients with proper targeting logic
+// Get campaign recipients with proper targeting logic
 export async function getCampaignRecipients(campaign: EmailCampaign): Promise<Array<{ email: string; name?: string }>> {
   if (!hasDb) return noDb([], "getCampaignRecipients")
 
@@ -184,7 +248,7 @@ export async function getCampaignRecipients(campaign: EmailCampaign): Promise<Ar
 
       console.log(`[TARGETING] Selected recipients raw:`, selectedEmails)
 
-      // CRITICAL FIX: Handle different data types for selected_recipients
+      // Handle different data types for selected_recipients
       if (typeof selectedEmails === "string") {
         try {
           selectedEmails = JSON.parse(selectedEmails)
@@ -528,7 +592,7 @@ async function sendCampaignViaSendGrid(payload: {
   }
 }
 
-// FIXED: Send campaign with enhanced targeting verification
+// Send campaign with enhanced targeting verification
 export async function sendCampaign(campaignId: number): Promise<{ success: boolean; message: string }> {
   if (!hasDb) return noDb({ success: false, message: "Database not available" }, "sendCampaign")
 
@@ -544,7 +608,7 @@ export async function sendCampaign(campaignId: number): Promise<{ success: boole
       return { success: false, message: "Campaign cannot be sent in current status" }
     }
 
-    // CRITICAL: Get recipients with enhanced logging
+    // Get recipients with enhanced logging
     const recipients = await getCampaignRecipients(campaign)
     console.log(`[CAMPAIGN] Campaign ${campaignId} targeting analysis:`)
     console.log(`[CAMPAIGN] - Target type: ${campaign.target_type}`)
