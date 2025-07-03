@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-
+import { Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { Footer } from "@/components/footer"
 import { Header } from "@/components/header"
@@ -152,37 +152,6 @@ function AnimatedSection({
     },
   }
 
-  const itemVariants = {
-    hidden: {
-      opacity: 0,
-      y: prefersReducedMotion ? 0 : 20,
-    },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: prefersReducedMotion ? 0.1 : isMobile ? 0.3 : 0.5,
-        ease: "easeOut",
-      },
-    },
-  }
-
-  const cardVariants = {
-    hidden: {
-      opacity: 0,
-      y: prefersReducedMotion ? 0 : 30,
-    },
-    visible: (i: number) => ({
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: prefersReducedMotion ? 0.1 : isMobile ? 0.3 : 0.5,
-        ease: "easeOut",
-        delay: prefersReducedMotion ? 0 : isMobile ? i * 0.05 : i * 0.1,
-      },
-    }),
-  }
-
   return (
     <motion.section
       id={id}
@@ -198,7 +167,8 @@ function AnimatedSection({
   )
 }
 
-export default function Home() {
+// Search params component wrapped in Suspense
+function HomeContent() {
   // Define hero image with a fallback
   const heroImage = getBlobUrl("/images/hero-video-call.png")
   const { scrollYProgress } = useScroll()
@@ -687,5 +657,13 @@ export default function Home() {
       <Footer />
       <MobileWaitlistButton />
     </div>
+  )
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <HomeContent />
+    </Suspense>
   )
 }

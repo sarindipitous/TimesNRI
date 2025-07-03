@@ -134,7 +134,7 @@ interface EmailPayload {
 async function tryEmailServices(payload: EmailPayload): Promise<EmailResult> {
   const errors: string[] = []
 
-  // Try Resend FIRST (recommended solution)
+  // Try Resend FIRST (new recommended solution)
   if (process.env.RESEND_API_KEY) {
     console.log("Trying Resend (recommended)...")
     const result = await sendViaResend(payload)

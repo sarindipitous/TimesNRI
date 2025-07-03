@@ -5,107 +5,147 @@ export async function POST(request: NextRequest) {
     const { testEmail } = await request.json()
 
     if (!testEmail) {
-      return NextResponse.json({ success: false, error: "Test email is required" }, { status: 400 })
+      return NextResponse.json({ success: false, error: "Test email address is required" }, { status: 400 })
     }
 
-    if (!process.env.RESEND_API_KEY) {
-      return NextResponse.json({ success: false, error: "Resend API key not configured" }, { status: 500 })
+    const apiKey = process.env.RESEND_API_KEY
+    if (!apiKey) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "RESEND_API_KEY environment variable not configured",
+          details: {
+            message: "Add RESEND_API_KEY to your environment variables",
+            setup: "Go to resend.com, create an account, and generate an API key",
+          },
+        },
+        { status: 500 },
+      )
     }
+
+    console.log("Testing Resend with email:", testEmail)
 
     // Simple test email payload
-    const resendPayload = {
-      from: "Times NRI <onboarding@resend.dev>", // Use Resend's domain for testing
+    const emailPayload = {
+      from: "Times NRI Team <onboarding@resend.dev>",
       to: [testEmail],
-      subject: "Resend Test Email - Times NRI",
+      subject: "🧪 Resend Test Email - Times NRI",
       html: `
-        <html>
-          <body style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; color: white; text-align: center; margin-bottom: 30px;">
-              <h1 style="margin: 0; font-size: 28px;">🎉 Resend Test Successful!</h1>
-              <p style="margin: 10px 0 0 0; opacity: 0.9;">Times NRI Email Integration</p>
-            </div>
-            
-            <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
-              <h2 style="color: #333; margin-top: 0;">Test Details</h2>
-              <p><strong>📧 Recipient:</strong> ${testEmail}</p>
-              <p><strong>⏰ Timestamp:</strong> ${new Date().toISOString()}</p>
-              <p><strong>🚀 Service:</strong> Resend API</p>
-              <p><strong>✅ Status:</strong> Successfully delivered</p>
-            </div>
-
-            <div style="background: #e8f5e8; border-left: 4px solid #28a745; padding: 20px; margin-bottom: 25px;">
-              <h3 style="color: #155724; margin-top: 0;">✅ Integration Working!</h3>
-              <p style="color: #155724; margin-bottom: 0;">
-                If you received this email, your Resend integration is working perfectly. 
-                You can now send welcome emails to your waitlist subscribers!
-              </p>
-            </div>
-
-            <div style="text-align: center; padding: 20px; border-top: 1px solid #eee;">
-              <p style="color: #666; font-size: 14px; margin: 0;">
-                This is an automated test email from Times NRI
-              </p>
-            </div>
-          </body>
-        </html>
-      `,
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resend Test Email</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 28px;">🧪 Resend Test Successful!</h1>
+        <p style="color: #f0f0f0; margin: 10px 0 0 0; font-size: 16px;">Your Resend integration is working perfectly</p>
+    </div>
+    
+    <div style="background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; border-top: none;">
+        <p style="font-size: 18px; margin-bottom: 20px;">Great news!</p>
+        
+        <p>Your Resend email service is configured correctly and working as expected.</p>
+        
+        <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10b981;">
+            <h3 style="margin-top: 0; color: #059669;">✅ Test Details:</h3>
+            <ul style="list-style: none; padding: 0;">
+                <li style="margin: 8px 0;"><strong>Service:</strong> Resend</li>
+                <li style="margin: 8px 0;"><strong>Test Email:</strong> ${testEmail}</li>
+                <li style="margin: 8px 0;"><strong>From:</strong> onboarding@resend.dev</li>
+                <li style="margin: 8px 0;"><strong>Status:</strong> ✅ Delivered</li>
+                <li style="margin: 8px 0;"><strong>Time:</strong> ${new Date().toLocaleString()}</li>
+            </ul>
+        </div>
+        
+        <div style="background: #eff6ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #1d4ed8;">🚀 Next Steps:</h3>
+            <ol style="padding-left: 20px;">
+                <li>Your Resend integration is ready to use</li>
+                <li>Configure your welcome email template</li>
+                <li>Test the full welcome email system</li>
+                <li>Consider setting up your own domain for branded emails</li>
+            </ol>
+        </div>
+        
+        <p>You can now use Resend as your primary email service for Times NRI!</p>
+        
+        <p style="margin-top: 30px;">
+            Best regards,<br>
+            <strong>The Times NRI Team</strong>
+        </p>
+    </div>
+    
+    <div style="background: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 10px 10px; border: 1px solid #e0e0e0; border-top: none;">
+        <p style="margin: 0; font-size: 14px; color: #666;">
+            This is a test email sent via Resend API • ${new Date().toISOString()}
+        </p>
+    </div>
+</body>
+</html>`,
     }
 
-    console.log("Resend API Key (first 10 chars):", process.env.RESEND_API_KEY?.substring(0, 10))
-    console.log("Resend payload:", JSON.stringify(resendPayload, null, 2))
+    console.log("Sending test email via Resend API...")
 
-    // ACTUAL API CALL TO RESEND
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(resendPayload),
+      body: JSON.stringify(emailPayload),
     })
 
-    // LOG RESEND RESPONSE
-    console.log("Resend response status:", response.status)
-    console.log("Resend response headers:", Object.fromEntries(response.headers.entries()))
+    console.log("Resend API response status:", response.status)
 
     const responseData = await response.json()
-    console.log("Resend response data:", responseData)
+    console.log("Resend API response data:", responseData)
 
     if (!response.ok) {
-      console.error("Resend API error:", responseData)
-
-      return NextResponse.json({
-        success: false,
-        error: `Resend API error (${response.status}): ${responseData.message || "Unknown error"}`,
-        details: {
-          status: response.status,
-          headers: Object.fromEntries(response.headers.entries()),
-          body: responseData,
-          payload: resendPayload,
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Resend API error: ${response.status}`,
+          details: {
+            status: response.status,
+            message: responseData.message || "Unknown error",
+            response: responseData,
+            payload: emailPayload,
+          },
         },
-      })
+        { status: 500 },
+      )
     }
 
-    console.log("Resend success! Email ID:", responseData.id)
+    console.log("✅ Resend test email sent successfully!")
 
     return NextResponse.json({
       success: true,
       message: `Test email sent successfully via Resend to ${testEmail}`,
       details: {
         emailId: responseData.id,
-        status: response.status,
-        headers: Object.fromEntries(response.headers.entries()),
+        service: "Resend",
+        from: emailPayload.from,
+        to: testEmail,
+        subject: emailPayload.subject,
         timestamp: new Date().toISOString(),
-        responseData,
+        response: responseData,
       },
     })
   } catch (error) {
     console.error("Resend test error:", error)
+
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error occurred",
-        details: { error: error },
+        error: "Failed to send test email via Resend",
+        details: {
+          message: error instanceof Error ? error.message : "Unknown error",
+          error: error,
+          timestamp: new Date().toISOString(),
+        },
       },
       { status: 500 },
     )
