@@ -12,8 +12,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }
 
     console.log(`[API] Starting send for campaign ${campaignId}`)
+    console.log(`[API] This will send emails with 2.5 second delays to comply with Resend rate limits`)
 
-    // This will now send ONE EMAIL PER API CALL with proper rate limiting
+    // This will now send ONE EMAIL PER API CALL with proper 2.5 second rate limiting
     const result = await sendCampaign(campaignId)
 
     if (result.success) {

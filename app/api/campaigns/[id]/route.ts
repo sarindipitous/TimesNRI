@@ -19,8 +19,6 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ success: false, error: "Campaign not found" }, { status: 404 })
     }
 
-    console.log(`[API] Campaign ${campaignId} found: ${campaign.name}`)
-
     return NextResponse.json({
       success: true,
       campaign,
@@ -46,25 +44,37 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ success: false, error: "Invalid campaign ID" }, { status: 400 })
     }
 
-    console.log(`[API] Updating campaign ${campaignId}`)
-
     const body = await request.json()
+    console.log(`[API] Updating campaign ${campaignId}:`, body)
 
-    // Check if campaign exists and is editable
+    // Check if campaign exists
     const existingCampaign = await getCampaignById(campaignId)
     if (!existingCampaign) {
       return NextResponse.json({ success: false, error: "Campaign not found" }, { status: 404 })
     }
 
-    if (existingCampaign.status !== "draft") {
-      return NextResponse.json({ success: false, error: "Only draft campaigns can be edited" }, { status: 400 })
+    // Only allow updates to draft campaigns
+    if (existingCampaign.status !== "draft" && existingCampaign.status !== "paused") {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Cannot update campaign with status: ${existingCampaign.status}`,
+        },
+        { status: 400 },
+      )
     }
 
     // Update campaign
     const updatedCampaign = await updateCampaign(campaignId, body)
 
     if (!updatedCampaign) {
-      return NextResponse.json({ success: false, error: "Failed to update campaign" }, { status: 500 })
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Failed to update campaign",
+        },
+        { status: 500 },
+      )
     }
 
     console.log(`[API] Campaign ${campaignId} updated successfully`)
@@ -72,6 +82,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({
       success: true,
       campaign: updatedCampaign,
+      message: "Campaign updated successfully",
     })
   } catch (error) {
     console.error(`Error updating campaign ${params.id}:`, error)
@@ -96,11 +107,14 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     console.log(`[API] Deleting campaign ${campaignId}`)
 
-    const success = await deleteCampaign(campaignId)
+    const deleted = await deleteCampaign(campaignId)
 
-    if (!success) {
+    if (!deleted) {
       return NextResponse.json(
-        { success: false, error: "Failed to delete campaign or campaign not found" },
+        {
+          success: false,
+          error: "Failed to delete campaign or campaign not found",
+        },
         { status: 404 },
       )
     }

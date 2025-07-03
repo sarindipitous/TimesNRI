@@ -7,11 +7,11 @@ export async function GET() {
   try {
     console.log("[API] Fetching all campaigns")
     const campaigns = await getAllCampaigns()
-    console.log(`[API] Found ${campaigns.length} campaigns`)
 
     return NextResponse.json({
       success: true,
       campaigns,
+      count: campaigns.length,
     })
   } catch (error) {
     console.error("Error fetching campaigns:", error)
@@ -28,8 +28,8 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("[API] Creating new campaign")
     const body = await request.json()
+    console.log("[API] Creating campaign:", body)
 
     // Validate required fields
     const requiredFields = ["name", "subject", "html_content", "target_type"]
@@ -57,8 +57,6 @@ export async function POST(request: NextRequest) {
       selected_recipients: body.selected_recipients || [],
     }
 
-    console.log("[API] Campaign data:", campaignData)
-
     const campaign = await createCampaign(campaignData)
 
     if (!campaign) {
@@ -71,11 +69,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log(`[API] Campaign created successfully with ID: ${campaign.id}`)
+    console.log("[API] Campaign created successfully:", campaign.id)
 
     return NextResponse.json({
       success: true,
       campaign,
+      message: "Campaign created successfully",
     })
   } catch (error) {
     console.error("Error creating campaign:", error)

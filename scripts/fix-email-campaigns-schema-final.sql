@@ -45,7 +45,7 @@ CREATE INDEX idx_email_campaign_logs_campaign_id ON email_campaign_logs(campaign
 CREATE INDEX idx_email_campaign_logs_status ON email_campaign_logs(status);
 CREATE INDEX idx_email_campaign_logs_recipient_email ON email_campaign_logs(recipient_email);
 
--- Create trigger to automatically update updated_at
+-- Create trigger to automatically update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -63,18 +63,21 @@ CREATE TRIGGER update_email_campaigns_updated_at
 INSERT INTO email_campaigns (
     name, 
     subject, 
+    from_name, 
+    from_email, 
     html_content, 
     target_type,
     status
 ) VALUES (
-    'Test Campaign - System Validation',
+    'Test Campaign - Schema Validation',
     'Test Email - Please Ignore',
-    '<h1>Test Email</h1><p>This is a test email to validate the system. Please ignore.</p>',
+    'Times NRI Team',
+    'noreply@timesnri.com',
+    '<h1>Test Email</h1><p>This is a test email to validate the schema. Please ignore.</p>',
     'selected',
     'draft'
 );
 
--- Verify tables were created
-SELECT 'email_campaigns' as table_name, COUNT(*) as record_count FROM email_campaigns
-UNION ALL
-SELECT 'email_campaign_logs' as table_name, COUNT(*) as record_count FROM email_campaign_logs;
+-- Verify the tables were created successfully
+SELECT 'email_campaigns table created successfully' as status, count(*) as test_records FROM email_campaigns;
+SELECT 'email_campaign_logs table created successfully' as status FROM email_campaign_logs LIMIT 1;

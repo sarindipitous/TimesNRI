@@ -241,7 +241,7 @@ export async function getCampaignRecipients(campaign: EmailCampaign): Promise<Ar
   }
 }
 
-// FIXED: Single email sending with proper rate limiting for Resend
+// RESEND COMPLIANT: Single email sending with proper rate limiting
 async function sendSingleEmailViaResend(payload: {
   to: string
   subject: string
@@ -278,6 +278,15 @@ async function sendSingleEmailViaResend(payload: {
       }
     } else {
       console.log(`[RESEND] ❌ Failed for ${payload.to}:`, responseData)
+
+      // Check for rate limiting specifically
+      if (response.status === 429) {
+        return {
+          success: false,
+          error: "Rate limited - too many requests",
+        }
+      }
+
       return {
         success: false,
         error: responseData.message || `HTTP ${response.status}`,
@@ -340,7 +349,7 @@ async function sendSingleEmailViaSendGrid(payload: {
   }
 }
 
-// ROBUST: Single email with retry logic
+// RESEND COMPLIANT: Single email with proper rate limiting and retry logic
 async function sendSingleEmailWithRetry(
   payload: {
     to: string
@@ -363,18 +372,20 @@ async function sendSingleEmailWithRetry(
       }
     }
 
-    // If rate limited, wait longer before retry
-    if (result.error?.includes("rate") || result.error?.includes("429")) {
-      console.log(`[EMAIL] Rate limited, waiting ${attempt * 2} seconds...`)
-      await new Promise((resolve) => setTimeout(resolve, attempt * 2000))
+    // If rate limited, wait much longer before retry
+    if (result.error?.includes("rate") || result.error?.includes("429") || result.error?.includes("Rate limited")) {
+      const waitTime = attempt * 5000 // 5, 10, 15 seconds
+      console.log(`[EMAIL] Rate limited, waiting ${waitTime / 1000} seconds before retry...`)
+      await new Promise((resolve) => setTimeout(resolve, waitTime))
     } else if (attempt < maxRetries) {
-      // For other errors, wait 1 second before retry
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      // For other errors, wait 2 seconds before retry
+      console.log(`[EMAIL] Error: ${result.error}, waiting 2 seconds before retry...`)
+      await new Promise((resolve) => setTimeout(resolve, 2000))
     }
   }
 
   // If Resend fails, try SendGrid once
-  console.log(`[EMAIL] Resend failed, trying SendGrid for ${payload.to}`)
+  console.log(`[EMAIL] Resend failed after ${maxRetries} attempts, trying SendGrid for ${payload.to}`)
   const sendGridResult = await sendSingleEmailViaSendGrid(payload)
 
   if (sendGridResult.success) {
@@ -391,7 +402,7 @@ async function sendSingleEmailWithRetry(
   }
 }
 
-// COMPLETELY REWRITTEN: Reliable campaign sending - ONE EMAIL PER API CALL
+// RESEND COMPLIANT: Campaign sending with strict rate limiting
 export async function sendCampaign(campaignId: number): Promise<{ success: boolean; message: string }> {
   if (!hasDb) return noDb({ success: false, message: "Database not available" }, "sendCampaign")
 
@@ -417,6 +428,9 @@ export async function sendCampaign(campaignId: number): Promise<{ success: boole
     }
 
     console.log(`[SEND CAMPAIGN] Found ${recipients.length} recipients`)
+    console.log(
+      `[SEND CAMPAIGN] Estimated time: ${Math.ceil(recipients.length * 2.5)} seconds (2.5s per email to comply with Resend rate limits)`,
+    )
 
     // Update to sending status
     await updateCampaign(campaignId, {
@@ -440,7 +454,7 @@ export async function sendCampaign(campaignId: number): Promise<{ success: boole
 
     console.log(`[SEND CAMPAIGN] Created ${recipients.length} log entries`)
 
-    // Send emails ONE BY ONE with proper delays
+    // Send emails ONE BY ONE with STRICT RESEND RATE LIMITING
     let sentCount = 0
     let failedCount = 0
 
@@ -497,11 +511,12 @@ export async function sendCampaign(campaignId: number): Promise<{ success: boole
           console.log(`[SEND CAMPAIGN] Progress: ${sentCount} sent, ${failedCount} failed`)
         }
 
-        // CRITICAL: Rate limiting delay between emails
-        // Resend allows 2 emails per second, so we wait 1 second between sends
+        // CRITICAL: RESEND RATE LIMITING COMPLIANCE
+        // Resend allows 2 requests per second, so we wait 2.5 seconds between emails
+        // This ensures we never exceed 1 request per 2.5 seconds = 0.4 requests per second
         if (i < recipients.length - 1) {
-          console.log(`[SEND CAMPAIGN] Waiting 1 second before next email...`)
-          await new Promise((resolve) => setTimeout(resolve, 1000))
+          console.log(`[SEND CAMPAIGN] Waiting 2.5 seconds to comply with Resend rate limits...`)
+          await new Promise((resolve) => setTimeout(resolve, 2500)) // 2.5 seconds
         }
       } catch (emailError) {
         failedCount++
