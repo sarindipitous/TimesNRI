@@ -107,7 +107,7 @@ export async function createCampaign(data: {
   }
 }
 
-// FIXED updateCampaign function - using CURRENT_TIMESTAMP instead of updated_at
+// COMPLETELY REWRITTEN updateCampaign function - NO REFERENCES TO updated_at
 export async function updateCampaign(id: number, data: Partial<EmailCampaign>): Promise<EmailCampaign | null> {
   if (!hasDb) return noDb(null, "updateCampaign")
 
@@ -123,7 +123,9 @@ export async function updateCampaign(id: number, data: Partial<EmailCampaign>): 
             total_recipients = ${data.total_recipients}, 
             started_at = ${data.started_at}
         WHERE id = ${id}
-        RETURNING *
+        RETURNING id, name, subject, from_name, from_email, html_content, status, 
+                 target_type, target_criteria, selected_recipients, total_recipients, 
+                 sent_count, failed_count, scheduled_at, started_at, completed_at, created_at
       `
       console.log(`[UPDATE CAMPAIGN] Sending status update successful`)
       return (result[0] as EmailCampaign) || null
@@ -144,7 +146,9 @@ export async function updateCampaign(id: number, data: Partial<EmailCampaign>): 
             failed_count = ${data.failed_count}, 
             completed_at = ${data.completed_at}
         WHERE id = ${id}
-        RETURNING *
+        RETURNING id, name, subject, from_name, from_email, html_content, status, 
+                 target_type, target_criteria, selected_recipients, total_recipients, 
+                 sent_count, failed_count, scheduled_at, started_at, completed_at, created_at
       `
       console.log(`[UPDATE CAMPAIGN] Sent status update successful`)
       return (result[0] as EmailCampaign) || null
@@ -157,7 +161,9 @@ export async function updateCampaign(id: number, data: Partial<EmailCampaign>): 
         UPDATE email_campaigns 
         SET status = 'draft'
         WHERE id = ${id}
-        RETURNING *
+        RETURNING id, name, subject, from_name, from_email, html_content, status, 
+                 target_type, target_criteria, selected_recipients, total_recipients, 
+                 sent_count, failed_count, scheduled_at, started_at, completed_at, created_at
       `
       console.log(`[UPDATE CAMPAIGN] Draft reset successful`)
       return (result[0] as EmailCampaign) || null
@@ -169,7 +175,9 @@ export async function updateCampaign(id: number, data: Partial<EmailCampaign>): 
         UPDATE email_campaigns 
         SET name = ${data.name}
         WHERE id = ${id}
-        RETURNING *
+        RETURNING id, name, subject, from_name, from_email, html_content, status, 
+                 target_type, target_criteria, selected_recipients, total_recipients, 
+                 sent_count, failed_count, scheduled_at, started_at, completed_at, created_at
       `
       return (result[0] as EmailCampaign) || null
     }
@@ -179,7 +187,9 @@ export async function updateCampaign(id: number, data: Partial<EmailCampaign>): 
         UPDATE email_campaigns 
         SET subject = ${data.subject}
         WHERE id = ${id}
-        RETURNING *
+        RETURNING id, name, subject, from_name, from_email, html_content, status, 
+                 target_type, target_criteria, selected_recipients, total_recipients, 
+                 sent_count, failed_count, scheduled_at, started_at, completed_at, created_at
       `
       return (result[0] as EmailCampaign) || null
     }
@@ -189,7 +199,9 @@ export async function updateCampaign(id: number, data: Partial<EmailCampaign>): 
         UPDATE email_campaigns 
         SET html_content = ${data.html_content}
         WHERE id = ${id}
-        RETURNING *
+        RETURNING id, name, subject, from_name, from_email, html_content, status, 
+                 target_type, target_criteria, selected_recipients, total_recipients, 
+                 sent_count, failed_count, scheduled_at, started_at, completed_at, created_at
       `
       return (result[0] as EmailCampaign) || null
     }
@@ -199,7 +211,9 @@ export async function updateCampaign(id: number, data: Partial<EmailCampaign>): 
         UPDATE email_campaigns 
         SET selected_recipients = ${JSON.stringify(data.selected_recipients)}
         WHERE id = ${id}
-        RETURNING *
+        RETURNING id, name, subject, from_name, from_email, html_content, status, 
+                 target_type, target_criteria, selected_recipients, total_recipients, 
+                 sent_count, failed_count, scheduled_at, started_at, completed_at, created_at
       `
       return (result[0] as EmailCampaign) || null
     }
