@@ -1,59 +1,59 @@
-import { NextResponse } from "next/server"
-import { getCampaignById } from "@/lib/email-campaigns"
+import { type NextRequest, NextResponse } from "next/server"
+import { getCampaignById, getCampaignRecipients } from "@/lib/email-campaigns"
 
 export const dynamic = "force-dynamic"
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const { campaignId, testRecipient } = await request.json()
+    const { campaignId, testEmail } = await request.json()
 
     if (!campaignId) {
-      return NextResponse.json({
-        success: false,
-        error: "Campaign ID is required",
-      })
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Campaign ID is required",
+        },
+        { status: 400 },
+      )
     }
 
-    const campaign = await getCampaignById(Number.parseInt(campaignId))
+    // Get campaign details
+    const campaign = await getCampaignById(campaignId)
     if (!campaign) {
-      return NextResponse.json({
-        success: false,
-        error: "Campaign not found",
-      })
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Campaign not found",
+        },
+        { status: 404 },
+      )
     }
 
-    // Test recipient data
-    const recipient = testRecipient || {
-      email: "test@example.com",
-      name: "Test User",
+    // Get recipients for this campaign
+    const recipients = await getCampaignRecipients(campaign)
+
+    // Process template variables with test data
+    const testRecipient = {
+      name: "John Doe",
+      email: testEmail || "test@example.com",
     }
 
-    // Process template variables exactly as the campaign system does
-    let htmlContent = campaign.html_content
-    htmlContent = htmlContent.replace(/\{\{name\}\}/g, recipient.name || "Valued Member")
-    htmlContent = htmlContent.replace(/\{\{email\}\}/g, recipient.email)
-    htmlContent = htmlContent.replace(/\{\{subject\}\}/g, campaign.subject)
+    let processedHtml = campaign.html_content
+    processedHtml = processedHtml.replace(/\{\{name\}\}/g, testRecipient.name)
+    processedHtml = processedHtml.replace(/\{\{email\}\}/g, testRecipient.email)
+    processedHtml = processedHtml.replace(/\{\{subject\}\}/g, campaign.subject)
 
-    // Construct email payload exactly as campaign system does
+    // Construct email payload that would be sent
     const emailPayload = {
-      to: recipient.email,
+      to: testRecipient.email,
       from: `${campaign.from_name} <${campaign.from_email}>`,
       subject: campaign.subject,
-      html: htmlContent,
+      html: processedHtml,
     }
-
-    // Parse from field for verification
-    const fromMatch = emailPayload.from.match(/^(.+?)\s*<(.+)>$/)
-    const fromEmail = fromMatch ? fromMatch[2].trim() : emailPayload.from
-    const fromName = fromMatch ? fromMatch[1].trim() : ""
-
-    // Check if domain switching would occur
-    const finalFromEmail = fromEmail.includes("@timesnri.com") ? fromEmail : "noreply@timesnri.com"
-    const domainSwitched = finalFromEmail !== fromEmail
 
     return NextResponse.json({
       success: true,
-      campaign_info: {
+      campaign: {
         id: campaign.id,
         name: campaign.name,
         subject: campaign.subject,
@@ -62,37 +62,39 @@ export async function POST(request: Request) {
         target_type: campaign.target_type,
         status: campaign.status,
       },
-      test_recipient: recipient,
-      processed_content: {
-        subject: emailPayload.subject,
-        from: emailPayload.from,
-        to: emailPayload.to,
-        html_preview: htmlContent.substring(0, 500) + (htmlContent.length > 500 ? "..." : ""),
-        html_length: htmlContent.length,
+      recipients: {
+        total: recipients.length,
+        sample: recipients.slice(0, 5).map((r) => ({ email: r.email, name: r.name })),
       },
-      email_service_details: {
-        original_from_email: fromEmail,
-        final_from_email: finalFromEmail,
-        domain_switched: domainSwitched,
-        parsed_from_name: fromName,
+      processedContent: {
+        originalHtml: campaign.html_content,
+        processedHtml: processedHtml,
+        templateVariables: {
+          "{{name}}": testRecipient.name,
+          "{{email}}": testRecipient.email,
+          "{{subject}}": campaign.subject,
+        },
       },
-      template_variables_found: {
-        name_placeholders: (campaign.html_content.match(/\{\{name\}\}/g) || []).length,
-        email_placeholders: (campaign.html_content.match(/\{\{email\}\}/g) || []).length,
-        subject_placeholders: (campaign.html_content.match(/\{\{subject\}\}/g) || []).length,
-      },
-      content_analysis: {
-        contains_html: htmlContent.includes("<"),
-        contains_styling: htmlContent.includes("style=") || htmlContent.includes("<style"),
-        estimated_size_kb: Math.round((htmlContent.length / 1024) * 100) / 100,
+      emailPayload: emailPayload,
+      contentAnalysis: {
+        hasNameVariable: campaign.html_content.includes("{{name}}"),
+        hasEmailVariable: campaign.html_content.includes("{{email}}"),
+        hasSubjectVariable: campaign.html_content.includes("{{subject}}"),
+        htmlLength: processedHtml.length,
+        isWelcomeEmail:
+          processedHtml.toLowerCase().includes("welcome") && processedHtml.toLowerCase().includes("waitlist"),
+        isCampaignEmail: !processedHtml.toLowerCase().includes("welcome to our waitlist"),
       },
     })
   } catch (error) {
-    console.error("Error testing campaign content:", error)
-    return NextResponse.json({
-      success: false,
-      error: "Failed to test campaign content",
-      details: error instanceof Error ? error.message : "Unknown error",
-    })
+    console.error("Campaign content test error:", error)
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to test campaign content",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    )
   }
 }
