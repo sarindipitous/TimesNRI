@@ -20,9 +20,25 @@ export async function POST() {
   }
 
   try {
-    // Step 1: Create test campaign
+    // Step 1: Create a test waitlist entry first (so we have a recipient)
     testResults.steps.push({
       step: 1,
+      action: "Create test waitlist entry",
+      status: "started",
+    })
+
+    const testEmail = `qa-test-${Date.now()}@example.com`
+    await sql`
+      INSERT INTO waitlist_submissions (email, name, location, care_plan)
+      VALUES (${testEmail}, 'QA Test User', 'Test City', 'Basic')
+    `
+
+    testResults.steps[0].status = "completed"
+    testResults.steps[0].details = `Created test waitlist entry: ${testEmail}`
+
+    // Step 2: Create test campaign
+    testResults.steps.push({
+      step: 2,
       action: "Create test campaign",
       status: "started",
     })
@@ -34,12 +50,12 @@ export async function POST() {
       from_email: "qa@timesnri.com",
       html_content: "<p>This is a QA test email. Please ignore.</p>",
       target_type: "selected",
-      selected_recipients: ["qa-test@example.com"], // Safe test email
+      selected_recipients: [testEmail], // Use our test email
     })
 
     if (!campaign) {
-      testResults.steps[0].status = "failed"
-      testResults.steps[0].error = "Failed to create campaign"
+      testResults.steps[1].status = "failed"
+      testResults.steps[1].error = "Failed to create campaign"
       return NextResponse.json({
         success: false,
         message: "Campaign creation failed",
@@ -48,20 +64,20 @@ export async function POST() {
     }
 
     testResults.campaignId = campaign.id
-    testResults.steps[0].status = "completed"
-    testResults.steps[0].details = `Campaign created with ID: ${campaign.id}`
+    testResults.steps[1].status = "completed"
+    testResults.steps[1].details = `Campaign created with ID: ${campaign.id}`
 
-    // Step 2: Verify campaign exists
+    // Step 3: Verify campaign exists
     testResults.steps.push({
-      step: 2,
+      step: 3,
       action: "Verify campaign exists",
       status: "started",
     })
 
     const retrievedCampaign = await getCampaignById(campaign.id)
     if (!retrievedCampaign) {
-      testResults.steps[1].status = "failed"
-      testResults.steps[1].error = "Campaign not found after creation"
+      testResults.steps[2].status = "failed"
+      testResults.steps[2].error = "Campaign not found after creation"
       return NextResponse.json({
         success: false,
         message: "Campaign verification failed",
@@ -69,12 +85,12 @@ export async function POST() {
       })
     }
 
-    testResults.steps[1].status = "completed"
-    testResults.steps[1].details = `Campaign verified: ${retrievedCampaign.name}`
+    testResults.steps[2].status = "completed"
+    testResults.steps[2].details = `Campaign verified: ${retrievedCampaign.name}`
 
-    // Step 3: Test campaign sending (this is where the updateCampaign error occurs)
+    // Step 4: Test campaign sending (this is where the updateCampaign error occurs)
     testResults.steps.push({
-      step: 3,
+      step: 4,
       action: "Test campaign sending",
       status: "started",
     })
@@ -82,18 +98,22 @@ export async function POST() {
     const sendResult = await sendCampaign(campaign.id)
 
     if (!sendResult.success) {
-      testResults.steps[2].status = "failed"
-      testResults.steps[2].error = sendResult.message
+      testResults.steps[3].status = "failed"
+      testResults.steps[3].error = sendResult.message
 
       // Check if it's the specific updateCampaign error
-      if (sendResult.message.includes("updated_at")) {
+      if (
+        sendResult.message.includes("updated_at") ||
+        sendResult.message.includes("Failed to update campaign status")
+      ) {
         testResults.spamRisk = "SAFE - Error prevented sending"
-        testResults.steps[2].details = "updateCampaign error prevented email sending (GOOD)"
+        testResults.steps[3].details = "updateCampaign error prevented email sending (GOOD)"
       } else {
         testResults.spamRisk = "UNKNOWN - Different error"
       }
 
       // Clean up even if sending failed
+      await sql`DELETE FROM waitlist_submissions WHERE email = ${testEmail}`
       await sql`DELETE FROM email_campaigns WHERE id = ${campaign.id}`
 
       return NextResponse.json({
@@ -104,12 +124,12 @@ export async function POST() {
       })
     }
 
-    testResults.steps[2].status = "completed"
-    testResults.steps[2].details = sendResult.message
+    testResults.steps[3].status = "completed"
+    testResults.steps[3].details = sendResult.message
 
-    // Step 4: Check if emails were actually sent
+    // Step 5: Check if emails were actually sent
     testResults.steps.push({
-      step: 4,
+      step: 5,
       action: "Check email logs",
       status: "started",
     })
@@ -119,8 +139,8 @@ export async function POST() {
       WHERE campaign_id = ${campaign.id}
     `
 
-    testResults.steps[3].status = "completed"
-    testResults.steps[3].details = `Found ${emailLogs.length} email log entries`
+    testResults.steps[4].status = "completed"
+    testResults.steps[4].details = `Found ${emailLogs.length} email log entries`
 
     if (emailLogs.length > 0) {
       const sentEmails = emailLogs.filter((log: any) => log.status === "sent")
@@ -129,18 +149,19 @@ export async function POST() {
       }
     }
 
-    // Step 5: Cleanup
+    // Step 6: Cleanup
     testResults.steps.push({
-      step: 5,
+      step: 6,
       action: "Cleanup test data",
       status: "started",
     })
 
     await sql`DELETE FROM email_campaign_logs WHERE campaign_id = ${campaign.id}`
     await sql`DELETE FROM email_campaigns WHERE id = ${campaign.id}`
+    await sql`DELETE FROM waitlist_submissions WHERE email = ${testEmail}`
 
-    testResults.steps[4].status = "completed"
-    testResults.steps[4].details = "Test data cleaned up successfully"
+    testResults.steps[5].status = "completed"
+    testResults.steps[5].details = "Test data cleaned up successfully"
 
     return NextResponse.json({
       success: true,

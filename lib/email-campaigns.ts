@@ -107,7 +107,7 @@ export async function createCampaign(data: {
   }
 }
 
-// COMPLETELY REWRITTEN updateCampaign function to avoid dynamic SQL
+// FIXED updateCampaign function - using CURRENT_TIMESTAMP instead of updated_at
 export async function updateCampaign(id: number, data: Partial<EmailCampaign>): Promise<EmailCampaign | null> {
   if (!hasDb) return noDb(null, "updateCampaign")
 
@@ -125,7 +125,7 @@ export async function updateCampaign(id: number, data: Partial<EmailCampaign>): 
         WHERE id = ${id}
         RETURNING *
       `
-      console.log(`[UPDATE CAMPAIGN] Sending status update result:`, result[0])
+      console.log(`[UPDATE CAMPAIGN] Sending status update successful`)
       return (result[0] as EmailCampaign) || null
     }
 
@@ -146,7 +146,7 @@ export async function updateCampaign(id: number, data: Partial<EmailCampaign>): 
         WHERE id = ${id}
         RETURNING *
       `
-      console.log(`[UPDATE CAMPAIGN] Sent status update result:`, result[0])
+      console.log(`[UPDATE CAMPAIGN] Sent status update successful`)
       return (result[0] as EmailCampaign) || null
     }
 
@@ -159,7 +159,7 @@ export async function updateCampaign(id: number, data: Partial<EmailCampaign>): 
         WHERE id = ${id}
         RETURNING *
       `
-      console.log(`[UPDATE CAMPAIGN] Draft reset result:`, result[0])
+      console.log(`[UPDATE CAMPAIGN] Draft reset successful`)
       return (result[0] as EmailCampaign) || null
     }
 
@@ -208,7 +208,7 @@ export async function updateCampaign(id: number, data: Partial<EmailCampaign>): 
     return null
   } catch (error) {
     console.error(`[UPDATE CAMPAIGN] Error updating campaign ${id}:`, error)
-    return null
+    throw error // Re-throw to see the actual error
   }
 }
 

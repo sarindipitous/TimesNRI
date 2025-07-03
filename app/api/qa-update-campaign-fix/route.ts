@@ -31,10 +31,11 @@ export async function GET(request: NextRequest) {
       const testCampaign = await sql`
         INSERT INTO email_campaigns (
           name, subject, from_name, from_email, html_content, 
-          target_type, target_criteria, selected_recipients
+          target_type, target_criteria, selected_recipients,
+          total_recipients, sent_count, failed_count
         ) VALUES (
           'QA Test Campaign', 'Test Subject', 'Test Name', 'test@example.com', 
-          '<p>Test content</p>', 'all', '{}', '[]'
+          '<p>Test content</p>', 'all', '{}', '[]', 0, 0, 0
         )
         RETURNING *
       `
@@ -83,10 +84,11 @@ export async function GET(request: NextRequest) {
       const testCampaign = await sql`
         INSERT INTO email_campaigns (
           name, subject, from_name, from_email, html_content, 
-          target_type, target_criteria, selected_recipients, status
+          target_type, target_criteria, selected_recipients, status,
+          total_recipients, sent_count, failed_count
         ) VALUES (
           'QA Test Campaign 2', 'Test Subject', 'Test Name', 'test@example.com', 
-          '<p>Test content</p>', 'all', '{}', '[]', 'sending'
+          '<p>Test content</p>', 'all', '{}', '[]', 'sending', 0, 0, 0
         )
         RETURNING *
       `
@@ -134,10 +136,11 @@ export async function GET(request: NextRequest) {
       const testCampaign = await sql`
         INSERT INTO email_campaigns (
           name, subject, from_name, from_email, html_content, 
-          target_type, target_criteria, selected_recipients, status
+          target_type, target_criteria, selected_recipients, status,
+          total_recipients, sent_count, failed_count
         ) VALUES (
           'QA Test Campaign 3', 'Test Subject', 'Test Name', 'test@example.com', 
-          '<p>Test content</p>', 'all', '{}', '[]', 'sending'
+          '<p>Test content</p>', 'all', '{}', '[]', 'sending', 0, 0, 0
         )
         RETURNING *
       `
