@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getAllCampaigns, createCampaign } from "@/lib/email-campaigns"
+import { getAllCampaigns, createCampaign } from "@/lib/email-campaigns-fixed"
 import { getAllWaitlistSubmissions } from "@/lib/db"
 
 export const dynamic = "force-dynamic"
@@ -52,6 +52,8 @@ export async function POST(request: NextRequest) {
     const { name, subject, from_name, from_email, html_content, target_type, target_criteria, selected_recipients } =
       body
 
+    console.log("[API] Creating campaign:", { name, subject, target_type, selected_recipients })
+
     // Validate required fields
     if (!name || !subject || !from_name || !from_email || !html_content) {
       return NextResponse.json(
@@ -96,6 +98,8 @@ export async function POST(request: NextRequest) {
         { status: 500 },
       )
     }
+
+    console.log("[API] Campaign created successfully:", campaign.id)
 
     return NextResponse.json({
       success: true,

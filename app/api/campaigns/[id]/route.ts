@@ -5,7 +5,7 @@ import {
   deleteCampaign,
   getCampaignLogs,
   getCampaignStats,
-} from "@/lib/email-campaigns"
+} from "@/lib/email-campaigns-fixed"
 
 export const dynamic = "force-dynamic"
 
@@ -69,6 +69,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   try {
     const campaignId = Number.parseInt(params.id)
     const body = await request.json()
+
+    console.log(`[API] Updating campaign ${campaignId}:`, body)
 
     const campaign = await updateCampaign(campaignId, body)
 

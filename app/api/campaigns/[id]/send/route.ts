@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { sendCampaign } from "@/lib/email-campaigns"
+import { sendCampaign } from "@/lib/email-campaigns-fixed"
 
 export const dynamic = "force-dynamic"
 
@@ -17,7 +17,11 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       )
     }
 
+    console.log(`[API] Sending campaign ${campaignId}`)
+
     const result = await sendCampaign(campaignId)
+
+    console.log(`[API] Campaign ${campaignId} result:`, result)
 
     if (result.success) {
       return NextResponse.json({
@@ -34,7 +38,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       )
     }
   } catch (error) {
-    console.error("Error in send campaign API:", error)
+    console.error("[API] Error in send campaign:", error)
     return NextResponse.json(
       {
         success: false,
