@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Check, Copy, Share2, ArrowRight } from "lucide-react"
 import { submitToWaitlist } from "@/app/actions/waitlist"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { trackWaitlistSignup, initializeGTM } from "@/lib/gtm-utils"
 
 interface WaitlistFormProps {
   buttonText?: string
@@ -52,6 +53,11 @@ export function WaitlistForm({
   const [carePlanInterest, setCarePlanInterest] = useState("")
   // Fixed: Use string | null for clearer state management
   const [referredBy, setReferredBy] = useState<string | null>(null)
+
+  // Initialize GTM on component mount
+  useEffect(() => {
+    initializeGTM()
+  }, [])
 
   // Basic email validation function for client-side
   const isValidEmail = (email: string): boolean => {
@@ -207,6 +213,19 @@ export function WaitlistForm({
       console.log("Server response:", result)
 
       if (result.success) {
+        // Track the conversion with Google Tag Manager
+        trackWaitlistSignup({
+          email,
+          name,
+          source,
+          city,
+          parentLocation,
+          careNeeds,
+          carePlan,
+          referredBy: referredBy || undefined,
+          waitlistNumber: result.waitlistNumber,
+        })
+
         setIsSuccessOpen(true)
         await triggerConfetti()
         if (result.referralLink) {
