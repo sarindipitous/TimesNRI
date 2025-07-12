@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Check, Copy, Share2, ArrowRight } from "lucide-react"
 import { submitToWaitlist } from "@/app/actions/waitlist"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { trackWaitlistSignup, initializeGTM } from "@/lib/gtm-utils"
+import { trackWaitlistSignup } from "@/lib/gtm-utils"
 
 interface WaitlistFormProps {
   buttonText?: string
@@ -51,13 +51,7 @@ export function WaitlistForm({
   const [formError, setFormError] = useState("")
   const formRef = useRef<HTMLFormElement>(null)
   const [carePlanInterest, setCarePlanInterest] = useState("")
-  // Fixed: Use string | null for clearer state management
   const [referredBy, setReferredBy] = useState<string | null>(null)
-
-  // Initialize GTM on component mount
-  useEffect(() => {
-    initializeGTM()
-  }, [])
 
   // Basic email validation function for client-side
   const isValidEmail = (email: string): boolean => {
@@ -220,10 +214,9 @@ export function WaitlistForm({
           source,
           city,
           parentLocation,
-          careNeeds,
-          carePlan,
-          referredBy: referredBy || undefined,
-          waitlistNumber: result.waitlistNumber,
+          careNeeds: careNeeds ? [careNeeds] : [],
+          carePlanInterest,
+          referralCode: referredBy || undefined,
         })
 
         setIsSuccessOpen(true)
@@ -970,3 +963,5 @@ export function WaitlistForm({
     </>
   )
 }
+
+export default WaitlistForm
