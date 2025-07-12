@@ -242,7 +242,7 @@ function HomeContent() {
       >
         {/* Animated background elements */}
         <motion.div
-          className="absolute top-0 right-0 w-64 h-64 bg-primary-light rounded-full -translate-y-1/2 translate-x-1/2 opacity-30"
+          className="absolute top-0 right-0 w-64 h-64 bg-primary-light rounded-full -translate-y-1/2 translate-x-1/2 opacity-30 pointer-events-none"
           animate={{
             scale: [1, 1.05, 1],
             opacity: [0.3, 0.4, 0.3],
@@ -255,7 +255,7 @@ function HomeContent() {
           }}
         />
         <motion.div
-          className="absolute bottom-0 left-0 w-96 h-96 bg-accent-light rounded-full translate-y-1/2 -translate-x-1/2 opacity-30"
+          className="absolute bottom-0 left-0 w-96 h-96 bg-accent-light rounded-full translate-y-1/2 -translate-x-1/2 opacity-30 pointer-events-none"
           animate={{
             scale: [1, 1.05, 1],
             opacity: [0.3, 0.4, 0.3],
@@ -270,7 +270,7 @@ function HomeContent() {
         />
 
         <TimesNriBadge />
-        <div className="container px-4 md:px-6">
+        <div className="container px-4 md:px-6 relative z-10">
           <motion.div
             className="grid gap-12 lg:grid-cols-2 lg:gap-16 xl:gap-20 items-center"
             initial={{ opacity: 0, y: 20 }}
@@ -278,7 +278,7 @@ function HomeContent() {
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
             <motion.div
-              className="flex flex-col justify-center space-y-8 max-w-xl"
+              className="flex flex-col justify-center space-y-8 max-w-xl relative z-20"
               initial={{ opacity: 0, x: -50 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
@@ -315,24 +315,25 @@ function HomeContent() {
               </div>
 
               <motion.div
-                className="pt-2"
+                className="pt-2 relative z-30"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.8, delay: 1, ease: "easeOut" }}
               >
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
-                  <Link href={getWaitlistUrl()}>
-                    <Button
-                      size="lg"
-                      className="bg-accent hover:bg-accent/90 text-white transition-all duration-300 py-7 px-8 text-lg font-semibold"
-                    >
-                      Join Our Waitlist{" "}
-                      <motion.span initial={{ x: 0 }} whileHover={{ x: 5 }} transition={{ duration: 0.3 }}>
-                        <ArrowRight className="ml-2 h-5 w-5" />
-                      </motion.span>
-                    </Button>
-                  </Link>
-                </motion.div>
+                <Link href={getWaitlistUrl()} className="inline-block">
+                  <Button
+                    size="lg"
+                    className="bg-accent hover:bg-accent/90 text-white transition-all duration-300 py-7 px-8 text-lg font-semibold relative z-40 pointer-events-auto cursor-pointer"
+                    style={{
+                      position: "relative",
+                      zIndex: 9999,
+                      pointerEvents: "auto",
+                    }}
+                  >
+                    Join Our Waitlist
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
               </motion.div>
             </motion.div>
             <motion.div
@@ -345,7 +346,7 @@ function HomeContent() {
                 className="relative h-[350px] w-full max-w-md overflow-hidden rounded-2xl shadow-warm sm:h-[450px]"
                 whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent z-10"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent z-10 pointer-events-none"></div>
                 <Image
                   src={heroImage || "/placeholder.svg"}
                   alt="NRI professional on a video call with his mother in India, showing the time difference between countries"
@@ -355,7 +356,7 @@ function HomeContent() {
                   unoptimized
                 />
                 <motion.div
-                  className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-soft z-20"
+                  className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-soft z-20 pointer-events-none"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 1.2, ease: "easeOut" }}
@@ -603,7 +604,7 @@ function HomeContent() {
                   </p>
                 </motion.div>
                 <motion.div className="pt-8" variants={itemVariants}>
-                  <Link href={getWaitlistUrl()}>
+                  <Link href={getWaitlistUrl()} className="inline-block">
                     <Button
                       size="lg"
                       className="bg-accent hover:bg-accent/90 text-white transition-all duration-300 py-6 px-8 text-lg font-semibold"
