@@ -3,24 +3,29 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import { FloatingCTA } from "@/components/floating-cta"
+import { GoogleTagManager } from "@next/third-parties/google"
 
 const inter = Inter({ subsets: ["latin"] })
 
-// --- Site URL helper --------------------------------------------------------
-const rawSiteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://timesnri.com"
-const siteUrl = rawSiteUrl.startsWith("http") ? rawSiteUrl : `https://${rawSiteUrl}`
-// ----------------------------------------------------------------------------
+// Helper function to ensure URL has proper schema
+function ensureHttps(url: string): string {
+  if (!url) return "https://www.timesnri.com"
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    return url
+  }
+  return `https://${url}`
+}
+
+const siteUrl = ensureHttps(process.env.NEXT_PUBLIC_SITE_URL || "www.timesnri.com")
 
 export const metadata: Metadata = {
-  title: "Times NRI - Senior Care & Wellness Membership for NRI Families",
+  title: "TimesNRI - Senior Care for NRI Families",
   description:
-    "Professional senior care services for your parents in India. Peace of mind for NRI families with 24/7 support, health monitoring, and emergency response.",
-  keywords:
-    "NRI senior care, elderly care India, parent care services, NRI family support, senior wellness, healthcare India",
-  authors: [{ name: "Times NRI" }],
-  creator: "Times NRI",
-  publisher: "Times NRI",
+    "Comprehensive senior care services for NRI families. 24/7 emergency support, health monitoring, and companionship for your loved ones in India.",
+  keywords: "NRI senior care, elderly care India, NRI family support, senior health monitoring, emergency care India",
+  authors: [{ name: "TimesNRI" }],
+  creator: "TimesNRI",
+  publisher: "TimesNRI",
   formatDetection: {
     email: false,
     address: false,
@@ -28,20 +33,20 @@ export const metadata: Metadata = {
   },
   metadataBase: new URL(siteUrl),
   alternates: {
-    canonical: "/",
+    canonical: siteUrl,
   },
   openGraph: {
-    title: "Times NRI - Senior Care & Wellness Membership for NRI Families",
+    title: "TimesNRI - Senior Care for NRI Families",
     description:
-      "Professional senior care services for your parents in India. Peace of mind for NRI families with 24/7 support, health monitoring, and emergency response.",
+      "Comprehensive senior care services for NRI families. 24/7 emergency support, health monitoring, and companionship for your loved ones in India.",
     url: siteUrl,
-    siteName: "Times NRI",
+    siteName: "TimesNRI",
     images: [
       {
-        url: "/images/og-image.jpg",
+        url: `${siteUrl}/images/hero-video-call.png`,
         width: 1200,
         height: 630,
-        alt: "Times NRI - Senior Care for NRI Families",
+        alt: "TimesNRI Senior Care Services",
       },
     ],
     locale: "en_US",
@@ -49,9 +54,10 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Times NRI - Senior Care & Wellness Membership for NRI Families",
-    description: "Professional senior care services for your parents in India. Peace of mind for NRI families.",
-    images: ["/images/og-image.jpg"],
+    title: "TimesNRI - Senior Care for NRI Families",
+    description:
+      "Comprehensive senior care services for NRI families. 24/7 emergency support, health monitoring, and companionship for your loved ones in India.",
+    images: [`${siteUrl}/images/hero-video-call.png`],
   },
   robots: {
     index: true,
@@ -77,34 +83,18 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        {/* Google Tag Manager */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','GTM-M3BPTDF9');`,
-          }}
-        />
-        {/* End Google Tag Manager */}
-      </head>
-      <body className={inter.className}>
-        {/* Google Tag Manager (noscript) */}
+      <GoogleTagManager gtmId="GTM-XYZ" />
+      <body className={inter.className} suppressHydrationWarning>
         <noscript>
           <iframe
-            src="https://www.googletagmanager.com/ns.html?id=GTM-M3BPTDF9"
+            src="https://www.googletagmanager.com/ns.html?id=GTM-XYZ"
             height="0"
             width="0"
             style={{ display: "none", visibility: "hidden" }}
           />
         </noscript>
-        {/* End Google Tag Manager (noscript) */}
-
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
           {children}
-          <FloatingCTA />
         </ThemeProvider>
       </body>
     </html>

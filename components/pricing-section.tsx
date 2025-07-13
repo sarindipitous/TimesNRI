@@ -21,12 +21,18 @@ const plans = [
     tagline: "When you want to be ready when it matters most.",
     description:
       "This is the essential layer of protection — built for NRIs who want to ensure their parent has immediate access to trusted medical help. No call centres. No delays. Just medically trained professionals, available 24×7.",
-    features: [
-      "24×7 Emergency Helpline — always answered by a medical professional",
-      "On-Call Doctors for immediate guidance",
-      "Medication Reminders & Refill Tracking",
-      "Emergency Response & Hospital Coordination",
-    ],
+    features: {
+      emergency: [
+        "24×7 Emergency Helpline — always answered by a medical professional",
+        "On-Call Doctors for immediate guidance",
+        "Emergency Response & Hospital Coordination",
+      ],
+      healthWellness: ["On call check-in once a month", "Medication Reminders & Refill Tracking"],
+      engagement: ["Online Engagement - Yoga, Tambola, Antakshari, Spiritual content etc"],
+      convenience: [
+        "Medical & Lifestyle Concierge (including bill payments, booking cabs, medical appointments, handymen)",
+      ],
+    },
     bestFor: "NRIs who want a trusted medical safety net — help that answers when it matters most.",
     buttonColor: "bg-blue-600 hover:bg-blue-700",
     textColor: "text-blue-600",
@@ -39,13 +45,18 @@ const plans = [
     tagline: "Beyond safety — this is presence, trust, and continuity.",
     description:
       "Every two weeks, a trained and verified Care Companion visits your parent in person. They don't just check vitals — they build trust, listen, observe, and connect. Hospital support included.",
-    features: [
-      "2 In-Person Care Companion Visits per month",
-      "6 At-Home Physiotherapy Visits a year",
-      "Annual Health Screening (84 biomarkers)",
-      "At-Home Medical Kit & Vitals Monitoring",
-      "Hospital Support: Nurse placed at hospital for up to 3 days",
-    ],
+    features: {
+      emergency: ["Hospital Support: Nurse placed at hospital for up to 3 days"],
+      healthWellness: [
+        "2 In-Person Care Companion Visits per month",
+        "6 At-Home Physiotherapy Visits a year",
+        "Quarterly Diabetes Panel",
+        "Annual Health Screening (84 biomarkers)",
+        "At-Home Medical Kit & Vitals Monitoring",
+      ],
+      engagement: ["Access to volunteering platforms giving our senior members a strong sense of purpose"],
+      convenience: ["Access to Airport Lounges", "2 Assisted checkin to boarding experiences at most Indian Airports"],
+    },
     bestFor: "NRIs who want human connection, early detection, and hospital coordination they can trust.",
     buttonColor: "bg-teal-600 hover:bg-teal-700",
     textColor: "text-teal-600",
@@ -58,14 +69,22 @@ const plans = [
     tagline: "The most complete care you can offer from anywhere in the world.",
     description:
       "This is not just an upgrade. It's a promise: to uphold your parent's dignity with proactive, concierge-level care. More visits. At-home doctors. Deep health insights. Full hospital advocacy.",
-    features: [
-      "4 Care Companion Visits per month",
-      "2 At-Home Doctor Visits per month",
-      "12 At-Home Physiotherapy Visits a year",
-      "Advanced Diagnostics (100+ biomarkers + Gut Microbiome Panel)",
-      "Dedicated Family Care Manager",
-      "Full Hospital Advocacy: Nurse + doctor available throughout hospital stay",
-    ],
+    features: {
+      emergency: ["Full Hospital Advocacy: Nurse + doctor available throughout hospital stay"],
+      healthWellness: [
+        "4 Care Companion Visits per month",
+        "2 At-Home Doctor Visits per month",
+        "12 At-Home Physiotherapy Visits a year",
+        "Health monitoring wearables (fall detection + vitals tracking)",
+        "Advanced Diagnostics (100+ biomarkers + Gut Microbiome Panel)",
+      ],
+      engagement: [],
+      convenience: [
+        "Travel Booking, Visa, Biometrics at Home",
+        "Unlimited Assisted checkin to boarding experiences at most Indian Airports",
+        "Dedicated Family Care Manager",
+      ],
+    },
     bestFor: "NRIs who want to deliver complete protection, presence, and dignity — without compromise.",
     buttonColor: "bg-purple-600 hover:bg-purple-700",
     textColor: "text-purple-600",
@@ -73,10 +92,50 @@ const plans = [
   },
 ]
 
+const pillarIcons = {
+  emergency: "🚨",
+  healthWellness: "🏥",
+  engagement: "🤝",
+  convenience: "⭐",
+}
+
+const pillarNames = {
+  emergency: "Emergency",
+  healthWellness: "Health & Wellness",
+  engagement: "Engagement",
+  convenience: "Convenience",
+}
+
 export function PricingSection({ className }: PricingProps) {
   const [isWaitlistOpen, setIsWaitlistOpen] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState("")
   const [isComparisonOpen, setIsComparisonOpen] = useState(false)
+
+  const renderFeatures = (features: any, planId: string) => {
+    const pillars = ["emergency", "healthWellness", "engagement", "convenience"] as const
+
+    return pillars.map((pillar) => {
+      const pillarFeatures = features[pillar]
+      if (!pillarFeatures || pillarFeatures.length === 0) return null
+
+      return (
+        <div key={pillar} className="mb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-sm">{pillarIcons[pillar]}</span>
+            <h5 className="font-semibold text-gray-800 text-xs">{pillarNames[pillar]}</h5>
+          </div>
+          <ul className="space-y-1 ml-6">
+            {pillarFeatures.map((feature: string, index: number) => (
+              <li key={index} className="flex items-start gap-2">
+                <span className="text-green-500 mt-1 text-xs">•</span>
+                <span className="text-gray-700 text-xs leading-relaxed">{feature}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )
+    })
+  }
 
   return (
     <section id="pricing" className={cn("container py-24", className)}>
@@ -121,14 +180,7 @@ export function PricingSection({ className }: PricingProps) {
                       ? "Includes everything in Peace, plus:"
                       : "Includes everything in Presence, plus:"}
                 </h4>
-                <ul className="space-y-2 text-sm">
-                  {plan.features.map((feature, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <span className="text-green-500 mt-1 text-xs">•</span>
-                      <span className="text-gray-700 text-xs leading-relaxed">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
+                {renderFeatures(plan.features, plan.id)}
               </div>
 
               <div className="mb-4 p-3 bg-gray-50 rounded-lg">
