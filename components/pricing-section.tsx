@@ -70,7 +70,10 @@ const plans = [
     description:
       "This is not just an upgrade. It's a promise: to uphold your parent's dignity with proactive, concierge-level care. More visits. At-home doctors. Deep health insights. Full hospital advocacy.",
     features: {
-      emergency: ["Full Hospital Advocacy: Nurse + doctor available throughout hospital stay"],
+      emergency: [
+        "Full Hospital Advocacy: Nurse + doctor available throughout hospital stay",
+        "Partner Hospital Benefits - priority check-in, priority access to physicians and specialists, manage insurance documentation, free credit line extended to ensure early checkout of the senior member",
+      ],
       healthWellness: [
         "4 Care Companion Visits per month",
         "2 At-Home Doctor Visits per month",
