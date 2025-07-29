@@ -76,7 +76,7 @@ const plans = [
     features: {
       emergency: [
         "Full Hospital Advocacy: Nurse + doctor available throughout hospital stay",
-        "Partner Hospital Benefits - priority check-in, priority access to physicians and specialists, manage insurance documentation, free credit line extended to ensure early checkout of the senior member",
+        "Partner Hospital Benefits - priority check-in, priority access to physicians and specialists, manage insurance documentation, post-recovery an early checkout of the senior member",
       ],
       healthWellness: [
         "4 Care Companion Visits per month",

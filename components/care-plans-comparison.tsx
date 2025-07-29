@@ -69,7 +69,7 @@ const comparisonData: ComparisonFeature[] = [
         honour: true,
       },
       {
-        name: "Partner Hospital Benefits - priority check-in, priority access to physicians and specialists, manage insurance documentation, free credit line extended to ensure early checkout of the senior member",
+        name: "Partner Hospital Benefits - priority check-in, priority access to physicians and specialists, manage insurance documentation, post-recovery early checkout support",
         peace: "Value-Added",
         presence: "Value-Added",
         honour: true,
