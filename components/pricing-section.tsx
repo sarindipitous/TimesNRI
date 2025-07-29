@@ -27,7 +27,11 @@ const plans = [
         "On-Call Doctors for immediate guidance",
         "Emergency Response & Hospital Coordination",
       ],
-      healthWellness: ["On call check-in once a month", "Medication Reminders & Refill Tracking"],
+      healthWellness: [
+        "On call check-in fortnightly",
+        "Annual Lab test for 82 parameters",
+        "Medication Reminders & Refill Tracking",
+      ],
       engagement: ["Online Engagement - Yoga, Tambola, Antakshari, Spiritual content etc"],
       convenience: [
         "Medical & Lifestyle Concierge (including bill payments, booking cabs, medical appointments, handymen)",

@@ -1,5 +1,4 @@
-// Google Tag Manager utility functions for tracking events
-
+// Google Tag Manager utility functions
 declare global {
   interface Window {
     dataLayer: any[]
@@ -22,10 +21,10 @@ export function trackEvent(eventName: string, parameters: Record<string, any> = 
 }
 
 // Track waitlist signup
-export function trackWaitlistSignup(email: string, source = "unknown") {
+export function trackWaitlistSignup(planName?: string, source?: string) {
   trackEvent("waitlist_signup", {
-    email_provided: !!email,
-    signup_source: source,
+    plan_name: planName || "unknown",
+    source: source || "unknown",
     timestamp: new Date().toISOString(),
   })
 }
@@ -47,19 +46,10 @@ export function trackFormSubmit(formName: string, success = true) {
 }
 
 // Track button clicks
-export function trackButtonClick(buttonName: string, location = "unknown") {
+export function trackButtonClick(buttonName: string, location?: string) {
   trackEvent("button_click", {
     button_name: buttonName,
-    button_location: location,
-    timestamp: new Date().toISOString(),
-  })
-}
-
-// Track page views (for SPA navigation)
-export function trackPageView(pagePath: string, pageTitle: string) {
-  trackEvent("page_view", {
-    page_path: pagePath,
-    page_title: pageTitle,
+    location: location || "unknown",
     timestamp: new Date().toISOString(),
   })
 }

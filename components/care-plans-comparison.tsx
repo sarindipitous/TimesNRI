@@ -93,7 +93,7 @@ const comparisonData: ComparisonFeature[] = [
       },
       {
         name: "Annual Health Test",
-        peace: "Value-Added",
+        peace: "82 parameters",
         presence: "84 markers",
         honour: "100 markers + Microbiome Gut Test",
         hasTooltip: true,
@@ -571,7 +571,7 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
                           feature.peace,
                           "peace",
                           true,
-                          feature.hasTooltip && feature.peace !== "Value-Added",
+                          feature.hasTooltip && feature.peace !== "Value-Added" && feature.peace !== "82 parameters",
                         )}
                       </div>
                       <div className="flex justify-center items-center min-h-[32px]">
@@ -604,7 +604,9 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
                                 feature.peace,
                                 "peace",
                                 true,
-                                feature.hasTooltip && feature.peace !== "Value-Added",
+                                feature.hasTooltip &&
+                                  feature.peace !== "Value-Added" &&
+                                  feature.peace !== "82 parameters",
                               )}
                             </div>
                           </div>
@@ -643,7 +645,12 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
                             feature[currentPlan.id as keyof typeof feature] as boolean | string,
                             currentPlan.id as "peace" | "presence" | "honour",
                             false,
-                            feature.hasTooltip && feature[currentPlan.id as keyof typeof feature] !== "Value-Added",
+                            feature.hasTooltip &&
+                              feature[currentPlan.id as keyof typeof feature] !== "Value-Added" &&
+                              !(
+                                currentPlan.id === "peace" &&
+                                feature[currentPlan.id as keyof typeof feature] === "82 parameters"
+                              ),
                           )}
                         </div>
                       </div>
