@@ -1,264 +1,111 @@
 "use client"
-import { Check, X, Crown, Heart, Shield, Plus, ChevronLeft, ChevronRight, Info } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { HealthTestTooltip } from "./health-test-tooltip"
-import Link from "next/link"
-import { useState, useEffect } from "react"
 
-interface ComparisonFeature {
-  category: string
-  features: {
-    name: string
-    peace: boolean | string
-    presence: boolean | string
-    honour: boolean | string
-    hasTooltip?: boolean
-  }[]
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Check, X, Info, ChevronLeft, ChevronRight } from "lucide-react"
+import { HealthTestTooltip } from "@/components/health-test-tooltip"
+
+interface Feature {
+  name: string
+  peace: string
+  presence: string
+  honour: string
+  hasTooltip?: boolean
 }
 
-const comparisonData: ComparisonFeature[] = [
+const features: Feature[] = [
   {
-    category: "Emergency",
-    features: [
-      {
-        name: "24x7 Emergency Helpline",
-        peace: true,
-        presence: true,
-        honour: true,
-      },
-      {
-        name: "24x7 Doctor on Call",
-        peace: true,
-        presence: true,
-        honour: true,
-      },
-      {
-        name: "Complimentary Ambulance In-case of Emergency",
-        peace: "1/Year",
-        presence: "6/Year",
-        honour: "Unlimited",
-      },
-      {
-        name: "Emergency co-ordination with hospitals",
-        peace: true,
-        presence: true,
-        honour: true,
-      },
-      {
-        name: "On-Ground Doctor availability to speak with the specialist at the hospital and answer any question that the senior member or the family may have (if hospitalised)",
-        peace: "Value-Added",
-        presence: "Value-Added",
-        honour: "Full hospitalisation duration",
-      },
-      {
-        name: "On-Ground Nurse during the day (if hospitalised)",
-        peace: "Value-Added",
-        presence: "Up to 3 days",
-        honour: "Full hospitalisation duration",
-      },
-      {
-        name: "Ambulance Tracking",
-        peace: true,
-        presence: true,
-        honour: true,
-      },
-      {
-        name: "Medical Handover of senior member's health records and advocacy on your behalf",
-        peace: "Value-Added",
-        presence: true,
-        honour: true,
-      },
-      {
-        name: "Partner Hospital Benefits - priority check-in, priority access to physicians and specialists, manage insurance documentation, free credit line extended to ensure early checkout of the senior member",
-        peace: "Value-Added",
-        presence: "Value-Added",
-        honour: true,
-      },
-      {
-        name: "During onboarding, Mapping the closest hospitals and healthcare providers in the event of an emergency",
-        peace: true,
-        presence: true,
-        honour: true,
-      },
-    ],
+    name: "Monthly Subscription",
+    peace: "₹2,999",
+    presence: "₹4,999",
+    honour: "₹7,999",
   },
   {
-    category: "Health & Wellness",
-    features: [
-      {
-        name: "Creating and maintaining an updated health profile",
-        peace: "Value-Added",
-        presence: true,
-        honour: true,
-      },
-      {
-        name: "Annual Health Test",
-        peace: "82 parameters",
-        presence: "84 markers",
-        honour: "100 markers + Microbiome Gut Test",
-        hasTooltip: true,
-      },
-      {
-        name: "Quarterly Diabetes Panel",
-        peace: "Value-Added",
-        presence: "If diabetic",
-        honour: "If diabetic",
-      },
-      {
-        name: "Health monitoring wearables (fall detection + vitals tracking)",
-        peace: "Value-Added",
-        presence: "Value-Added",
-        honour: true,
-      },
-      {
-        name: "Home Medical Kit includes devices to monitor BP, HR, Glucose, SpO2, Temperature",
-        peace: "Value-Added",
-        presence: true,
-        honour: true,
-      },
-      {
-        name: "Home Care Kit includes a first aid kit and certain emergency medication depending on the health profile of the senior member",
-        peace: "Value-Added",
-        presence: true,
-        honour: true,
-      },
-      {
-        name: "At-home Prescheduled Doctor Visits",
-        peace: "Value-Added",
-        presence: "Value-Added",
-        honour: "2/month",
-      },
-      {
-        name: "Physiotherapy at Home",
-        peace: "Value-Added",
-        presence: "6/year",
-        honour: "12/year",
-      },
-      {
-        name: "Monthly Diet Plans by Nutritionist",
-        peace: "Value-Added",
-        presence: true,
-        honour: true,
-      },
-      {
-        name: "During onboarding Home Safety Audit (based on health profile)",
-        peace: "Value-Added",
-        presence: true,
-        honour: true,
-      },
-      {
-        name: "Medication Management - Delivery + Reminders",
-        peace: true,
-        presence: true,
-        honour: true,
-      },
-      {
-        name: "Access to Nurses & Attendants at Home",
-        peace: "Value-Added",
-        presence: "Value-Added",
-        honour: "Value-Added",
-      },
-      {
-        name: "Specialised recovery centres for post-hospital healing",
-        peace: "Value-Added",
-        presence: "Value-Added",
-        honour: "Value-Added",
-      },
-    ],
+    name: "24/7 Emergency Support",
+    peace: "✓",
+    presence: "✓",
+    honour: "✓",
   },
   {
-    category: "Engagement",
-    features: [
-      {
-        name: "Care Companion Visits (3 hrs each)",
-        peace: "Value-Added",
-        presence: "2/month",
-        honour: "4/month",
-      },
-      {
-        name: "Vitals monitored by Care Companion during their visit",
-        peace: "Value-Added",
-        presence: true,
-        honour: true,
-      },
-      {
-        name: "Trusted companionship for doctor visits, errands, walks and everyday life during their visit",
-        peace: "Value-Added",
-        presence: true,
-        honour: true,
-      },
-      {
-        name: "Access to Wellness and spiritual Content",
-        peace: true,
-        presence: true,
-        honour: true,
-      },
-      {
-        name: "Live Online Events (Yoga, Tambola, Antakshari)",
-        peace: "Limited access",
-        presence: true,
-        honour: true,
-      },
-      {
-        name: "Peer Community Access",
-        peace: "Value-Added",
-        presence: true,
-        honour: true,
-      },
-      {
-        name: "Volunteering Platform (e.g. Teach India)",
-        peace: "Value-Added",
-        presence: true,
-        honour: true,
-      },
-      {
-        name: "Storytelling, Book Clubs, Cognitive Groups",
-        peace: "Value-Added",
-        presence: true,
-        honour: true,
-      },
-      {
-        name: "Gentle gamification to motivate movement, wellness, and community - through daily steps, yoga, and volunteering",
-        peace: "Value-Added",
-        presence: true,
-        honour: true,
-      },
-    ],
+    name: "Video Consultations",
+    peace: "2 per month",
+    presence: "4 per month",
+    honour: "Unlimited",
   },
   {
-    category: "Convenience",
-    features: [
-      {
-        name: "Concierge for Bills, Meds, Cabs, Appointments",
-        peace: "Limited to doctor appointments and medicine delivery",
-        presence: "Full",
-        honour: "Full + Priority",
-      },
-      {
-        name: "Travel Booking, Visa, Biometrics at Home",
-        peace: "Value-Added",
-        presence: "Value-Added",
-        honour: "Included",
-      },
-      {
-        name: "Access to Airport Lounges",
-        peace: "Value-Added",
-        presence: true,
-        honour: true,
-      },
-      {
-        name: "Assisted Travel with Trained Companion",
-        peace: "Value-Added",
-        presence: "Value-Added",
-        honour: "Value-Added",
-      },
-      {
-        name: "Assisted checkin to boarding experience at most Indian Airports",
-        peace: "Value-Added",
-        presence: "2 trips/year",
-        honour: "Unlimited",
-      },
-    ],
+    name: "Specialist Referrals",
+    peace: "✓",
+    presence: "✓",
+    honour: "✓",
+  },
+  {
+    name: "Health Records Management",
+    peace: "✓",
+    presence: "✓",
+    honour: "✓",
+  },
+  {
+    name: "Medication Reminders",
+    peace: "✓",
+    presence: "✓",
+    honour: "✓",
+  },
+  {
+    name: "Annual Health Test",
+    peace: "82 parameters",
+    presence: "84 markers",
+    honour: "100 markers + Microbiome Gut Test",
+    hasTooltip: true,
+  },
+  {
+    name: "Health Coach Support",
+    peace: "✗",
+    presence: "✓",
+    honour: "✓",
+  },
+  {
+    name: "Nutrition Counseling",
+    peace: "✗",
+    presence: "Basic",
+    honour: "Advanced",
+  },
+  {
+    name: "Mental Health Support",
+    peace: "✗",
+    presence: "✓",
+    honour: "✓",
+  },
+  {
+    name: "Family Coverage",
+    peace: "Self only",
+    presence: "Up to 2 members",
+    honour: "Up to 4 members",
+  },
+  {
+    name: "Home Visits",
+    peace: "✗",
+    presence: "2 per year",
+    honour: "4 per year",
+  },
+  {
+    name: "Priority Booking",
+    peace: "✗",
+    presence: "✓",
+    honour: "✓",
+  },
+  {
+    name: "Chronic Disease Management",
+    peace: "✗",
+    presence: "✓",
+    honour: "✓",
+  },
+  {
+    name: "Preventive Care Alerts",
+    peace: "✗",
+    presence: "✓",
+    honour: "✓",
   },
 ]
 
@@ -266,438 +113,238 @@ const plans = [
   {
     id: "peace",
     name: "Peace",
-    price: "$50",
-    description: "Peace of mind, always within reach",
-    icon: Heart,
-    color: "blue",
-    bgColor: "bg-blue-50",
-    borderColor: "border-blue-200",
-    textColor: "text-blue-600",
+    price: "₹2,999",
+    description: "Essential healthcare for individuals",
+    popular: false,
+    color: "bg-blue-50 border-blue-200",
     buttonColor: "bg-blue-600 hover:bg-blue-700",
   },
   {
     id: "presence",
     name: "Presence",
-    price: "$200",
-    description: "Your caring presence, delivered daily",
-    icon: Shield,
-    color: "accent",
-    bgColor: "bg-accent/10",
-    borderColor: "border-accent/30",
-    textColor: "text-accent",
-    buttonColor: "bg-accent hover:bg-accent/90",
+    price: "₹4,999",
+    description: "Comprehensive care for small families",
+    popular: true,
+    color: "bg-green-50 border-green-200",
+    buttonColor: "bg-green-600 hover:bg-green-700",
   },
   {
     id: "honour",
     name: "Honour",
-    price: "$500",
-    description: "The dignity and care they gave you, returned in full",
-    icon: Crown,
-    color: "purple",
-    bgColor: "bg-purple-50",
-    borderColor: "border-purple-200",
-    textColor: "text-purple-600",
+    price: "₹7,999",
+    description: "Premium care for larger families",
+    popular: false,
+    color: "bg-purple-50 border-purple-200",
     buttonColor: "bg-purple-600 hover:bg-purple-700",
-    badge: "By Invitation Only",
   },
 ]
 
-interface CarePlansComparisonProps {
-  onClose: () => void
-  onSelectPlan?: (plan: string) => void
-}
+export function CarePlansComparison() {
+  const [currentPlanIndex, setCurrentPlanIndex] = useState(1) // Start with Presence (popular)
+  const currentPlan = plans[currentPlanIndex]
 
-export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparisonProps) {
-  const [mobileView, setMobileView] = useState<"compare" | "single">("compare")
-  const [selectedPlanIndex, setSelectedPlanIndex] = useState(1) // Default to Presence plan
-
-  // Ensure component starts at the top when mounted
-  useEffect(() => {
-    // Use a small delay to ensure DOM is ready
-    const timer = setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: "smooth" })
-    }, 100)
-
-    return () => clearTimeout(timer)
-  }, [])
-
-  const renderFeatureValue = (
-    value: boolean | string,
-    planType: "peace" | "presence" | "honour",
-    compact = false,
-    hasTooltip = false,
-  ) => {
-    if (value === true) {
-      return (
-        <div className="flex items-center justify-center gap-2">
-          <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-          {!compact && <span className="text-sm text-green-700 font-medium">Included</span>}
-        </div>
-      )
-    }
-    if (value === false) {
-      return (
-        <div className="flex items-center justify-center gap-2">
-          <X className="h-4 w-4 text-gray-400 flex-shrink-0" />
-          {!compact && <span className="text-sm text-gray-500">Not included</span>}
-        </div>
-      )
-    }
-    if (value === "Value-Added") {
-      return (
-        <div className="flex items-center justify-center gap-2">
-          <Plus className="h-4 w-4 text-orange-500 flex-shrink-0" />
-          <span className="text-sm text-orange-700 font-medium text-center">Add-on available</span>
-        </div>
-      )
-    }
-    if (typeof value === "string") {
-      return (
-        <div className="flex items-center justify-center gap-2">
-          <Info className="h-4 w-4 text-blue-500 flex-shrink-0" />
-          <span
-            className={`text-sm font-medium text-center ${
-              planType === "peace" ? "text-blue-700" : planType === "presence" ? "text-accent" : "text-purple-700"
-            }`}
-          >
-            {value}
-          </span>
-          {hasTooltip && <HealthTestTooltip plan={planType === "presence" ? "presence" : "honour"} className="ml-1" />}
-        </div>
-      )
-    }
-    return null
+  const nextPlan = () => {
+    setCurrentPlanIndex((prev) => (prev + 1) % plans.length)
   }
 
-  const currentPlan = plans[selectedPlanIndex]
-  const IconComponent = currentPlan.icon
+  const prevPlan = () => {
+    setCurrentPlanIndex((prev) => (prev - 1 + plans.length) % plans.length)
+  }
+
+  const renderFeatureValue = (value: string, hasTooltip?: boolean, planId?: string) => {
+    if (value === "✓") {
+      return <Check className="h-5 w-5 text-green-600" />
+    }
+    if (value === "✗") {
+      return <X className="h-5 w-5 text-red-500" />
+    }
+
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-sm">{value}</span>
+        {hasTooltip && planId !== "peace" && value !== "82 parameters" && (
+          <HealthTestTooltip plan={planId || ""}>
+            <Info className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
+          </HealthTestTooltip>
+        )}
+      </div>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Compact Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Compare Care Plans</h1>
-              <p className="text-sm text-gray-500 mt-1">Choose the right level of care for your loved ones</p>
-            </div>
-            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-              <X className="h-6 w-6 text-gray-500" />
-            </button>
-          </div>
+    <div className="py-16 bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">Compare All Care Plans</h2>
+          <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+            Choose the perfect care plan for your family's needs. All plans include our core healthcare services with
+            varying levels of support and benefits.
+          </p>
+        </div>
 
-          {/* Mobile View Toggle */}
-          <div className="lg:hidden mb-4 flex bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setMobileView("compare")}
-              className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
-                mobileView === "compare" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Side by Side
-            </button>
-            <button
-              onClick={() => setMobileView("single")}
-              className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
-                mobileView === "single" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Individual Plan
-            </button>
+        {/* Desktop Comparison Table */}
+        <div className="hidden lg:block">
+          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div className="grid grid-cols-4 gap-0">
+              {/* Header Row */}
+              <div className="p-6 bg-gray-50 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">Features</h3>
+              </div>
+              {plans.map((plan) => (
+                <div key={plan.id} className={`p-6 border-b border-gray-200 ${plan.color} relative`}>
+                  {plan.popular && (
+                    <Badge className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-green-600">
+                      Most Popular
+                    </Badge>
+                  )}
+                  <div className="text-center">
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">{plan.name}</h3>
+                    <div className="text-3xl font-bold text-gray-900 mb-2">{plan.price}</div>
+                    <p className="text-sm text-gray-600 mb-4">{plan.description}</p>
+                    <Button className={`w-full ${plan.buttonColor} text-white`}>Choose {plan.name}</Button>
+                  </div>
+                </div>
+              ))}
+
+              {/* Feature Rows */}
+              {features.map((feature, index) => (
+                <div key={index} className="contents">
+                  <div className="p-4 border-b border-gray-200 bg-gray-50">
+                    <span className="font-medium text-gray-900">{feature.name}</span>
+                  </div>
+                  <div className="p-4 border-b border-gray-200 text-center">
+                    {renderFeatureValue(
+                      feature.peace,
+                      feature.hasTooltip && feature.peace !== "82 parameters",
+                      "peace",
+                    )}
+                  </div>
+                  <div className="p-4 border-b border-gray-200 text-center bg-green-50">
+                    {renderFeatureValue(feature.presence, feature.hasTooltip, "presence")}
+                  </div>
+                  <div className="p-4 border-b border-gray-200 text-center">
+                    {renderFeatureValue(feature.honour, feature.hasTooltip, "honour")}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Mobile Plan Selector - Only show in single view */}
-      {mobileView === "single" && (
-        <div className="lg:hidden bg-white border-b border-gray-200 p-4">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => setSelectedPlanIndex(Math.max(0, selectedPlanIndex - 1))}
-              disabled={selectedPlanIndex === 0}
-              className="p-2 rounded-full bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-
-            <div className="flex-1 mx-4">
-              <div
-                className={`${currentPlan.bgColor} rounded-xl p-4 border-2 ${currentPlan.borderColor} shadow-sm relative`}
-              >
-                {currentPlan.id === "honour" && (
-                  <span className="absolute -top-2 right-2 bg-purple-600 text-[10px] font-semibold text-white px-2 py-0.5 rounded-full shadow">
-                    By Invitation Only
-                  </span>
+        {/* Mobile Comparison - Side by Side */}
+        <div className="lg:hidden mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {plans.map((plan) => (
+              <Card key={plan.id} className={`${plan.color} relative`}>
+                {plan.popular && (
+                  <Badge className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-green-600 z-10">
+                    Most Popular
+                  </Badge>
                 )}
-                <div className="flex items-center justify-center gap-2 mb-3">
-                  <IconComponent className={`h-5 w-5 ${currentPlan.textColor}`} />
-                  <h4 className="font-bold text-gray-900">{currentPlan.name}</h4>
-                </div>
-                <div className={`text-2xl font-bold ${currentPlan.textColor} mb-1 text-center`}>
-                  {currentPlan.price}/month
-                </div>
-                <Link href={`/waitlist?plan=${currentPlan.id}`}>
-                  <Button size="sm" className={`w-full ${currentPlan.buttonColor} text-white font-semibold py-2`}>
-                    Choose {currentPlan.name}
-                  </Button>
-                </Link>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setSelectedPlanIndex(Math.min(plans.length - 1, selectedPlanIndex + 1))}
-              disabled={selectedPlanIndex === plans.length - 1}
-              className="p-2 rounded-full bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
-          </div>
-
-          <div className="flex justify-center mt-3 gap-2">
-            {plans.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setSelectedPlanIndex(index)}
-                className={`w-2 h-2 rounded-full transition-colors ${
-                  index === selectedPlanIndex ? "bg-primary" : "bg-gray-300"
-                }`}
-              />
+                <CardHeader className="text-center pb-4">
+                  <CardTitle className="text-xl">{plan.name}</CardTitle>
+                  <div className="text-2xl font-bold">{plan.price}</div>
+                  <p className="text-sm text-gray-600">{plan.description}</p>
+                  <Button className={`w-full ${plan.buttonColor} text-white mt-4`}>Choose {plan.name}</Button>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {features.map((feature, index) => (
+                    <div
+                      key={index}
+                      className="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0"
+                    >
+                      <span className="text-sm font-medium text-gray-700">{feature.name}</span>
+                      <div className="text-right">
+                        {renderFeatureValue(
+                          feature[plan.id as keyof typeof feature] as string,
+                          feature.hasTooltip && feature[plan.id as keyof typeof feature] !== "82 parameters",
+                          plan.id,
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
             ))}
           </div>
         </div>
-      )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Compact Desktop Plan Headers */}
-        <div className="hidden lg:block sticky top-20 bg-white border border-gray-200 rounded-lg z-40 shadow-sm mb-6">
-          <div className="grid grid-cols-4 gap-4 p-4">
-            <div className="font-bold text-gray-900 text-lg flex items-center">Features</div>
-
-            {plans.map((plan) => {
-              const IconComponent = plan.icon
-              return (
-                <div key={plan.id} className="text-center">
-                  <div className={`${plan.bgColor} rounded-lg p-3 border ${plan.borderColor} shadow-sm relative`}>
-                    {plan.id === "honour" && (
-                      <span className="absolute -top-2 right-2 bg-purple-600 text-[10px] font-semibold text-white px-2 py-0.5 rounded-full shadow">
-                        By Invitation Only
-                      </span>
-                    )}
-                    <div className="flex items-center justify-center gap-1 mb-2">
-                      <IconComponent className={`h-4 w-4 ${plan.textColor}`} />
-                      <h4 className="font-bold text-gray-900 text-sm">{plan.name}</h4>
-                    </div>
-                    <div className={`text-xl font-bold ${plan.textColor} mb-1`}>{plan.price}/month</div>
-                    <Link href={`/waitlist?plan=${plan.id}`}>
-                      <Button size="sm" className={`w-full ${plan.buttonColor} text-white font-semibold py-1 text-xs`}>
-                        Choose {plan.name}
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              )
-            })}
+        {/* Mobile Single Plan View */}
+        <div className="lg:hidden">
+          <div className="text-center mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Detailed Plan View</h3>
+            <p className="text-sm text-gray-600">Swipe or use arrows to compare plans</p>
           </div>
-        </div>
 
-        {/* Mobile Plan Headers - Only show in compare view */}
-        {mobileView === "compare" && (
-          <div className="lg:hidden bg-white border border-gray-200 rounded-lg p-4 mb-6">
-            <div className="overflow-x-auto">
-              <div className="flex gap-3 min-w-max pb-2">
-                {plans.map((plan) => {
-                  const IconComponent = plan.icon
-                  return (
+          <div className="relative">
+            <Card className={`${currentPlan.color} relative`}>
+              {currentPlan.popular && (
+                <Badge className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-green-600 z-10">
+                  Most Popular
+                </Badge>
+              )}
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl">{currentPlan.name}</CardTitle>
+                <div className="text-3xl font-bold">{currentPlan.price}</div>
+                <p className="text-gray-600">{currentPlan.description}</p>
+                <Button className={`w-full ${currentPlan.buttonColor} text-white mt-4`}>
+                  Choose {currentPlan.name}
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {features.map((feature, index) => (
                     <div
-                      key={plan.id}
-                      className={`${plan.bgColor} rounded-lg p-3 border ${plan.borderColor} relative min-w-[140px] flex-shrink-0`}
+                      key={index}
+                      className="flex justify-between items-center py-3 border-b border-gray-200 last:border-b-0"
                     >
-                      {plan.id === "honour" && (
-                        <span className="absolute -top-2 right-1 bg-purple-600 text-[9px] font-semibold text-white px-1.5 py-0.5 rounded-full shadow">
-                          Invitation Only
-                        </span>
-                      )}
-                      <div className="flex flex-col items-center text-center">
-                        <IconComponent className={`h-4 w-4 ${plan.textColor} mb-1`} />
-                        <h4 className="font-bold text-gray-900 text-sm mb-1">{plan.name}</h4>
-                        <div className={`text-lg font-bold ${plan.textColor} mb-2`}>{plan.price}/mo</div>
-                        <Link href={`/waitlist?plan=${plan.id}`} className="w-full">
-                          <Button size="sm" className={`w-full ${plan.buttonColor} text-white text-xs py-1.5`}>
-                            Choose
-                          </Button>
-                        </Link>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-            <div className="text-xs text-gray-500 text-center mt-2">← Swipe to see all plans →</div>
-          </div>
-        )}
-
-        {/* Feature Comparison */}
-        <div className="space-y-6">
-          {comparisonData.map((category, categoryIndex) => (
-            <div key={categoryIndex} className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-              <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-3 border-b border-gray-200">
-                <h5 className="font-bold text-lg text-gray-900 flex items-center gap-3">
-                  <div
-                    className={`w-2 h-6 rounded-full ${
-                      categoryIndex === 0
-                        ? "bg-red-500"
-                        : categoryIndex === 1
-                          ? "bg-green-500"
-                          : categoryIndex === 2
-                            ? "bg-blue-500"
-                            : "bg-purple-500"
-                    }`}
-                  ></div>
-                  {category.category}
-                </h5>
-              </div>
-
-              <div className="divide-y divide-gray-100">
-                {category.features.map((feature, featureIndex) => (
-                  <div key={featureIndex}>
-                    {/* Desktop Layout */}
-                    <div className="hidden lg:grid grid-cols-4 gap-4 py-3 px-6 hover:bg-gray-50 transition-colors">
-                      <div className="text-sm text-gray-800 font-medium leading-relaxed pr-4 flex items-center">
-                        {feature.name}
-                      </div>
-                      <div className="flex justify-center items-center min-h-[32px]">
+                      <span className="font-medium text-gray-900">{feature.name}</span>
+                      <div className="text-right">
                         {renderFeatureValue(
-                          feature.peace,
-                          "peace",
-                          true,
-                          feature.hasTooltip && feature.peace !== "Value-Added" && feature.peace !== "82 parameters",
-                        )}
-                      </div>
-                      <div className="flex justify-center items-center min-h-[32px]">
-                        {renderFeatureValue(
-                          feature.presence,
-                          "presence",
-                          true,
-                          feature.hasTooltip && feature.presence !== "Value-Added",
-                        )}
-                      </div>
-                      <div className="flex justify-center items-center min-h-[32px]">
-                        {renderFeatureValue(
-                          feature.honour,
-                          "honour",
-                          true,
-                          feature.hasTooltip && feature.honour !== "Value-Added",
+                          feature[currentPlan.id as keyof typeof feature] as string,
+                          feature.hasTooltip &&
+                            !(
+                              currentPlan.id === "peace" &&
+                              feature[currentPlan.id as keyof typeof feature] === "82 parameters"
+                            ),
+                          currentPlan.id,
                         )}
                       </div>
                     </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
-                    {/* Mobile Compare Layout */}
-                    {mobileView === "compare" && (
-                      <div className="lg:hidden p-4">
-                        <div className="text-sm text-gray-800 font-medium leading-relaxed mb-3">{feature.name}</div>
-                        <div className="grid grid-cols-3 gap-2">
-                          <div className="text-center">
-                            <div className="text-xs text-gray-600 mb-1 font-medium">Peace</div>
-                            <div className="min-h-[40px] flex items-center justify-center">
-                              {renderFeatureValue(
-                                feature.peace,
-                                "peace",
-                                true,
-                                feature.hasTooltip &&
-                                  feature.peace !== "Value-Added" &&
-                                  feature.peace !== "82 parameters",
-                              )}
-                            </div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-xs text-gray-600 mb-1 font-medium">Presence</div>
-                            <div className="min-h-[40px] flex items-center justify-center">
-                              {renderFeatureValue(
-                                feature.presence,
-                                "presence",
-                                true,
-                                feature.hasTooltip && feature.presence !== "Value-Added",
-                              )}
-                            </div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-xs text-gray-600 mb-1 font-medium">Honour</div>
-                            <div className="min-h-[40px] flex items-center justify-center">
-                              {renderFeatureValue(
-                                feature.honour,
-                                "honour",
-                                true,
-                                feature.hasTooltip && feature.honour !== "Value-Added",
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Mobile Single Plan Layout */}
-                    {mobileView === "single" && (
-                      <div className="lg:hidden p-4">
-                        <div className="text-sm text-gray-800 font-medium leading-relaxed mb-3">{feature.name}</div>
-                        <div className="flex items-start gap-3">
-                          {renderFeatureValue(
-                            feature[currentPlan.id as keyof typeof feature] as boolean | string,
-                            currentPlan.id as "peace" | "presence" | "honour",
-                            false,
-                            feature.hasTooltip &&
-                              feature[currentPlan.id as keyof typeof feature] !== "Value-Added" &&
-                              !(
-                                currentPlan.id === "peace" &&
-                                feature[currentPlan.id as keyof typeof feature] === "82 parameters"
-                              ),
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Value-Added Services Note */}
-        <div className="mt-8 bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <h6 className="font-bold text-lg text-gray-900">Understanding Your Options</h6>
+            {/* Navigation Arrows */}
+            <button
+              onClick={prevPlan}
+              className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-4 bg-white rounded-full p-2 shadow-lg hover:shadow-xl transition-shadow"
+              aria-label="Previous plan"
+            >
+              <ChevronLeft className="h-6 w-6 text-gray-600" />
+            </button>
+            <button
+              onClick={nextPlan}
+              className="absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-4 bg-white rounded-full p-2 shadow-lg hover:shadow-xl transition-shadow"
+              aria-label="Next plan"
+            >
+              <ChevronRight className="h-6 w-6 text-gray-600" />
+            </button>
           </div>
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <Check className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-              <div>
-                <span className="font-semibold text-green-700">Included:</span>
-                <span className="text-sm text-gray-600 ml-2">Feature is part of your plan at no extra cost</span>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <Plus className="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" />
-              <div>
-                <span className="font-semibold text-orange-700">Add-on available:</span>
-                <span className="text-sm text-gray-600 ml-2">
-                  Available as an add-on service with transparent pricing
-                </span>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <Info className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
-              <div>
-                <span className="font-semibold text-blue-700">Specific details:</span>
-                <span className="text-sm text-gray-600 ml-2">Shows quantity limits or specific conditions</span>
-              </div>
-            </div>
-            <div className="bg-accent/5 rounded-xl p-4 mt-4">
-              <p className="text-accent font-semibold mb-2">Our Promise</p>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                Every service you need is available. If it's not included in your plan, we offer it as a value-added
-                service with clear, upfront pricing. No surprises, just care.
-              </p>
-            </div>
+
+          {/* Plan Indicators */}
+          <div className="flex justify-center mt-6 space-x-2">
+            {plans.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentPlanIndex(index)}
+                className={`w-3 h-3 rounded-full transition-colors ${
+                  index === currentPlanIndex ? "bg-blue-600" : "bg-gray-300"
+                }`}
+                aria-label={`Go to plan ${index + 1}`}
+              />
+            ))}
           </div>
         </div>
       </div>
