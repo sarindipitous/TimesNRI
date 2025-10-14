@@ -88,7 +88,7 @@ const plans = [
       "Active fall detection with automated dispatch and care escalation",
       "Cashless admission with walk-out settlement handled for you",
       "Dedicated doctor presence in hospital during admission",
-      "International Second Opinion from USA, EU, UK medical boards",
+      "International Second Opinion from USA, EU, UK medical doctors",
       "Comprehensive annual medical with advanced cancer screening",
       "Concierge doctor (Geriatrician/Internal Medicine) available 24x7",
       "Genetic Screening + Annual Gut Microbiome test",

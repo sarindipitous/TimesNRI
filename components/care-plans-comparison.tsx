@@ -85,7 +85,7 @@ const comparisonData: ComparisonFeature[] = [
         honour: true,
       },
       {
-        name: "International Second Opinion from USA, EU, UK medical boards",
+        name: "International Second Opinion from USA, EU, UK medical doctors",
         peace: false,
         presence: false,
         honour: true,
@@ -384,12 +384,6 @@ const comparisonData: ComparisonFeature[] = [
         name: "KYC and verification of existing househelp",
         peace: false,
         presence: true,
-        honour: true,
-      },
-      {
-        name: "KYC and police verification of house staff",
-        peace: false,
-        presence: false,
         honour: true,
       },
       {
