@@ -13,7 +13,6 @@ const menuItems = [
   { id: "care-companion", label: "Care Companion" },
   { id: "pricing", label: "Care Packages" },
   { id: "testimonials", label: "Testimonials" },
-  { id: "cities", label: "Locations" },
   { id: "story", label: "Our Mission" },
   { id: "faq", label: "FAQ" },
   { id: "blog", label: "Blog" },

@@ -18,50 +18,42 @@ const plans = [
     name: "Peace",
     price: "$50",
     emoji: "💙",
-    tagline: "When you want to be ready when it matters most.",
+    tagline: "Safety and everyday assurance.",
     description:
-      "This is the essential layer of protection — built for NRIs who want to ensure their parent has immediate access to trusted medical help. No call centres. No delays. Just medically trained professionals, available 24×7.",
+      "The essential layer of protection for NRIs who want to ensure their parent has immediate access to trusted help.",
     features: {
       emergency: [
-        "24×7 Emergency Helpline — always answered by a medical professional",
-        "On-Call Doctors for immediate guidance",
-        "Emergency Response & Hospital Coordination",
+        "24×7 emergency helpline with SOS button",
+        "Verified doctors, hospitals, and ambulance partners",
+        "Unlimited complimentary ambulance (BLS)",
+        "Coordination for hospital admissions",
       ],
-      healthWellness: [
-        "On call check-in fortnightly",
-        "Annual Lab test for 82 parameters",
-        "Medication Reminders & Refill Tracking",
-      ],
-      engagement: ["Online Engagement - Yoga, Tambola, Antakshari, Spiritual content etc"],
-      convenience: [
-        "Medical & Lifestyle Concierge (including bill payments, booking cabs, medical appointments, handymen)",
-      ],
+      healthWellness: [],
+      engagement: [],
+      convenience: ["Concierge support for bills, repairs, and utilities"],
     },
-    bestFor: "NRIs who want a trusted medical safety net — help that answers when it matters most.",
+    bestFor: "NRIs who want a trusted safety net with immediate emergency support.",
     buttonColor: "bg-blue-600 hover:bg-blue-700",
     textColor: "text-blue-600",
   },
   {
     id: "presence",
     name: "Presence",
-    price: "$200",
+    price: "$150",
     emoji: "🫱🏽‍🫲🏼",
-    tagline: "Beyond safety — this is presence, trust, and continuity.",
-    description:
-      "Every two weeks, a trained and verified Care Companion visits your parent in person. They don't just check vitals — they build trust, listen, observe, and connect. Hospital support included.",
+    tagline: "Companionship and continuous care.",
+    description: "Everything in Peace, plus regular companionship, health check-ins, and daily wellness support.",
     features: {
-      emergency: ["Hospital Support: Nurse placed at hospital for up to 3 days"],
+      emergency: [],
       healthWellness: [
-        "2 In-Person Care Companion Visits per month",
-        "6 At-Home Physiotherapy Visits a year",
-        "Quarterly Diabetes Panel",
-        "Annual Health Screening (84 biomarkers)",
-        "At-Home Medical Kit & Vitals Monitoring",
+        "Annual and quarterly health check-ins with a geriatrician",
+        "Unlimited 24×7 teleconsults with doctors",
+        "Daily wellness check-in calls",
       ],
-      engagement: ["Access to volunteering platforms giving our senior members a strong sense of purpose"],
-      convenience: ["Access to Airport Lounges", "2 Assisted checkin to boarding experiences at most Indian Airports"],
+      engagement: ["Dedicated care companion, two visits per month", "Celebration of birthdays and festivals"],
+      convenience: [],
     },
-    bestFor: "NRIs who want human connection, early detection, and hospital coordination they can trust.",
+    bestFor: "NRIs who want human connection, regular health monitoring, and companionship they can trust.",
     buttonColor: "bg-teal-600 hover:bg-teal-700",
     textColor: "text-teal-600",
   },
@@ -70,29 +62,19 @@ const plans = [
     name: "Honour",
     price: "$500",
     emoji: "👑",
-    tagline: "The most complete care you can offer from anywhere in the world.",
-    description:
-      "This is not just an upgrade. It's a promise: to uphold your parent's dignity with proactive, concierge-level care. More visits. At-home doctors. Deep health insights. Full hospital advocacy.",
+    tagline: "World-class, dignified care.",
+    description: "Everything in Presence, plus concierge-level care with advanced health screenings and full support.",
     features: {
-      emergency: [
-        "Full Hospital Advocacy: Nurse + doctor available throughout hospital stay",
-        "Partner Hospital Benefits - priority check-in, priority access to physicians and specialists, manage insurance documentation, post-recovery an early checkout of the senior member",
-      ],
+      emergency: ["On-ground doctor during emergencies", "Cashless hospitalisation handled end-to-end"],
       healthWellness: [
-        "4 Care Companion Visits per month",
-        "2 At-Home Doctor Visits per month",
-        "12 At-Home Physiotherapy Visits a year",
-        "Health monitoring wearables (fall detection + vitals tracking)",
-        "Advanced Diagnostics (100+ biomarkers + Gut Microbiome Panel)",
+        "Weekly nurse visits and monthly doctor visits",
+        "Genetic and biomarker health screenings",
+        "Concierge doctor available 24×7",
       ],
       engagement: [],
-      convenience: [
-        "Travel Booking, Visa, Biometrics at Home",
-        "Unlimited Assisted checkin to boarding experiences at most Indian Airports",
-        "Dedicated Family Care Manager",
-      ],
+      convenience: ["Legal, financial, and visa concierge"],
     },
-    bestFor: "NRIs who want to deliver complete protection, presence, and dignity — without compromise.",
+    bestFor: "NRIs who want to deliver complete protection, presence, and dignity without compromise.",
     buttonColor: "bg-purple-600 hover:bg-purple-700",
     textColor: "text-purple-600",
     inviteOnly: true,
@@ -232,13 +214,122 @@ export function PricingSection({ className }: PricingProps) {
         ))}
       </div>
 
+      {/* Add-Ons Section */}
+      <div className="mt-16">
+        <div className="text-center mb-8">
+          <h3 className="text-2xl font-bold text-primary mb-3">Specialist Care Modules</h3>
+          <p className="text-gray-600">Each add-on can be added to any plan at any time.</p>
+        </div>
+
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 md:grid-cols-3">
+          <Card className="border-2 border-purple-100">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <span className="text-2xl">🧠</span>
+                Dementia Care Add-On
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm text-gray-700">
+                <li className="flex items-start gap-2">
+                  <span className="text-purple-500 mt-1">•</span>
+                  <span>Cognitive assessments via app</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-purple-500 mt-1">•</span>
+                  <span>Monthly psychologist sessions</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-purple-500 mt-1">•</span>
+                  <span>Counselling for caregivers</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-purple-500 mt-1">•</span>
+                  <span>Physiotherapy and diet guidance</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-purple-500 mt-1">•</span>
+                  <span>Fall-detection and safety wearables</span>
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2 border-green-100">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <span className="text-2xl">🍎</span>
+                Diabetes Management Add-On
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm text-gray-700">
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 mt-1">•</span>
+                  <span>Daily monitoring calls</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 mt-1">•</span>
+                  <span>Quarterly HbA1c tests</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 mt-1">•</span>
+                  <span>Monthly dietician sessions</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 mt-1">•</span>
+                  <span>Teleconsultations with diabetologist every 3 months</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 mt-1">•</span>
+                  <span>Annual eye check-up</span>
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2 border-red-100">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <span className="text-2xl">💓</span>
+                Heart Health Add-On
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm text-gray-700">
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 mt-1">•</span>
+                  <span>Daily monitoring calls</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 mt-1">•</span>
+                  <span>Quarterly cardiologist visits</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 mt-1">•</span>
+                  <span>Annual cardiac check-up (ECG, 2D Echo)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 mt-1">•</span>
+                  <span>Monthly dietician sessions</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 mt-1">•</span>
+                  <span>Yoga and lifestyle sessions</span>
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
       <div className="text-center mt-12">
         <p className="text-sm text-gray-500 mb-4">
           All plans include our core promise: Your parents are never alone in an emergency.
         </p>
         <Link href="/compare" className="inline-block">
           <Button variant="outline" size="lg">
-            Compare All Care Plans in Detail
+            Compare All Care Plans
           </Button>
         </Link>
       </div>
@@ -258,7 +349,7 @@ export function PricingSection({ className }: PricingProps) {
             setIsComparisonOpen(false)
             const planMap: Record<string, string> = {
               peace: "Peace: $50/month",
-              presence: "Presence: $200/month",
+              presence: "Presence: $150/month",
               honour: "Honour: $500/month (By Invitation Only)",
             }
             setSelectedPlan(planMap[plan] || "")

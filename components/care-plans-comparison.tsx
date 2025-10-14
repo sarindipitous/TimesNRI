@@ -18,245 +18,315 @@ interface ComparisonFeature {
 
 const comparisonData: ComparisonFeature[] = [
   {
-    category: "Emergency",
+    category: "Emergency & Safety",
     features: [
       {
-        name: "24x7 Emergency Helpline",
+        name: "24×7 helpline with SOS button",
         peace: true,
         presence: true,
         honour: true,
       },
       {
-        name: "24x7 Doctor on Call",
+        name: "Verified hospital and doctor mapping",
         peace: true,
         presence: true,
         honour: true,
       },
       {
-        name: "Complimentary Ambulance In-case of Emergency",
-        peace: "1/Year",
-        presence: "6/Year",
-        honour: "Unlimited",
-      },
-      {
-        name: "Emergency co-ordination with hospitals",
+        name: "Unlimited complimentary ambulance (BLS)",
         peace: true,
         presence: true,
         honour: true,
       },
       {
-        name: "On-Ground Doctor availability to speak with the specialist at the hospital and answer any question that the senior member or the family may have (if hospitalised)",
-        peace: "Value-Added",
-        presence: "Value-Added",
-        honour: "Full hospitalisation duration",
+        name: "ACLS ambulance for critical emergencies",
+        peace: false,
+        presence: false,
+        honour: true,
       },
       {
-        name: "On-Ground Nurse during the day (if hospitalised)",
-        peace: "Value-Added",
-        presence: "Up to 3 days",
-        honour: "Full hospitalisation duration",
+        name: "Doctor on ground during emergencies",
+        peace: false,
+        presence: false,
+        honour: true,
       },
       {
-        name: "Ambulance Tracking",
-        peace: true,
+        name: "Emergency kit at home",
+        peace: false,
+        presence: false,
+        honour: true,
+      },
+      {
+        name: "Cashless hospital admission support",
+        peace: false,
+        presence: false,
+        honour: true,
+      },
+      {
+        name: "Post-hospitalisation coordination",
+        peace: false,
         presence: true,
         honour: true,
       },
       {
-        name: "Medical Handover of senior member's health records and advocacy on your behalf",
-        peace: "Value-Added",
-        presence: true,
-        honour: true,
-      },
-      {
-        name: "Partner Hospital Benefits - priority check-in, priority access to physicians and specialists, manage insurance documentation, post-recovery early checkout support",
-        peace: "Value-Added",
-        presence: "Value-Added",
-        honour: true,
-      },
-      {
-        name: "During onboarding, Mapping the closest hospitals and healthcare providers in the event of an emergency",
-        peace: true,
-        presence: true,
+        name: "International second opinions",
+        peace: false,
+        presence: false,
         honour: true,
       },
     ],
   },
   {
-    category: "Health & Wellness",
+    category: "Healthcare & Longevity",
     features: [
       {
-        name: "Creating and maintaining an updated health profile",
-        peace: "Value-Added",
-        presence: true,
-        honour: true,
-      },
-      {
-        name: "Annual Health Test",
-        peace: "82 parameters",
-        presence: "84 markers",
-        honour: "100 markers + Microbiome Gut Test",
-        hasTooltip: true,
-      },
-      {
-        name: "Quarterly Diabetes Panel",
-        peace: "Value-Added",
-        presence: "If diabetic",
-        honour: "If diabetic",
-      },
-      {
-        name: "Health monitoring wearables (fall detection + vitals tracking)",
-        peace: "Value-Added",
-        presence: "Value-Added",
-        honour: true,
-      },
-      {
-        name: "Home Medical Kit includes devices to monitor BP, HR, Glucose, SpO2, Temperature",
-        peace: "Value-Added",
-        presence: true,
-        honour: true,
-      },
-      {
-        name: "Home Care Kit includes a first aid kit and certain emergency medication depending on the health profile of the senior member",
-        peace: "Value-Added",
-        presence: true,
-        honour: true,
-      },
-      {
-        name: "At-home Prescheduled Doctor Visits",
-        peace: "Value-Added",
-        presence: "Value-Added",
-        honour: "2/month",
-      },
-      {
-        name: "Physiotherapy at Home",
-        peace: "Value-Added",
-        presence: "6/year",
-        honour: "12/year",
-      },
-      {
-        name: "Monthly Diet Plans by Nutritionist",
-        peace: "Value-Added",
-        presence: true,
-        honour: true,
-      },
-      {
-        name: "During onboarding Home Safety Audit (based on health profile)",
-        peace: "Value-Added",
-        presence: true,
-        honour: true,
-      },
-      {
-        name: "Medication Management - Delivery + Reminders",
+        name: "Doctor on call",
         peace: true,
         presence: true,
         honour: true,
       },
       {
-        name: "Access to Nurses & Attendants at Home",
-        peace: "Value-Added",
-        presence: "Value-Added",
-        honour: "Value-Added",
-      },
-      {
-        name: "Specialised recovery centres for post-hospital healing",
-        peace: "Value-Added",
-        presence: "Value-Added",
-        honour: "Value-Added",
-      },
-    ],
-  },
-  {
-    category: "Engagement",
-    features: [
-      {
-        name: "Care Companion Visits (3 hrs each)",
-        peace: "Value-Added",
-        presence: "2/month",
-        honour: "4/month",
-      },
-      {
-        name: "Vitals monitored by Care Companion during their visit",
-        peace: "Value-Added",
-        presence: true,
-        honour: true,
-      },
-      {
-        name: "Trusted companionship for doctor visits, errands, walks and everyday life during their visit",
-        peace: "Value-Added",
-        presence: true,
-        honour: true,
-      },
-      {
-        name: "Access to Wellness and spiritual Content",
+        name: "Basic health coordination",
         peace: true,
         presence: true,
         honour: true,
       },
       {
-        name: "Live Online Events (Yoga, Tambola, Antakshari)",
-        peace: "Limited access",
+        name: "Annual geriatric assessment",
+        peace: false,
         presence: true,
         honour: true,
       },
       {
-        name: "Peer Community Access",
-        peace: "Value-Added",
+        name: "Quarterly health check-ins",
+        peace: false,
         presence: true,
         honour: true,
       },
       {
-        name: "Volunteering Platform (e.g. Teach India)",
-        peace: "Value-Added",
+        name: "Unlimited 24×7 teleconsults with doctors",
+        peace: false,
         presence: true,
         honour: true,
       },
       {
-        name: "Storytelling, Book Clubs, Cognitive Groups",
-        peace: "Value-Added",
+        name: "Counselling sessions",
+        peace: false,
         presence: true,
         honour: true,
       },
       {
-        name: "Gentle gamification to motivate movement, wellness, and community - through daily steps, yoga, and volunteering",
-        peace: "Value-Added",
+        name: "Electronic health records digitisation",
+        peace: false,
         presence: true,
+        honour: true,
+      },
+      {
+        name: "Home safety audits",
+        peace: false,
+        presence: true,
+        honour: true,
+      },
+      {
+        name: "Concierge doctor available 24×7",
+        peace: false,
+        presence: false,
+        honour: true,
+      },
+      {
+        name: "Advanced diagnostics and biomarker testing",
+        peace: false,
+        presence: false,
+        honour: true,
+      },
+      {
+        name: "Genetic testing",
+        peace: false,
+        presence: false,
+        honour: true,
+      },
+      {
+        name: "Access to Vardan Clinics",
+        peace: false,
+        presence: false,
+        honour: true,
+      },
+      {
+        name: "Nutrition and fitness coaching",
+        peace: false,
+        presence: false,
+        honour: true,
+      },
+      {
+        name: "Integrative therapies (Ayurveda, acupuncture)",
+        peace: false,
+        presence: false,
         honour: true,
       },
     ],
   },
   {
-    category: "Convenience",
+    category: "Engagement & Companionship",
     features: [
       {
-        name: "Concierge for Bills, Meds, Cabs, Appointments",
-        peace: "Limited to doctor appointments and medicine delivery",
-        presence: "Full",
-        honour: "Full + Priority",
-      },
-      {
-        name: "Travel Booking, Visa, Biometrics at Home",
-        peace: "Value-Added",
-        presence: "Value-Added",
-        honour: "Included",
-      },
-      {
-        name: "Access to Airport Lounges",
-        peace: "Value-Added",
+        name: "Basic wellness check-ins",
+        peace: true,
         presence: true,
         honour: true,
       },
       {
-        name: "Assisted Travel with Trained Companion",
-        peace: "Value-Added",
-        presence: "Value-Added",
-        honour: "Value-Added",
+        name: "Care Companion visits per month",
+        peace: false,
+        presence: "2 visits",
+        honour: "2 visits",
       },
       {
-        name: "Assisted checkin to boarding experience at most Indian Airports",
-        peace: "Value-Added",
-        presence: "2 trips/year",
-        honour: "Unlimited",
+        name: "Daily check-in calls",
+        peace: false,
+        presence: true,
+        honour: true,
+      },
+      {
+        name: "Assisted outings and errands",
+        peace: false,
+        presence: true,
+        honour: true,
+      },
+      {
+        name: "Celebration of birthdays and festivals",
+        peace: false,
+        presence: true,
+        honour: true,
+      },
+      {
+        name: "Online cognitive and wellness sessions",
+        peace: false,
+        presence: true,
+        honour: true,
+      },
+      {
+        name: "Spiritual advisor access",
+        peace: false,
+        presence: false,
+        honour: true,
+      },
+      {
+        name: "Curated travel experiences",
+        peace: false,
+        presence: false,
+        honour: true,
+      },
+      {
+        name: "Cultural events and outings",
+        peace: false,
+        presence: false,
+        honour: true,
+      },
+      {
+        name: "Social volunteering opportunities",
+        peace: false,
+        presence: false,
+        honour: true,
+      },
+      {
+        name: "Mindfulness and meditation programs",
+        peace: false,
+        presence: false,
+        honour: true,
+      },
+    ],
+  },
+  {
+    category: "Lifestyle & Concierge",
+    features: [
+      {
+        name: "Bill payments",
+        peace: true,
+        presence: true,
+        honour: true,
+      },
+      {
+        name: "Groceries and essentials",
+        peace: true,
+        presence: true,
+        honour: true,
+      },
+      {
+        name: "Home maintenance coordination",
+        peace: true,
+        presence: true,
+        honour: true,
+      },
+      {
+        name: "Full home maintenance concierge",
+        peace: false,
+        presence: true,
+        honour: true,
+      },
+      {
+        name: "Errands and assistance",
+        peace: false,
+        presence: true,
+        honour: true,
+      },
+      {
+        name: "Insurance support and claims",
+        peace: false,
+        presence: true,
+        honour: true,
+      },
+      {
+        name: "Legal and financial concierge",
+        peace: false,
+        presence: false,
+        honour: true,
+      },
+      {
+        name: "Visa concierge services",
+        peace: false,
+        presence: false,
+        honour: true,
+      },
+      {
+        name: "Airport lounge access",
+        peace: false,
+        presence: false,
+        honour: true,
+      },
+      {
+        name: "At-home biometric services",
+        peace: false,
+        presence: false,
+        honour: true,
+      },
+    ],
+  },
+  {
+    category: "Documentation & Admin",
+    features: [
+      {
+        name: "Basic assistance",
+        peace: true,
+        presence: true,
+        honour: true,
+      },
+      {
+        name: "House staff KYC verification",
+        peace: false,
+        presence: true,
+        honour: true,
+      },
+      {
+        name: "Passport renewals",
+        peace: false,
+        presence: false,
+        honour: true,
+      },
+      {
+        name: "Life certificate and ID management",
+        peace: false,
+        presence: false,
+        honour: true,
       },
     ],
   },
@@ -267,7 +337,7 @@ const plans = [
     id: "peace",
     name: "Peace",
     price: "$50",
-    description: "Peace of mind, always within reach",
+    description: "Safety and everyday assurance",
     icon: Heart,
     color: "blue",
     bgColor: "bg-blue-50",
@@ -278,8 +348,8 @@ const plans = [
   {
     id: "presence",
     name: "Presence",
-    price: "$200",
-    description: "Your caring presence, delivered daily",
+    price: "$150",
+    description: "Companionship and continuous care",
     icon: Shield,
     color: "accent",
     bgColor: "bg-accent/10",
@@ -291,7 +361,7 @@ const plans = [
     id: "honour",
     name: "Honour",
     price: "$500",
-    description: "The dignity and care they gave you, returned in full",
+    description: "World-class, dignified care",
     icon: Crown,
     color: "purple",
     bgColor: "bg-purple-50",
@@ -662,6 +732,49 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
           ))}
         </div>
 
+        {/* Specialist Add-Ons */}
+        <div className="mt-8 bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <h6 className="font-bold text-lg text-gray-900">Specialist Add-Ons</h6>
+          </div>
+          <div className="space-y-4">
+            <div className="bg-blue-50 rounded-lg p-4">
+              <h5 className="font-bold text-gray-900">Dementia Care Add-On</h5>
+              <ul className="list-disc pl-6 text-sm text-gray-600">
+                <li>Monthly psychologist sessions and caregiver counselling</li>
+                <li>Cognitive assessments via app</li>
+                <li>Physiotherapy and diet sessions</li>
+                <li>Nurse or attendant for respite care</li>
+                <li>Medication reminders and fall-detection wearables</li>
+              </ul>
+            </div>
+            <div className="bg-accent/10 rounded-lg p-4">
+              <h5 className="font-bold text-accent">Diabetes Management Add-On</h5>
+              <ul className="list-disc pl-6 text-sm text-gray-600">
+                <li>Daily monitoring calls</li>
+                <li>Quarterly HbA1c tests</li>
+                <li>Teleconsults with diabetologist</li>
+                <li>Monthly dietician sessions</li>
+                <li>Annual eye check-up</li>
+                <li>Lifestyle and yoga workshops</li>
+              </ul>
+            </div>
+            <div className="bg-purple-50 rounded-lg p-4">
+              <h5 className="font-bold text-purple-600">Heart Health Add-On</h5>
+              <ul className="list-disc pl-6 text-sm text-gray-600">
+                <li>Daily monitoring calls</li>
+                <li>Quarterly cardiologist consultations</li>
+                <li>Annual cardiac check-up (ECG, 2D Echo)</li>
+                <li>Monthly dietician sessions</li>
+                <li>Lifestyle workshops and education resources</li>
+              </ul>
+            </div>
+          </div>
+          <div className="mt-4 text-sm text-gray-500">
+            Each specialist add-on integrates seamlessly with any Times NRI plan for complete, continuous care.
+          </div>
+        </div>
+
         {/* Value-Added Services Note */}
         <div className="mt-8 bg-white rounded-lg border border-gray-200 shadow-sm p-6">
           <div className="flex items-center gap-3 mb-6">
@@ -698,6 +811,16 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
                 service with clear, upfront pricing. No surprises, just care.
               </p>
             </div>
+          </div>
+        </div>
+
+        {/* Closing CTA */}
+        <div className="mt-8 bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <h6 className="font-bold text-lg text-gray-900">Choose your plan with confidence.</h6>
+          </div>
+          <div className="text-sm text-gray-600 leading-relaxed">
+            Every Times NRI plan includes verified emergency support, health coordination, and trusted concierge care.
           </div>
         </div>
       </div>

@@ -39,15 +39,6 @@ const LazyFaq = dynamic(() => import("../components/faq").then((mod) => ({ defau
   ssr: false,
 })
 
-const LazyCityMap = dynamic(() => import("../components/city-map").then((mod) => ({ default: mod.CityMap })), {
-  loading: () => (
-    <div className="h-64 flex items-center justify-center">
-      <p>Loading service locations...</p>
-    </div>
-  ),
-  ssr: false,
-})
-
 const LazyCareCompanion = dynamic(
   () => import("../components/care-companion-section").then((mod) => ({ default: mod.CareCompanionSection })),
   {
@@ -549,34 +540,6 @@ function HomeContent() {
         </div>
       </AnimatedSection>
 
-      {/* City Coverage */}
-      <AnimatedSection id="cities" className="bg-white py-16 md:py-24">
-        <div className="container px-4 md:px-6">
-          <motion.div
-            className="flex flex-col items-center justify-center space-y-4 text-center mb-12"
-            variants={itemVariants}
-          >
-            <motion.h2 className="text-3xl font-bold tracking-tight sm:text-4xl text-primary" variants={itemVariants}>
-              Where We Operate
-            </motion.h2>
-            <motion.p className="max-w-[700px] text-gray-600 text-lg" variants={itemVariants}>
-              We're preparing to launch in major Indian cities. Join our waitlist to be first in line.
-            </motion.p>
-          </motion.div>
-          <motion.div variants={itemVariants}>
-            <LazyLoadComponent
-              component={LazyCityMap}
-              placeholder={
-                <div className="h-64 flex items-center justify-center">
-                  <p>Loading service locations...</p>
-                </div>
-              }
-              id="cities"
-            />
-          </motion.div>
-        </div>
-      </AnimatedSection>
-
       {/* Founder's Note */}
       <AnimatedSection id="story" className="bg-secondary py-16 md:py-24 border-t border-gray-100">
         <div className="container px-4 md:px-6">
@@ -652,6 +615,35 @@ function HomeContent() {
               id="faq"
             />
           </motion.div>
+        </div>
+      </AnimatedSection>
+
+      {/* Updated CTA Section */}
+      <AnimatedSection id="cta" className="bg-primary py-16 md:py-24">
+        <div className="container px-4 md:px-6">
+          <div className="max-w-4xl mx-auto text-center">
+            <motion.div className="flex flex-col justify-center space-y-8" variants={itemVariants}>
+              <div className="space-y-6">
+                <motion.h2 className="text-4xl font-bold tracking-tight text-white" variants={itemVariants}>
+                  Ready to bring peace of mind home?
+                </motion.h2>
+                <motion.p className="text-xl leading-relaxed text-gray-200 max-w-3xl mx-auto" variants={itemVariants}>
+                  Explore our plans to find the one that fits your parents' lifestyle and care needs.
+                </motion.p>
+                <motion.div className="pt-8" variants={itemVariants}>
+                  <Link href="/compare" className="inline-block">
+                    <Button
+                      size="lg"
+                      className="bg-accent hover:bg-accent/90 text-white transition-all duration-300 py-6 px-8 text-lg font-semibold"
+                    >
+                      Compare Plans
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </Link>
+                </motion.div>
+              </div>
+            </motion.div>
+          </div>
         </div>
       </AnimatedSection>
 
