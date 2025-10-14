@@ -224,8 +224,6 @@ export async function sendTestWelcomeEmail(formData: FormData) {
   }
 }
 
-// 👇 Legacy alias — kept for compatibility with older imports
+// Legacy aliases for compatibility
 export { submitToWaitlist as submitWaitlist }
-
-// Add missing export for submitWaitlistForm
 export { submitToWaitlist as submitWaitlistForm }
