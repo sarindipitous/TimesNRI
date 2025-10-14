@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { WaitlistForm } from "./waitlist-form"
-import { CarePlansComparison } from "./care-plans-comparison"
 import Link from "next/link"
 
 interface PricingProps {
@@ -20,19 +19,19 @@ const plans = [
     emoji: "💙",
     tagline: "Safety and everyday assurance.",
     description:
-      "The essential layer of protection for NRIs who want to ensure their parent has immediate access to trusted help.",
-    features: {
-      emergency: [
-        "24×7 emergency helpline with SOS button",
-        "Verified doctors, hospitals, and ambulance partners",
-        "Unlimited complimentary ambulance (BLS)",
-        "Coordination for hospital admissions",
-      ],
-      healthWellness: [],
-      engagement: [],
-      convenience: ["Concierge support for bills, repairs, and utilities"],
-    },
-    bestFor: "NRIs who want a trusted safety net with immediate emergency support.",
+      "Essential protection with 24x7 emergency support and comprehensive concierge services for daily living.",
+    features: [
+      "24x7 Emergency Helpline with SOS button",
+      "One-time mapping of Doctor, Hospital, and Ambulance Partner",
+      "Unlimited Complimentary Ambulance (BLS)*",
+      "Concierge support for home maintenance, repairs, and utilities",
+      "Automated bill payment and tracking",
+      "Banking and insurance support (motor, health, home, etc.)",
+      "Grocery and food delivery coordination",
+      "Arranging pujas, celebrations, and house events",
+      "Help desk for IoT devices for security and fall prevention",
+    ],
+    bestFor: "NRIs who want trusted emergency support and comprehensive daily living assistance.",
     buttonColor: "bg-blue-600 hover:bg-blue-700",
     textColor: "text-blue-600",
   },
@@ -42,18 +41,31 @@ const plans = [
     price: "$150",
     emoji: "🫱🏽‍🫲🏼",
     tagline: "Companionship and continuous care.",
-    description: "Everything in Peace, plus regular companionship, health check-ins, and daily wellness support.",
-    features: {
-      emergency: [],
-      healthWellness: [
-        "Annual and quarterly health check-ins with a geriatrician",
-        "Unlimited 24×7 teleconsults with doctors",
-        "Daily wellness check-in calls",
-      ],
-      engagement: ["Dedicated care companion, two visits per month", "Celebration of birthdays and festivals"],
-      convenience: [],
-    },
-    bestFor: "NRIs who want human connection, regular health monitoring, and companionship they can trust.",
+    description:
+      "Everything in Peace, plus regular companionship, comprehensive health monitoring, and social engagement.",
+    features: [
+      "Everything in Peace",
+      "Annual health assessment with Geriatrician",
+      "Quarterly check-ins with Geriatrician",
+      "Daily wellness check-in call",
+      "Unlimited 24x7 Teleconsults with Physician",
+      "Biannual counselling sessions with parents and NRIs",
+      "EHR digitisation of old health records",
+      "Post-hospitalisation care coordination",
+      "Home safety and fall detection audits",
+      "KYC and verification of existing househelp",
+      "Air, EMR, and water quality audits for home",
+      "Care Companion visits: 2 per month (2 hours each)",
+      "Accompanied recreational or social visits (movies, shopping, temples, restaurants)",
+      "Celebration of birthdays, anniversaries, and festivals",
+      "Online activities for cognition",
+      "Volunteering and social work opportunities",
+      "Yoga, spirituality, and astrology sessions",
+      "Concierge for home maintenance, repair, and utilities",
+      "Prepaid wallet for cashless transactions",
+      "Automated bill tracking and banking/insurance support",
+    ],
+    bestFor: "NRIs who want regular human connection, comprehensive health monitoring, and active social engagement.",
     buttonColor: "bg-teal-600 hover:bg-teal-700",
     textColor: "text-teal-600",
   },
@@ -63,68 +75,57 @@ const plans = [
     price: "$500",
     emoji: "👑",
     tagline: "World-class, dignified care.",
-    description: "Everything in Presence, plus concierge-level care with advanced health screenings and full support.",
-    features: {
-      emergency: ["On-ground doctor during emergencies", "Cashless hospitalisation handled end-to-end"],
-      healthWellness: [
-        "Weekly nurse visits and monthly doctor visits",
-        "Genetic and biomarker health screenings",
-        "Concierge doctor available 24×7",
-      ],
-      engagement: [],
-      convenience: ["Legal, financial, and visa concierge"],
-    },
-    bestFor: "NRIs who want to deliver complete protection, presence, and dignity without compromise.",
+    description:
+      "Everything in Presence, plus premium medical care, advanced diagnostics, and white-glove concierge services.",
+    features: [
+      "Everything in Presence",
+      "Care Companion visits: 4 per month (2 hours each)",
+      "Weekly nurse visits for vitals",
+      "Monthly doctor visits at home or clinic",
+      "24x7 Emergency Helpline with personalised SOS button",
+      "Doctor on ground during emergencies with priority hospital access",
+      "Unlimited ACLS Ambulance with live tracking and home Emergency Kit",
+      "Active fall detection with automated dispatch and care escalation",
+      "Cashless admission with walk-out settlement handled for you",
+      "Dedicated doctor presence in hospital during admission",
+      "International Second Opinion from USA, EU, UK medical boards",
+      "Comprehensive annual medical with advanced cancer screening",
+      "Concierge doctor (Geriatrician/Internal Medicine) available 24x7",
+      "Genetic Screening + Annual Gut Microbiome test",
+      "6-monthly Biomarker panels with predictive insights",
+      "4 premium sessions per quarter at Vardan Clinics",
+      "Personalised diet and lifestyle program with nutritionist and fitness coach",
+      "Integrative therapies (AYUSH, Cryotherapy, HBOT, advanced wellness)",
+      "HIPAA-compliant global EHR with IoT-enabled monitoring",
+      "International medical concierge for travel, with curated medical kit",
+      "Home safety and radiation audits (air, water, EMR)",
+      "KYC and police verification of house staff",
+      "IoT-enabled security and fall prevention systems",
+      "Insurance concierge for health, motor, and property",
+      "Spiritual Advisor on call",
+      "Access to exclusive events, premieres, and performances",
+      "Personalised elder-friendly travel concierge",
+      "Social engagement, volunteering, and curated gatherings",
+      "Celebrations managed end-to-end",
+      "Yoga, mindfulness, and cognition programs",
+      "Prepaid wallet for cashless transactions",
+      "Automated bill management and tracking",
+      "Banking and insurance desk",
+      "Grocery, food delivery, and vetted professionals for home upkeep",
+      "Legal, financial, and accounting advisory",
+      "Visa and biometric services at home",
+      "Airport meet-and-greet arrangements",
+    ],
+    bestFor: "NRIs who want complete, world-class care with no compromises on quality, access, or dignity.",
     buttonColor: "bg-purple-600 hover:bg-purple-700",
     textColor: "text-purple-600",
     inviteOnly: true,
   },
 ]
 
-const pillarIcons = {
-  emergency: "🚨",
-  healthWellness: "🏥",
-  engagement: "🤝",
-  convenience: "⭐",
-}
-
-const pillarNames = {
-  emergency: "Emergency",
-  healthWellness: "Health & Wellness",
-  engagement: "Engagement",
-  convenience: "Convenience",
-}
-
 export function PricingSection({ className }: PricingProps) {
   const [isWaitlistOpen, setIsWaitlistOpen] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState("")
-  const [isComparisonOpen, setIsComparisonOpen] = useState(false)
-
-  const renderFeatures = (features: any, planId: string) => {
-    const pillars = ["emergency", "healthWellness", "engagement", "convenience"] as const
-
-    return pillars.map((pillar) => {
-      const pillarFeatures = features[pillar]
-      if (!pillarFeatures || pillarFeatures.length === 0) return null
-
-      return (
-        <div key={pillar} className="mb-4">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-sm">{pillarIcons[pillar]}</span>
-            <h5 className="font-semibold text-gray-800 text-xs">{pillarNames[pillar]}</h5>
-          </div>
-          <ul className="space-y-1 ml-6">
-            {pillarFeatures.map((feature: string, index: number) => (
-              <li key={index} className="flex items-start gap-2">
-                <span className="text-green-500 mt-1 text-xs">•</span>
-                <span className="text-gray-700 text-xs leading-relaxed">{feature}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )
-    })
-  }
 
   return (
     <section id="pricing" className={cn("container py-24", className)}>
@@ -169,7 +170,17 @@ export function PricingSection({ className }: PricingProps) {
                       ? "Includes everything in Peace, plus:"
                       : "Includes everything in Presence, plus:"}
                 </h4>
-                {renderFeatures(plan.features, plan.id)}
+                <ul className="space-y-2">
+                  {plan.features.slice(0, 6).map((feature, index) => (
+                    <li key={index} className="flex items-start gap-2">
+                      <span className="text-green-500 mt-1 text-xs">•</span>
+                      <span className="text-gray-700 text-xs leading-relaxed">{feature}</span>
+                    </li>
+                  ))}
+                  {plan.features.length > 6 && (
+                    <li className="text-xs text-gray-500 italic">+ {plan.features.length - 6} more features</li>
+                  )}
+                </ul>
               </div>
 
               <div className="mb-4 p-3 bg-gray-50 rounded-lg">
@@ -218,7 +229,7 @@ export function PricingSection({ className }: PricingProps) {
       <div className="mt-16">
         <div className="text-center mb-8">
           <h3 className="text-2xl font-bold text-primary mb-3">Specialist Care Modules</h3>
-          <p className="text-gray-600">Each add-on can be added to any plan at any time.</p>
+          <p className="text-gray-600">Each specialist add-on can be added to any plan at any time.</p>
         </div>
 
         <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 md:grid-cols-3">
@@ -228,28 +239,49 @@ export function PricingSection({ className }: PricingProps) {
                 <span className="text-2xl">🧠</span>
                 Dementia Care Add-On
               </CardTitle>
+              <CardDescription className="font-semibold text-purple-600">$120/month</CardDescription>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2 text-sm text-gray-700">
                 <li className="flex items-start gap-2">
                   <span className="text-purple-500 mt-1">•</span>
-                  <span>Cognitive assessments via app</span>
+                  <span>Proprietary dementia assessment via care app</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-purple-500 mt-1">•</span>
-                  <span>Monthly psychologist sessions</span>
+                  <span>Monthly psychologist sessions (virtual)</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-purple-500 mt-1">•</span>
-                  <span>Counselling for caregivers</span>
+                  <span>Expert guidance for caregivers through counselling and support groups</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-purple-500 mt-1">•</span>
-                  <span>Physiotherapy and diet guidance</span>
+                  <span>Diet and nutrition sessions every 3 months</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-purple-500 mt-1">•</span>
-                  <span>Fall-detection and safety wearables</span>
+                  <span>One complimentary physiotherapy session</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-purple-500 mt-1">•</span>
+                  <span>Two assisted doctor visits per month (2 hours each)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-purple-500 mt-1">•</span>
+                  <span>Priority access to homecare support (nurse or attendant)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-purple-500 mt-1">•</span>
+                  <span>Medication reminders</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-purple-500 mt-1">•</span>
+                  <span>Exclusive content for dementia caregivers</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-purple-500 mt-1">•</span>
+                  <span>Wearables with geofencing and fall detection</span>
                 </li>
               </ul>
             </CardContent>
@@ -261,12 +293,13 @@ export function PricingSection({ className }: PricingProps) {
                 <span className="text-2xl">🍎</span>
                 Diabetes Management Add-On
               </CardTitle>
+              <CardDescription className="font-semibold text-green-600">$50/month</CardDescription>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2 text-sm text-gray-700">
                 <li className="flex items-start gap-2">
                   <span className="text-green-500 mt-1">•</span>
-                  <span>Daily monitoring calls</span>
+                  <span>Daily monitoring calls and proactive management</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-500 mt-1">•</span>
@@ -274,15 +307,31 @@ export function PricingSection({ className }: PricingProps) {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-500 mt-1">•</span>
+                  <span>Teleconsultation with Diabetologist every 3 months</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 mt-1">•</span>
+                  <span>One caregiver visit per month (2 hours each)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 mt-1">•</span>
                   <span>Monthly dietician sessions</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-500 mt-1">•</span>
-                  <span>Teleconsultations with diabetologist every 3 months</span>
+                  <span>Annual eye check-up</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-500 mt-1">•</span>
-                  <span>Annual eye check-up</span>
+                  <span>Access to diabetes support groups</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 mt-1">•</span>
+                  <span>Lifestyle and yoga sessions with exercise video library</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 mt-1">•</span>
+                  <span>Educational materials for long-term management</span>
                 </li>
               </ul>
             </CardContent>
@@ -292,30 +341,43 @@ export function PricingSection({ className }: PricingProps) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <span className="text-2xl">💓</span>
-                Heart Health Add-On
+                Heart Disease Management Add-On
               </CardTitle>
+              <CardDescription className="font-semibold text-red-600">$50/month</CardDescription>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2 text-sm text-gray-700">
                 <li className="flex items-start gap-2">
                   <span className="text-red-500 mt-1">•</span>
-                  <span>Daily monitoring calls</span>
+                  <span>Daily monitoring calls and proactive appointment management</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-red-500 mt-1">•</span>
-                  <span>Quarterly cardiologist visits</span>
+                  <span>Quarterly Cardiologist appointments</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-red-500 mt-1">•</span>
-                  <span>Annual cardiac check-up (ECG, 2D Echo)</span>
+                  <span>One accompanied appointment per month (2 hours each)</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-red-500 mt-1">•</span>
-                  <span>Monthly dietician sessions</span>
+                  <span>Monthly dietician teleconsultations</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-red-500 mt-1">•</span>
-                  <span>Yoga and lifestyle sessions</span>
+                  <span>Annual cardiac check-up including ECG and 2D Echo</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 mt-1">•</span>
+                  <span>Access to heart health support groups</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 mt-1">•</span>
+                  <span>Lifestyle sessions covering heart health, yoga, and meditation</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 mt-1">•</span>
+                  <span>Educational materials and exercise video library</span>
                 </li>
               </ul>
             </CardContent>
@@ -341,22 +403,6 @@ export function PricingSection({ className }: PricingProps) {
         isDetailed={true}
         preSelectedPlan={selectedPlan}
       />
-
-      {isComparisonOpen && (
-        <CarePlansComparison
-          onClose={() => setIsComparisonOpen(false)}
-          onSelectPlan={(plan) => {
-            setIsComparisonOpen(false)
-            const planMap: Record<string, string> = {
-              peace: "Peace: $50/month",
-              presence: "Presence: $150/month",
-              honour: "Honour: $500/month (By Invitation Only)",
-            }
-            setSelectedPlan(planMap[plan] || "")
-            setIsWaitlistOpen(true)
-          }}
-        />
-      )}
     </section>
   )
 }

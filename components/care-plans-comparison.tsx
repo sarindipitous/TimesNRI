@@ -1,7 +1,6 @@
 "use client"
-import { Check, X, Crown, Heart, Shield, Plus, ChevronLeft, ChevronRight, Info } from "lucide-react"
+import { Check, X, Crown, Heart, Shield, ChevronLeft, ChevronRight, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { HealthTestTooltip } from "./health-test-tooltip"
 import Link from "next/link"
 import { useState, useEffect } from "react"
 
@@ -12,7 +11,6 @@ interface ComparisonFeature {
     peace: boolean | string
     presence: boolean | string
     honour: boolean | string
-    hasTooltip?: boolean
   }[]
 }
 
@@ -21,55 +19,73 @@ const comparisonData: ComparisonFeature[] = [
     category: "Emergency & Safety",
     features: [
       {
-        name: "24×7 helpline with SOS button",
+        name: "24x7 Emergency Helpline with SOS button",
+        peace: true,
+        presence: true,
+        honour: "Personalised SOS button",
+      },
+      {
+        name: "One-time mapping of Doctor, Hospital, and Ambulance Partner",
         peace: true,
         presence: true,
         honour: true,
       },
       {
-        name: "Verified hospital and doctor mapping",
+        name: "Unlimited Complimentary Ambulance (BLS)",
         peace: true,
         presence: true,
         honour: true,
       },
       {
-        name: "Unlimited complimentary ambulance (BLS)",
-        peace: true,
+        name: "Unlimited ACLS Ambulance with live tracking",
+        peace: false,
+        presence: false,
+        honour: true,
+      },
+      {
+        name: "Home Emergency Kit",
+        peace: false,
+        presence: false,
+        honour: true,
+      },
+      {
+        name: "Doctor on ground during emergencies with priority hospital access",
+        peace: false,
+        presence: false,
+        honour: true,
+      },
+      {
+        name: "Active fall detection with automated dispatch and care escalation",
+        peace: false,
+        presence: false,
+        honour: true,
+      },
+      {
+        name: "Cashless admission with walk-out settlement handled for you",
+        peace: false,
+        presence: false,
+        honour: true,
+      },
+      {
+        name: "Dedicated doctor presence in hospital during admission",
+        peace: false,
+        presence: false,
+        honour: true,
+      },
+      {
+        name: "Daily wellness check-in call",
+        peace: false,
         presence: true,
         honour: true,
       },
       {
-        name: "ACLS ambulance for critical emergencies",
-        peace: false,
-        presence: false,
-        honour: true,
-      },
-      {
-        name: "Doctor on ground during emergencies",
-        peace: false,
-        presence: false,
-        honour: true,
-      },
-      {
-        name: "Emergency kit at home",
-        peace: false,
-        presence: false,
-        honour: true,
-      },
-      {
-        name: "Cashless hospital admission support",
-        peace: false,
-        presence: false,
-        honour: true,
-      },
-      {
-        name: "Post-hospitalisation coordination",
+        name: "Post-hospitalisation care coordination",
         peace: false,
         presence: true,
         honour: true,
       },
       {
-        name: "International second opinions",
+        name: "International Second Opinion from USA, EU, UK medical boards",
         peace: false,
         presence: false,
         honour: true,
@@ -86,79 +102,115 @@ const comparisonData: ComparisonFeature[] = [
         honour: true,
       },
       {
-        name: "Basic health coordination",
+        name: "Health liaison",
         peace: true,
         presence: true,
         honour: true,
       },
       {
-        name: "Annual geriatric assessment",
+        name: "Annual health assessment with Geriatrician",
         peace: false,
         presence: true,
         honour: true,
       },
       {
-        name: "Quarterly health check-ins",
+        name: "Quarterly check-ins with Geriatrician",
         peace: false,
         presence: true,
         honour: true,
       },
       {
-        name: "Unlimited 24×7 teleconsults with doctors",
+        name: "Unlimited 24x7 Teleconsults with Physician",
         peace: false,
         presence: true,
         honour: true,
       },
       {
-        name: "Counselling sessions",
+        name: "Biannual counselling sessions with parents and NRIs",
         peace: false,
         presence: true,
         honour: true,
       },
       {
-        name: "Electronic health records digitisation",
+        name: "EHR digitisation of old health records",
         peace: false,
         presence: true,
         honour: true,
       },
       {
-        name: "Home safety audits",
+        name: "Home safety and fall detection audits",
         peace: false,
         presence: true,
         honour: true,
       },
       {
-        name: "Concierge doctor available 24×7",
+        name: "Air, EMR, and water quality audits for home",
+        peace: false,
+        presence: true,
+        honour: true,
+      },
+      {
+        name: "Weekly nurse visits for vitals",
         peace: false,
         presence: false,
         honour: true,
       },
       {
-        name: "Advanced diagnostics and biomarker testing",
+        name: "Monthly doctor visits at home or clinic",
         peace: false,
         presence: false,
         honour: true,
       },
       {
-        name: "Genetic testing",
+        name: "Comprehensive annual medical with advanced cancer screening",
         peace: false,
         presence: false,
         honour: true,
       },
       {
-        name: "Access to Vardan Clinics",
+        name: "Concierge doctor (Geriatrician/Internal Medicine) available 24x7",
         peace: false,
         presence: false,
         honour: true,
       },
       {
-        name: "Nutrition and fitness coaching",
+        name: "Genetic Screening + Annual Gut Microbiome test",
         peace: false,
         presence: false,
         honour: true,
       },
       {
-        name: "Integrative therapies (Ayurveda, acupuncture)",
+        name: "6-monthly Biomarker panels with predictive insights",
+        peace: false,
+        presence: false,
+        honour: true,
+      },
+      {
+        name: "4 premium sessions per quarter at Vardan Clinics",
+        peace: false,
+        presence: false,
+        honour: true,
+      },
+      {
+        name: "Personalised diet and lifestyle program with nutritionist and fitness coach",
+        peace: false,
+        presence: false,
+        honour: true,
+      },
+      {
+        name: "Integrative therapies (AYUSH, Cryotherapy, HBOT, advanced wellness)",
+        peace: false,
+        presence: false,
+        honour: true,
+      },
+      {
+        name: "HIPAA-compliant global EHR with IoT-enabled monitoring",
+        peace: false,
+        presence: false,
+        honour: true,
+      },
+      {
+        name: "International medical concierge for travel, with curated medical kit",
         peace: false,
         presence: false,
         honour: true,
@@ -169,67 +221,79 @@ const comparisonData: ComparisonFeature[] = [
     category: "Engagement & Companionship",
     features: [
       {
-        name: "Basic wellness check-ins",
+        name: "Basic check-ins and support",
         peace: true,
         presence: true,
         honour: true,
       },
       {
-        name: "Care Companion visits per month",
+        name: "Care Companion visits per month (2 hours each)",
         peace: false,
         presence: "2 visits",
-        honour: "2 visits",
+        honour: "4 visits",
       },
       {
-        name: "Daily check-in calls",
+        name: "Accompanied recreational or social visits (movies, shopping, temples, restaurants)",
         peace: false,
         presence: true,
         honour: true,
       },
       {
-        name: "Assisted outings and errands",
+        name: "Celebration of birthdays, anniversaries, and festivals",
         peace: false,
         presence: true,
         honour: true,
       },
       {
-        name: "Celebration of birthdays and festivals",
+        name: "Online activities for cognition",
         peace: false,
         presence: true,
         honour: true,
       },
       {
-        name: "Online cognitive and wellness sessions",
+        name: "Volunteering and social work opportunities",
         peace: false,
         presence: true,
         honour: true,
       },
       {
-        name: "Spiritual advisor access",
+        name: "Yoga, spirituality, and astrology sessions",
+        peace: false,
+        presence: true,
+        honour: true,
+      },
+      {
+        name: "Spiritual Advisor on call",
         peace: false,
         presence: false,
         honour: true,
       },
       {
-        name: "Curated travel experiences",
+        name: "Access to exclusive events, premieres, and performances",
         peace: false,
         presence: false,
         honour: true,
       },
       {
-        name: "Cultural events and outings",
+        name: "Personalised elder-friendly travel concierge",
         peace: false,
         presence: false,
         honour: true,
       },
       {
-        name: "Social volunteering opportunities",
+        name: "Social engagement, volunteering, and curated gatherings",
         peace: false,
         presence: false,
         honour: true,
       },
       {
-        name: "Mindfulness and meditation programs",
+        name: "Celebrations managed end-to-end",
+        peace: false,
+        presence: false,
+        honour: true,
+      },
+      {
+        name: "Yoga, mindfulness, and cognition programs",
         peace: false,
         presence: false,
         honour: true,
@@ -237,64 +301,70 @@ const comparisonData: ComparisonFeature[] = [
     ],
   },
   {
-    category: "Lifestyle & Concierge",
+    category: "Lifestyle & Convenience",
     features: [
       {
-        name: "Bill payments",
+        name: "Concierge support for home maintenance, repairs, and utilities",
         peace: true,
         presence: true,
         honour: true,
       },
       {
-        name: "Groceries and essentials",
+        name: "Automated bill payment and tracking",
         peace: true,
         presence: true,
         honour: true,
       },
       {
-        name: "Home maintenance coordination",
+        name: "Banking and insurance support (motor, health, home, etc.)",
         peace: true,
         presence: true,
         honour: true,
       },
       {
-        name: "Full home maintenance concierge",
+        name: "Grocery and food delivery coordination",
+        peace: true,
+        presence: true,
+        honour: true,
+      },
+      {
+        name: "Arranging pujas, celebrations, and house events",
+        peace: true,
+        presence: true,
+        honour: true,
+      },
+      {
+        name: "Help desk for IoT devices for security and fall prevention",
+        peace: true,
+        presence: true,
+        honour: true,
+      },
+      {
+        name: "Prepaid wallet for cashless transactions",
         peace: false,
         presence: true,
         honour: true,
       },
       {
-        name: "Errands and assistance",
-        peace: false,
-        presence: true,
-        honour: true,
-      },
-      {
-        name: "Insurance support and claims",
-        peace: false,
-        presence: true,
-        honour: true,
-      },
-      {
-        name: "Legal and financial concierge",
+        name: "Insurance concierge for health, motor, and property",
         peace: false,
         presence: false,
         honour: true,
       },
       {
-        name: "Visa concierge services",
+        name: "Legal, financial, and accounting advisory",
         peace: false,
         presence: false,
         honour: true,
       },
       {
-        name: "Airport lounge access",
+        name: "Visa and biometric services at home",
         peace: false,
         presence: false,
         honour: true,
       },
       {
-        name: "At-home biometric services",
+        name: "Airport meet-and-greet arrangements",
         peace: false,
         presence: false,
         honour: true,
@@ -305,15 +375,21 @@ const comparisonData: ComparisonFeature[] = [
     category: "Documentation & Admin",
     features: [
       {
-        name: "Basic assistance",
+        name: "Basic support",
         peace: true,
         presence: true,
         honour: true,
       },
       {
-        name: "House staff KYC verification",
+        name: "KYC and verification of existing househelp",
         peace: false,
         presence: true,
+        honour: true,
+      },
+      {
+        name: "KYC and police verification of house staff",
+        peace: false,
+        presence: false,
         honour: true,
       },
       {
@@ -379,11 +455,9 @@ interface CarePlansComparisonProps {
 
 export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparisonProps) {
   const [mobileView, setMobileView] = useState<"compare" | "single">("compare")
-  const [selectedPlanIndex, setSelectedPlanIndex] = useState(1) // Default to Presence plan
+  const [selectedPlanIndex, setSelectedPlanIndex] = useState(1)
 
-  // Ensure component starts at the top when mounted
   useEffect(() => {
-    // Use a small delay to ensure DOM is ready
     const timer = setTimeout(() => {
       window.scrollTo({ top: 0, behavior: "smooth" })
     }, 100)
@@ -391,12 +465,7 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
     return () => clearTimeout(timer)
   }, [])
 
-  const renderFeatureValue = (
-    value: boolean | string,
-    planType: "peace" | "presence" | "honour",
-    compact = false,
-    hasTooltip = false,
-  ) => {
+  const renderFeatureValue = (value: boolean | string, planType: "peace" | "presence" | "honour", compact = false) => {
     if (value === true) {
       return (
         <div className="flex items-center justify-center gap-2">
@@ -413,14 +482,6 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
         </div>
       )
     }
-    if (value === "Value-Added") {
-      return (
-        <div className="flex items-center justify-center gap-2">
-          <Plus className="h-4 w-4 text-orange-500 flex-shrink-0" />
-          <span className="text-sm text-orange-700 font-medium text-center">Add-on available</span>
-        </div>
-      )
-    }
     if (typeof value === "string") {
       return (
         <div className="flex items-center justify-center gap-2">
@@ -432,7 +493,6 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
           >
             {value}
           </span>
-          {hasTooltip && <HealthTestTooltip plan={planType === "presence" ? "presence" : "honour"} className="ml-1" />}
         </div>
       )
     }
@@ -621,7 +681,9 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
                           ? "bg-green-500"
                           : categoryIndex === 2
                             ? "bg-blue-500"
-                            : "bg-purple-500"
+                            : categoryIndex === 3
+                              ? "bg-purple-500"
+                              : "bg-gray-500"
                     }`}
                   ></div>
                   {category.category}
@@ -637,28 +699,13 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
                         {feature.name}
                       </div>
                       <div className="flex justify-center items-center min-h-[32px]">
-                        {renderFeatureValue(
-                          feature.peace,
-                          "peace",
-                          true,
-                          feature.hasTooltip && feature.peace !== "Value-Added" && feature.peace !== "82 parameters",
-                        )}
+                        {renderFeatureValue(feature.peace, "peace", true)}
                       </div>
                       <div className="flex justify-center items-center min-h-[32px]">
-                        {renderFeatureValue(
-                          feature.presence,
-                          "presence",
-                          true,
-                          feature.hasTooltip && feature.presence !== "Value-Added",
-                        )}
+                        {renderFeatureValue(feature.presence, "presence", true)}
                       </div>
                       <div className="flex justify-center items-center min-h-[32px]">
-                        {renderFeatureValue(
-                          feature.honour,
-                          "honour",
-                          true,
-                          feature.hasTooltip && feature.honour !== "Value-Added",
-                        )}
+                        {renderFeatureValue(feature.honour, "honour", true)}
                       </div>
                     </div>
 
@@ -670,36 +717,19 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
                           <div className="text-center">
                             <div className="text-xs text-gray-600 mb-1 font-medium">Peace</div>
                             <div className="min-h-[40px] flex items-center justify-center">
-                              {renderFeatureValue(
-                                feature.peace,
-                                "peace",
-                                true,
-                                feature.hasTooltip &&
-                                  feature.peace !== "Value-Added" &&
-                                  feature.peace !== "82 parameters",
-                              )}
+                              {renderFeatureValue(feature.peace, "peace", true)}
                             </div>
                           </div>
                           <div className="text-center">
                             <div className="text-xs text-gray-600 mb-1 font-medium">Presence</div>
                             <div className="min-h-[40px] flex items-center justify-center">
-                              {renderFeatureValue(
-                                feature.presence,
-                                "presence",
-                                true,
-                                feature.hasTooltip && feature.presence !== "Value-Added",
-                              )}
+                              {renderFeatureValue(feature.presence, "presence", true)}
                             </div>
                           </div>
                           <div className="text-center">
                             <div className="text-xs text-gray-600 mb-1 font-medium">Honour</div>
                             <div className="min-h-[40px] flex items-center justify-center">
-                              {renderFeatureValue(
-                                feature.honour,
-                                "honour",
-                                true,
-                                feature.hasTooltip && feature.honour !== "Value-Added",
-                              )}
+                              {renderFeatureValue(feature.honour, "honour", true)}
                             </div>
                           </div>
                         </div>
@@ -715,12 +745,6 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
                             feature[currentPlan.id as keyof typeof feature] as boolean | string,
                             currentPlan.id as "peace" | "presence" | "honour",
                             false,
-                            feature.hasTooltip &&
-                              feature[currentPlan.id as keyof typeof feature] !== "Value-Added" &&
-                              !(
-                                currentPlan.id === "peace" &&
-                                feature[currentPlan.id as keyof typeof feature] === "82 parameters"
-                              ),
                           )}
                         </div>
                       </div>
@@ -738,35 +762,55 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
             <h6 className="font-bold text-lg text-gray-900">Specialist Add-Ons</h6>
           </div>
           <div className="space-y-4">
-            <div className="bg-blue-50 rounded-lg p-4">
-              <h5 className="font-bold text-gray-900">Dementia Care Add-On</h5>
-              <ul className="list-disc pl-6 text-sm text-gray-600">
+            <div className="bg-purple-50 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h5 className="font-bold text-gray-900 flex items-center gap-2">
+                  <span className="text-xl">🧠</span>
+                  Dementia Care Add-On
+                </h5>
+                <span className="font-bold text-purple-600">$120/month</span>
+              </div>
+              <ul className="list-disc pl-6 text-sm text-gray-600 space-y-1">
                 <li>Monthly psychologist sessions and caregiver counselling</li>
-                <li>Cognitive assessments via app</li>
-                <li>Physiotherapy and diet sessions</li>
-                <li>Nurse or attendant for respite care</li>
-                <li>Medication reminders and fall-detection wearables</li>
+                <li>Cognitive assessment via app</li>
+                <li>Diet, physiotherapy, and behavioural guidance</li>
+                <li>Nurse or attendant support for respite care</li>
+                <li>Medication reminders</li>
+                <li>Geofencing wearables and fall detection</li>
+                <li>Access to exclusive dementia caregiver content</li>
               </ul>
             </div>
-            <div className="bg-accent/10 rounded-lg p-4">
-              <h5 className="font-bold text-accent">Diabetes Management Add-On</h5>
-              <ul className="list-disc pl-6 text-sm text-gray-600">
+            <div className="bg-green-50 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h5 className="font-bold text-gray-900 flex items-center gap-2">
+                  <span className="text-xl">🍎</span>
+                  Diabetes Management Add-On
+                </h5>
+                <span className="font-bold text-green-600">$50/month</span>
+              </div>
+              <ul className="list-disc pl-6 text-sm text-gray-600 space-y-1">
                 <li>Daily monitoring calls</li>
                 <li>Quarterly HbA1c tests</li>
-                <li>Teleconsults with diabetologist</li>
+                <li>Teleconsults with Diabetologist</li>
                 <li>Monthly dietician sessions</li>
                 <li>Annual eye check-up</li>
-                <li>Lifestyle and yoga workshops</li>
+                <li>Access to support groups and lifestyle workshops</li>
               </ul>
             </div>
-            <div className="bg-purple-50 rounded-lg p-4">
-              <h5 className="font-bold text-purple-600">Heart Health Add-On</h5>
-              <ul className="list-disc pl-6 text-sm text-gray-600">
+            <div className="bg-red-50 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h5 className="font-bold text-gray-900 flex items-center gap-2">
+                  <span className="text-xl">💓</span>
+                  Heart Disease Management Add-On
+                </h5>
+                <span className="font-bold text-red-600">$50/month</span>
+              </div>
+              <ul className="list-disc pl-6 text-sm text-gray-600 space-y-1">
                 <li>Daily monitoring calls</li>
-                <li>Quarterly cardiologist consultations</li>
+                <li>Quarterly Cardiologist consultations</li>
                 <li>Annual cardiac check-up (ECG, 2D Echo)</li>
                 <li>Monthly dietician sessions</li>
-                <li>Lifestyle workshops and education resources</li>
+                <li>Access to lifestyle workshops and education resources</li>
               </ul>
             </div>
           </div>
@@ -775,53 +819,17 @@ export function CarePlansComparison({ onClose, onSelectPlan }: CarePlansComparis
           </div>
         </div>
 
-        {/* Value-Added Services Note */}
-        <div className="mt-8 bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <h6 className="font-bold text-lg text-gray-900">Understanding Your Options</h6>
-          </div>
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <Check className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-              <div>
-                <span className="font-semibold text-green-700">Included:</span>
-                <span className="text-sm text-gray-600 ml-2">Feature is part of your plan at no extra cost</span>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <Plus className="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" />
-              <div>
-                <span className="font-semibold text-orange-700">Add-on available:</span>
-                <span className="text-sm text-gray-600 ml-2">
-                  Available as an add-on service with transparent pricing
-                </span>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <Info className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
-              <div>
-                <span className="font-semibold text-blue-700">Specific details:</span>
-                <span className="text-sm text-gray-600 ml-2">Shows quantity limits or specific conditions</span>
-              </div>
-            </div>
-            <div className="bg-accent/5 rounded-xl p-4 mt-4">
-              <p className="text-accent font-semibold mb-2">Our Promise</p>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                Every service you need is available. If it's not included in your plan, we offer it as a value-added
-                service with clear, upfront pricing. No surprises, just care.
-              </p>
-            </div>
-          </div>
-        </div>
-
         {/* Closing CTA */}
-        <div className="mt-8 bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <h6 className="font-bold text-lg text-gray-900">Choose your plan with confidence.</h6>
-          </div>
-          <div className="text-sm text-gray-600 leading-relaxed">
-            Every Times NRI plan includes verified emergency support, health coordination, and trusted concierge care.
-          </div>
+        <div className="mt-8 bg-white rounded-lg border border-gray-200 shadow-sm p-6 text-center">
+          <h6 className="font-bold text-xl text-gray-900 mb-3">Choose your plan with confidence.</h6>
+          <p className="text-gray-600 mb-4">
+            Every Times NRI plan includes verified emergency support, medical coordination, and trusted concierge care.
+          </p>
+          <Link href="/waitlist">
+            <Button size="lg" className="bg-accent hover:bg-accent/90 text-white">
+              Join Waitlist
+            </Button>
+          </Link>
         </div>
       </div>
     </div>

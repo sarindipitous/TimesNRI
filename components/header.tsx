@@ -1,178 +1,115 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Menu } from "lucide-react"
 import Link from "next/link"
-
-const menuItems = [
-  { id: "hero", label: "Home" },
-  { id: "about", label: "About" },
-  { id: "services", label: "Services" },
-  { id: "care-companion", label: "Care Companion" },
-  { id: "pricing", label: "Care Packages" },
-  { id: "testimonials", label: "Testimonials" },
-  { id: "story", label: "Our Mission" },
-  { id: "faq", label: "FAQ" },
-  { id: "blog", label: "Blog" },
-]
-
-function getDisplayName(id: string): string {
-  switch (id) {
-    case "faq":
-      return "FAQ"
-    case "pricing":
-      return "Care Packages"
-    case "story":
-      return "Our Mission"
-    case "care-companion":
-      return "Care Companion"
-    default:
-      return menuItems.find((item) => item.id === id)?.label || id
-  }
-}
+import { Button } from "@/components/ui/button"
+import { Menu, X } from "lucide-react"
+import { useState } from "react"
+import Image from "next/image"
 
 export function Header() {
-  const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10)
-    }
-
-    window.addEventListener("scroll", handleScroll)
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll)
-    }
-  }, [])
-
-  const scrollToSection = (sectionId: string) => {
-    if (sectionId === "blog") {
-      window.location.href = "/blog"
-      return
-    }
-
-    // Check if we're on the main page
-    const isOnMainPage = window.location.pathname === "/"
-
-    if (!isOnMainPage) {
-      // If we're not on the main page, navigate to main page with hash
-      window.location.href = `/#${sectionId}`
-      return
-    }
-
-    // If we're on the main page, scroll to the section
-    const element = document.getElementById(sectionId)
-    if (element) {
-      const headerHeight = 100
-
-      // Use requestAnimationFrame to ensure DOM is ready
-      requestAnimationFrame(() => {
-        const elementPosition = element.offsetTop - headerHeight
-        window.scrollTo({
-          top: elementPosition,
-          behavior: "smooth",
-        })
-
-        // Add a small delay to handle any lazy loading content shifts
-        setTimeout(() => {
-          const newElementPosition = element.offsetTop - headerHeight
-          if (Math.abs(window.scrollY - newElementPosition) > 50) {
-            window.scrollTo({
-              top: newElementPosition,
-              behavior: "smooth",
-            })
-          }
-        }, 500)
-      })
-    }
-    setIsMobileMenuOpen(false)
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen)
   }
 
   return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
-        isScrolled ? "bg-white/95 backdrop-blur-md shadow-lg" : "bg-transparent"
-      }`}
-    >
-      <div className="container mx-auto px-4 md:px-6">
-        <div className="flex h-16 md:h-20 items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center">
-            <div className="flex flex-col">
-              <span className="font-bold text-lg text-primary">Times NRI</span>
-              <span className="text-xs text-gray-600 -mt-1">Senior Care & Wellness Membership</span>
-            </div>
-          </div>
+    <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+      <div className="container flex h-16 items-center justify-between px-4 md:px-6">
+        <Link href="/" className="flex items-center space-x-2">
+          <Image src="/images/times-nri-logo.png" alt="Times NRI Logo" width={120} height={40} className="h-8 w-auto" />
+        </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center space-x-1">
-            {menuItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => scrollToSection(item.id)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-primary hover:bg-primary/5 rounded-lg transition-colors"
-              >
-                {getDisplayName(item.id)}
-              </button>
-            ))}
-          </nav>
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
+          <Link href="/#about" className="transition-colors hover:text-primary">
+            About
+          </Link>
+          <Link href="/#services" className="transition-colors hover:text-primary">
+            Services
+          </Link>
+          <Link href="/compare" className="transition-colors hover:text-primary">
+            Compare Plans
+          </Link>
+          <Link href="/#testimonials" className="transition-colors hover:text-primary">
+            Testimonials
+          </Link>
+          <Link href="/#faq" className="transition-colors hover:text-primary">
+            FAQ
+          </Link>
+          <Link href="/blog" className="transition-colors hover:text-primary">
+            Blog
+          </Link>
+        </nav>
 
-          {/* Desktop CTA */}
-          <div className="hidden lg:flex items-center gap-4">
-            <Link href="/waitlist">
-              <Button className="bg-accent hover:bg-accent/90 text-white font-semibold px-6 py-2">Join Waitlist</Button>
-            </Link>
-          </div>
+        <div className="flex items-center space-x-4">
+          <Link href="/waitlist" className="hidden md:inline-block">
+            <Button className="bg-accent hover:bg-accent/90">Join Waitlist</Button>
+          </Link>
 
-          {/* Mobile Menu */}
-          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-            <SheetTrigger asChild className="lg:hidden">
-              <Button variant="ghost" size="sm" className="p-2">
-                <Menu className="h-6 w-6" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-80 p-0">
-              <div className="flex flex-col h-full">
-                <div className="flex items-center justify-between p-6 border-b">
-                  <div className="flex items-center">
-                    <div className="flex flex-col">
-                      <span className="font-bold text-lg text-primary">Times NRI</span>
-                      <span className="text-xs text-gray-600 -mt-1">Senior Care & Wellness Membership</span>
-                    </div>
-                  </div>
-                </div>
-                <nav className="flex-1 p-6 overflow-y-auto">
-                  <div className="space-y-4">
-                    {menuItems.map((item) => (
-                      <button
-                        key={item.id}
-                        onClick={() => scrollToSection(item.id)}
-                        className="block w-full text-left px-4 py-3 text-base font-medium text-gray-700 hover:text-primary hover:bg-primary/5 rounded-lg transition-colors"
-                      >
-                        {getDisplayName(item.id)}
-                      </button>
-                    ))}
-                  </div>
-                </nav>
-                <div className="p-6 border-t">
-                  <Link href="/waitlist">
-                    <Button
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="w-full bg-accent hover:bg-accent/90 text-white font-semibold py-3"
-                    >
-                      Join Waitlist
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </SheetContent>
-          </Sheet>
+          {/* Mobile Menu Button */}
+          <button
+            className="md:hidden p-2 hover:bg-gray-100 rounded-md transition-colors"
+            onClick={toggleMobileMenu}
+            aria-label="Toggle menu"
+          >
+            {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
         </div>
       </div>
+
+      {/* Mobile Navigation */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden border-t bg-white">
+          <nav className="flex flex-col space-y-4 p-4">
+            <Link
+              href="/#about"
+              className="text-sm font-medium transition-colors hover:text-primary"
+              onClick={toggleMobileMenu}
+            >
+              About
+            </Link>
+            <Link
+              href="/#services"
+              className="text-sm font-medium transition-colors hover:text-primary"
+              onClick={toggleMobileMenu}
+            >
+              Services
+            </Link>
+            <Link
+              href="/compare"
+              className="text-sm font-medium transition-colors hover:text-primary"
+              onClick={toggleMobileMenu}
+            >
+              Compare Plans
+            </Link>
+            <Link
+              href="/#testimonials"
+              className="text-sm font-medium transition-colors hover:text-primary"
+              onClick={toggleMobileMenu}
+            >
+              Testimonials
+            </Link>
+            <Link
+              href="/#faq"
+              className="text-sm font-medium transition-colors hover:text-primary"
+              onClick={toggleMobileMenu}
+            >
+              FAQ
+            </Link>
+            <Link
+              href="/blog"
+              className="text-sm font-medium transition-colors hover:text-primary"
+              onClick={toggleMobileMenu}
+            >
+              Blog
+            </Link>
+            <Link href="/waitlist" onClick={toggleMobileMenu}>
+              <Button className="w-full bg-accent hover:bg-accent/90">Join Waitlist</Button>
+            </Link>
+          </nav>
+        </div>
+      )}
     </header>
   )
 }
