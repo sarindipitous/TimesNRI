@@ -28,8 +28,8 @@ export function Header() {
           <Link href="/#services" className="transition-colors hover:text-primary">
             Services
           </Link>
-          <Link href="/compare" className="transition-colors hover:text-primary">
-            Compare Plans
+          <Link href="/#pricing" className="transition-colors hover:text-primary">
+            Care Plans
           </Link>
           <Link href="/#testimonials" className="transition-colors hover:text-primary">
             Testimonials
@@ -77,11 +77,11 @@ export function Header() {
               Services
             </Link>
             <Link
-              href="/compare"
+              href="/#pricing"
               className="text-sm font-medium transition-colors hover:text-primary"
               onClick={toggleMobileMenu}
             >
-              Compare Plans
+              Care Plans
             </Link>
             <Link
               href="/#testimonials"
