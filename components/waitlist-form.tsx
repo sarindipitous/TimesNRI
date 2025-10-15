@@ -10,6 +10,7 @@ import { Check, Copy, Share2, ArrowRight } from "lucide-react"
 import { submitToWaitlist } from "@/app/actions/waitlist"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { trackWaitlistSignup } from "@/lib/gtm-utils"
+import { CarePlansComparison } from "@/components/care-plans-comparison"
 
 interface WaitlistFormProps {
   buttonText?: string
@@ -52,6 +53,7 @@ export function WaitlistForm({
   const formRef = useRef<HTMLFormElement>(null)
   const [carePlanInterest, setCarePlanInterest] = useState("")
   const [referredBy, setReferredBy] = useState<string | null>(null)
+  const [isComparisonOpen, setIsComparisonOpen] = useState(false)
 
   // Basic email validation function for client-side
   const isValidEmail = (email: string): boolean => {
@@ -83,7 +85,7 @@ export function WaitlistForm({
     } else if (planParam) {
       const planMap: Record<string, string> = {
         peace: "Peace: $50/month",
-        presence: "Presence: $200/month",
+        presence: "Presence: $150/month",
         honour: "Honour: $500/month (By Invitation Only)",
       }
       setCarePlan(planMap[planParam] || "")
@@ -263,6 +265,17 @@ export function WaitlistForm({
     if (!standalone) {
       handleClose()
     }
+  }
+
+  const handleSelectPlanFromComparison = (plan: string) => {
+    // Map the plan names to the format used in the form
+    const planMap: Record<string, string> = {
+      Peace: "Peace: $50/month",
+      Presence: "Presence: $150/month",
+      Honour: "Honour: $500/month (By Invitation Only)",
+    }
+    setCarePlan(planMap[plan] || plan)
+    setIsComparisonOpen(false)
   }
 
   // Standalone version (for dedicated waitlist page)
@@ -607,12 +620,19 @@ export function WaitlistForm({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Peace: $50/month">Peace: $50/month</SelectItem>
-                        <SelectItem value="Presence: $200/month">Presence: $200/month</SelectItem>
+                        <SelectItem value="Presence: $150/month">Presence: $150/month</SelectItem>
                         <SelectItem value="Honour: $500/month (By Invitation Only)">
                           Honour: $500/month (By Invitation Only)
                         </SelectItem>
                       </SelectContent>
                     </Select>
+                    <button
+                      type="button"
+                      onClick={() => setIsComparisonOpen(true)}
+                      className="text-sm text-accent hover:text-accent/80 underline"
+                    >
+                      Compare all plans
+                    </button>
                     {carePlan && (
                       <div className="space-y-2">
                         <label htmlFor="carePlanInterest" className="block text-sm font-medium text-gray-700">
@@ -715,6 +735,16 @@ export function WaitlistForm({
             </div>
           )}
         </form>
+
+        {/* Comparison Dialog for standalone mode */}
+        <Dialog open={isComparisonOpen} onOpenChange={setIsComparisonOpen}>
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+            <CarePlansComparison
+              onClose={() => setIsComparisonOpen(false)}
+              onSelectPlan={handleSelectPlanFromComparison}
+            />
+          </DialogContent>
+        </Dialog>
 
         {/* Success message for standalone mode */}
         {isSuccessOpen && (
@@ -1124,12 +1154,19 @@ export function WaitlistForm({
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Peace: $50/month">Peace: $50/month</SelectItem>
-                            <SelectItem value="Presence: $200/month">Presence: $200/month</SelectItem>
+                            <SelectItem value="Presence: $150/month">Presence: $150/month</SelectItem>
                             <SelectItem value="Honour: $500/month (By Invitation Only)">
                               Honour: $500/month (By Invitation Only)
                             </SelectItem>
                           </SelectContent>
                         </Select>
+                        <button
+                          type="button"
+                          onClick={() => setIsComparisonOpen(true)}
+                          className="text-sm text-accent hover:text-accent/80 underline"
+                        >
+                          Compare all plans
+                        </button>
                         {carePlan && (
                           <div className="space-y-2">
                             <label htmlFor="carePlanInterest" className="block text-sm font-medium text-gray-700">
@@ -1233,6 +1270,16 @@ export function WaitlistForm({
               )}
             </form>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Comparison Dialog for modal version */}
+      <Dialog open={isComparisonOpen} onOpenChange={setIsComparisonOpen}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <CarePlansComparison
+            onClose={() => setIsComparisonOpen(false)}
+            onSelectPlan={handleSelectPlanFromComparison}
+          />
         </DialogContent>
       </Dialog>
 
