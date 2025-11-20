@@ -420,21 +420,29 @@ export async function sendCampaign(campaignId: number): Promise<{ success: boole
     // Clear any existing logs for this campaign
     await sql`DELETE FROM email_campaign_logs WHERE campaign_id = ${campaignId}`
 
-    if (recipients.length > 0) {
-      const logValues = recipients
-        .map(
-          (r) =>
-            `(${campaignId}, ${sql.escapeIdentifier(r.email)}, ${r.name ? sql.escapeIdentifier(r.name) : "NULL"}, 'pending')`,
-        )
+    // Insert logs in batches to avoid query size limits
+    const LOG_INSERT_BATCH = 50
+    for (let i = 0; i < recipients.length; i += LOG_INSERT_BATCH) {
+      const batch = recipients.slice(i, i + LOG_INSERT_BATCH)
+
+      // Build VALUES clause with proper parameterization
+      const values = batch
+        .map((r, idx) => {
+          const baseIdx = idx * 3 + 1
+          return `($${baseIdx}, $${baseIdx + 1}, $${baseIdx + 2}, 'pending')`
+        })
         .join(", ")
 
-      await sql.unsafe(`
-        INSERT INTO email_campaign_logs (campaign_id, recipient_email, recipient_name, status)
-        VALUES ${logValues}
-      `)
+      // Flatten parameters
+      const params = batch.flatMap((r) => [campaignId, r.email, r.name || null])
 
-      console.log(`[SEND CAMPAIGN] Created ${recipients.length} log entries (batch insert)`)
+      await sql.unsafe(
+        `INSERT INTO email_campaign_logs (campaign_id, recipient_email, recipient_name, status) VALUES ${values}`,
+        params,
+      )
     }
+
+    console.log(`[SEND CAMPAIGN] Created ${recipients.length} log entries (batch insert)`)
 
     let sentCount = 0
     let failedCount = 0
@@ -465,41 +473,34 @@ export async function sendCampaign(campaignId: number): Promise<{ success: boole
       const result = await sendBatchEmailsViaResend(batchEmails)
 
       if (result.sent.length > 0) {
+        // Update all successful sends
         const sentEmails = result.sent.map((s) => s.email)
-        const externalIds = result.sent.reduce(
-          (acc, s) => {
-            if (s.external_id) acc[s.email] = s.external_id
-            return acc
-          },
-          {} as Record<string, string>,
-        )
-
-        // Update all successful sends in one query
-        for (const sentItem of result.sent) {
-          await sql`
-            UPDATE email_campaign_logs 
-            SET status = 'sent', 
-                sent_at = CURRENT_TIMESTAMP, 
-                email_service = 'Resend',
-                external_id = ${sentItem.external_id || null}
-            WHERE campaign_id = ${campaignId} 
-              AND recipient_email = ${sentItem.email}
-          `
-        }
+        await sql`
+          UPDATE email_campaign_logs 
+          SET status = 'sent', 
+              sent_at = CURRENT_TIMESTAMP, 
+              email_service = 'Resend'
+          WHERE campaign_id = ${campaignId} 
+            AND recipient_email = ANY(${sentEmails})
+        `
 
         sentCount += result.sent.length
         console.log(`[SEND CAMPAIGN] ✅ Batch ${batchIndex + 1}: ${result.sent.length} sent`)
       }
 
       if (result.failed.length > 0) {
-        // Update all failed sends in one query
-        for (const failedItem of result.failed) {
+        // Update all failed sends
+        const failedEmails = result.failed.map((f) => f.email)
+        const failedErrors = result.failed.map((f) => f.error)
+
+        // Update each failed email (error messages are unique per email)
+        for (let i = 0; i < result.failed.length; i++) {
           await sql`
             UPDATE email_campaign_logs 
             SET status = 'failed', 
-                error_message = ${failedItem.error}
+                error_message = ${failedErrors[i]}
             WHERE campaign_id = ${campaignId} 
-              AND recipient_email = ${failedItem.email}
+              AND recipient_email = ${failedEmails[i]}
           `
         }
 
