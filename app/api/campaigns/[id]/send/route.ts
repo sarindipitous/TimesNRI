@@ -11,10 +11,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ success: false, error: "Invalid campaign ID" }, { status: 400 })
     }
 
-    console.log(`[API] Starting send for campaign ${campaignId}`)
-    console.log(`[API] This will send emails with 2.5 second delays to comply with Resend rate limits`)
+    console.log(`[API] Starting optimized send for campaign ${campaignId}`)
+    console.log(`[API] Using Resend batch API (up to 100 emails per request) with 1.5 req/sec rate limiting`)
 
-    // This will now send ONE EMAIL PER API CALL with proper 2.5 second rate limiting
     const result = await sendCampaign(campaignId)
 
     if (result.success) {

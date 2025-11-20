@@ -241,64 +241,16 @@ export async function getCampaignRecipients(campaign: EmailCampaign): Promise<Ar
   }
 }
 
-// RESEND COMPLIANT: Single email sending with proper rate limiting
-async function sendSingleEmailViaResend(payload: {
-  to: string
+interface ResendBatchEmail {
+  from: string
+  to: string[]
   subject: string
   html: string
-}): Promise<{ success: boolean; error?: string; external_id?: string }> {
-  if (!process.env.RESEND_API_KEY) {
-    return { success: false, error: "Resend API key not configured" }
-  }
+}
 
-  try {
-    console.log(`[RESEND] Sending to ${payload.to}`)
-
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "Times NRI Team <noreply@timesnri.com>",
-        to: [payload.to], // Single recipient per request
-        subject: payload.subject,
-        html: payload.html,
-      }),
-    })
-
-    const responseData = await response.json()
-
-    if (response.ok) {
-      console.log(`[RESEND] ✅ Success for ${payload.to}, ID: ${responseData.id}`)
-      return {
-        success: true,
-        external_id: responseData.id,
-      }
-    } else {
-      console.log(`[RESEND] ❌ Failed for ${payload.to}:`, responseData)
-
-      // Check for rate limiting specifically
-      if (response.status === 429) {
-        return {
-          success: false,
-          error: "Rate limited - too many requests",
-        }
-      }
-
-      return {
-        success: false,
-        error: responseData.message || `HTTP ${response.status}`,
-      }
-    }
-  } catch (error) {
-    console.log(`[RESEND] ❌ Exception for ${payload.to}:`, error)
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Network error",
-    }
-  }
+interface ResendBatchResponse {
+  data?: Array<{ id: string }>
+  error?: { message: string }
 }
 
 // Fallback: SendGrid single email
@@ -349,67 +301,87 @@ async function sendSingleEmailViaSendGrid(payload: {
   }
 }
 
-// RESEND COMPLIANT: Single email with proper rate limiting and retry logic
-async function sendSingleEmailWithRetry(
-  payload: {
-    to: string
-    subject: string
-    html: string
-  },
-  maxRetries = 3,
-): Promise<{ success: boolean; service?: string; error?: string; external_id?: string }> {
-  // Try Resend first (with retries)
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    console.log(`[EMAIL] Attempt ${attempt}/${maxRetries} via Resend for ${payload.to}`)
+async function sendBatchEmailsViaResend(emails: Array<{ to: string; subject: string; html: string }>): Promise<{
+  success: boolean
+  sent: Array<{ email: string; external_id?: string }>
+  failed: Array<{ email: string; error: string }>
+}> {
+  if (!process.env.RESEND_API_KEY) {
+    return {
+      success: false,
+      sent: [],
+      failed: emails.map((e) => ({ email: e.to, error: "Resend API key not configured" })),
+    }
+  }
 
-    const result = await sendSingleEmailViaResend(payload)
+  try {
+    console.log(`[RESEND BATCH] Sending ${emails.length} emails`)
 
-    if (result.success) {
+    // Resend batch API: send up to 100 emails per request
+    const batchEmails = emails.map((email) => ({
+      from: "Times NRI Team <noreply@timesnri.com>",
+      to: [email.to],
+      subject: email.subject,
+      html: email.html,
+    }))
+
+    const response = await fetch("https://api.resend.com/emails/batch", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(batchEmails),
+    })
+
+    const responseData: ResendBatchResponse = await response.json()
+
+    if (response.ok && responseData.data) {
+      console.log(`[RESEND BATCH] ✅ Successfully sent ${responseData.data.length} emails`)
+
+      const sent = emails.map((email, index) => ({
+        email: email.to,
+        external_id: responseData.data?.[index]?.id,
+      }))
+
       return {
         success: true,
-        service: "Resend",
-        external_id: result.external_id,
+        sent,
+        failed: [],
+      }
+    } else {
+      console.log(`[RESEND BATCH] ❌ Failed:`, responseData.error || response.statusText)
+
+      // If batch fails, mark all as failed
+      return {
+        success: false,
+        sent: [],
+        failed: emails.map((e) => ({
+          email: e.to,
+          error: responseData.error?.message || `HTTP ${response.status}`,
+        })),
       }
     }
-
-    // If rate limited, wait much longer before retry
-    if (result.error?.includes("rate") || result.error?.includes("429") || result.error?.includes("Rate limited")) {
-      const waitTime = attempt * 5000 // 5, 10, 15 seconds
-      console.log(`[EMAIL] Rate limited, waiting ${waitTime / 1000} seconds before retry...`)
-      await new Promise((resolve) => setTimeout(resolve, waitTime))
-    } else if (attempt < maxRetries) {
-      // For other errors, wait 2 seconds before retry
-      console.log(`[EMAIL] Error: ${result.error}, waiting 2 seconds before retry...`)
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-    }
-  }
-
-  // If Resend fails, try SendGrid once
-  console.log(`[EMAIL] Resend failed after ${maxRetries} attempts, trying SendGrid for ${payload.to}`)
-  const sendGridResult = await sendSingleEmailViaSendGrid(payload)
-
-  if (sendGridResult.success) {
+  } catch (error) {
+    console.log(`[RESEND BATCH] ❌ Exception:`, error)
     return {
-      success: true,
-      service: "SendGrid",
+      success: false,
+      sent: [],
+      failed: emails.map((e) => ({
+        email: e.to,
+        error: error instanceof Error ? error.message : "Network error",
+      })),
     }
-  }
-
-  // All services failed
-  return {
-    success: false,
-    error: `All services failed. Last error: ${sendGridResult.error}`,
   }
 }
 
-// RESEND COMPLIANT: Campaign sending with strict rate limiting
 export async function sendCampaign(campaignId: number): Promise<{ success: boolean; message: string }> {
   if (!hasDb) return noDb({ success: false, message: "Database not available" }, "sendCampaign")
 
   let campaign: EmailCampaign | null = null
 
   try {
-    console.log(`[SEND CAMPAIGN] Starting campaign ${campaignId}`)
+    console.log(`[SEND CAMPAIGN] Starting optimized campaign ${campaignId}`)
 
     // Get campaign
     campaign = await getCampaignById(campaignId)
@@ -428,9 +400,13 @@ export async function sendCampaign(campaignId: number): Promise<{ success: boole
     }
 
     console.log(`[SEND CAMPAIGN] Found ${recipients.length} recipients`)
-    console.log(
-      `[SEND CAMPAIGN] Estimated time: ${Math.ceil(recipients.length * 2.5)} seconds (2.5s per email to comply with Resend rate limits)`,
-    )
+
+    const BATCH_SIZE = 100 // Resend's batch limit
+    const batchCount = Math.ceil(recipients.length / BATCH_SIZE)
+    const estimatedTime = Math.ceil(batchCount * 0.67) // 0.67 seconds per batch at 1.5 req/sec
+
+    console.log(`[SEND CAMPAIGN] Will send in ${batchCount} batches`)
+    console.log(`[SEND CAMPAIGN] Estimated time: ~${estimatedTime} seconds`)
 
     // Update to sending status
     await updateCampaign(campaignId, {
@@ -444,90 +420,103 @@ export async function sendCampaign(campaignId: number): Promise<{ success: boole
     // Clear any existing logs for this campaign
     await sql`DELETE FROM email_campaign_logs WHERE campaign_id = ${campaignId}`
 
-    // Create logs for all recipients
-    for (const recipient of recipients) {
-      await sql`
+    if (recipients.length > 0) {
+      const logValues = recipients
+        .map(
+          (r) =>
+            `(${campaignId}, ${sql.escapeIdentifier(r.email)}, ${r.name ? sql.escapeIdentifier(r.name) : "NULL"}, 'pending')`,
+        )
+        .join(", ")
+
+      await sql.unsafe(`
         INSERT INTO email_campaign_logs (campaign_id, recipient_email, recipient_name, status)
-        VALUES (${campaignId}, ${recipient.email}, ${recipient.name || null}, 'pending')
-      `
+        VALUES ${logValues}
+      `)
+
+      console.log(`[SEND CAMPAIGN] Created ${recipients.length} log entries (batch insert)`)
     }
 
-    console.log(`[SEND CAMPAIGN] Created ${recipients.length} log entries`)
-
-    // Send emails ONE BY ONE with STRICT RESEND RATE LIMITING
     let sentCount = 0
     let failedCount = 0
+    const RATE_LIMIT_DELAY = 670 // 670ms = 1.5 requests per second (safe margin under 2 req/sec)
 
-    for (let i = 0; i < recipients.length; i++) {
-      const recipient = recipients[i]
+    for (let batchIndex = 0; batchIndex < batchCount; batchIndex++) {
+      const startIdx = batchIndex * BATCH_SIZE
+      const endIdx = Math.min(startIdx + BATCH_SIZE, recipients.length)
+      const batchRecipients = recipients.slice(startIdx, endIdx)
 
-      try {
-        console.log(`[SEND CAMPAIGN] Processing ${i + 1}/${recipients.length}: ${recipient.email}`)
+      console.log(`[SEND CAMPAIGN] Processing batch ${batchIndex + 1}/${batchCount} (${batchRecipients.length} emails)`)
 
-        // Prepare email content with template variables
+      // Prepare batch emails with template variables
+      const batchEmails = batchRecipients.map((recipient) => {
         let htmlContent = campaign.html_content
         htmlContent = htmlContent.replace(/\{\{name\}\}/g, recipient.name || "Valued Member")
         htmlContent = htmlContent.replace(/\{\{email\}\}/g, recipient.email)
         htmlContent = htmlContent.replace(/\{\{subject\}\}/g, campaign.subject)
 
-        // Send single email with retry logic
-        const result = await sendSingleEmailWithRetry({
+        return {
           to: recipient.email,
           subject: campaign.subject,
           html: htmlContent,
-        })
+        }
+      })
 
-        if (result.success) {
-          sentCount++
+      // Send batch
+      const result = await sendBatchEmailsViaResend(batchEmails)
 
-          // Update log to sent
+      if (result.sent.length > 0) {
+        const sentEmails = result.sent.map((s) => s.email)
+        const externalIds = result.sent.reduce(
+          (acc, s) => {
+            if (s.external_id) acc[s.email] = s.external_id
+            return acc
+          },
+          {} as Record<string, string>,
+        )
+
+        // Update all successful sends in one query
+        for (const sentItem of result.sent) {
           await sql`
             UPDATE email_campaign_logs 
-            SET status = 'sent', sent_at = CURRENT_TIMESTAMP, 
-                email_service = ${result.service}, external_id = ${result.external_id || null}
-            WHERE campaign_id = ${campaignId} AND recipient_email = ${recipient.email}
+            SET status = 'sent', 
+                sent_at = CURRENT_TIMESTAMP, 
+                email_service = 'Resend',
+                external_id = ${sentItem.external_id || null}
+            WHERE campaign_id = ${campaignId} 
+              AND recipient_email = ${sentItem.email}
           `
+        }
 
-          console.log(`[SEND CAMPAIGN] ✅ ${i + 1}/${recipients.length} sent via ${result.service}`)
-        } else {
-          failedCount++
+        sentCount += result.sent.length
+        console.log(`[SEND CAMPAIGN] ✅ Batch ${batchIndex + 1}: ${result.sent.length} sent`)
+      }
 
-          // Update log to failed
+      if (result.failed.length > 0) {
+        // Update all failed sends in one query
+        for (const failedItem of result.failed) {
           await sql`
             UPDATE email_campaign_logs 
-            SET status = 'failed', error_message = ${result.error || "Unknown error"}
-            WHERE campaign_id = ${campaignId} AND recipient_email = ${recipient.email}
+            SET status = 'failed', 
+                error_message = ${failedItem.error}
+            WHERE campaign_id = ${campaignId} 
+              AND recipient_email = ${failedItem.email}
           `
-
-          console.log(`[SEND CAMPAIGN] ❌ ${i + 1}/${recipients.length} failed: ${result.error}`)
         }
 
-        // Update campaign progress every 5 emails or at the end
-        if ((i + 1) % 5 === 0 || i === recipients.length - 1) {
-          await updateCampaign(campaignId, {
-            sent_count: sentCount,
-            failed_count: failedCount,
-          })
-          console.log(`[SEND CAMPAIGN] Progress: ${sentCount} sent, ${failedCount} failed`)
-        }
+        failedCount += result.failed.length
+        console.log(`[SEND CAMPAIGN] ❌ Batch ${batchIndex + 1}: ${result.failed.length} failed`)
+      }
 
-        // CRITICAL: RESEND RATE LIMITING COMPLIANCE
-        // Resend allows 2 requests per second, so we wait 2.5 seconds between emails
-        // This ensures we never exceed 1 request per 2.5 seconds = 0.4 requests per second
-        if (i < recipients.length - 1) {
-          console.log(`[SEND CAMPAIGN] Waiting 2.5 seconds to comply with Resend rate limits...`)
-          await new Promise((resolve) => setTimeout(resolve, 2500)) // 2.5 seconds
-        }
-      } catch (emailError) {
-        failedCount++
-        console.error(`[SEND CAMPAIGN] Critical error sending to ${recipient.email}:`, emailError)
+      // Update campaign progress
+      await updateCampaign(campaignId, {
+        sent_count: sentCount,
+        failed_count: failedCount,
+      })
 
-        // Update log to failed
-        await sql`
-          UPDATE email_campaign_logs 
-          SET status = 'failed', error_message = ${emailError instanceof Error ? emailError.message : "Critical error"}
-          WHERE campaign_id = ${campaignId} AND recipient_email = ${recipient.email}
-        `
+      console.log(`[SEND CAMPAIGN] Progress: ${sentCount} sent, ${failedCount} failed out of ${recipients.length}`)
+
+      if (batchIndex < batchCount - 1) {
+        await new Promise((resolve) => setTimeout(resolve, RATE_LIMIT_DELAY))
       }
     }
 
@@ -540,7 +529,7 @@ export async function sendCampaign(campaignId: number): Promise<{ success: boole
       completed_at: new Date(),
     })
 
-    const message = `Campaign completed successfully! ${sentCount} emails sent, ${failedCount} failed out of ${recipients.length} total recipients.`
+    const message = `Campaign completed! ${sentCount} emails sent, ${failedCount} failed out of ${recipients.length} total recipients.`
     console.log(`[SEND CAMPAIGN] FINAL: ${message}`)
 
     return {
